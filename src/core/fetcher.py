@@ -62,18 +62,13 @@ def get_papi_url_and_host():
     if not url or (custom_url is not None and custom_url != ""):
         url = custom_url
 
-    if config.run_in_cloud:
-        if not url.startswith("http://"):
-            url = f"http://{url}"
-        url = f"{url}/api/webapp/"
-    else:
-        if not url.startswith("https://"):
-            if url.startswith("http://"):
-                url = url.replace("http://", "https://")
-            else:
-                url = f"https://{url}"
+    if not url.startswith("https://"):
+        if url.startswith("http://"):
+            url = url.replace("http://", "https://")
+        else:
+            url = f"https://{url}"
 
-        if "api-" not in url:
-            url = url.replace("https://", "https://api-")
+    if "api-" not in url:
+        url = url.replace("https://", "https://api-")
 
     return url, host_name

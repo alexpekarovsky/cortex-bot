@@ -33,7 +33,7 @@ async def mcp_lifespan(mcp_server: FastMCP) -> AsyncIterator[MCPContext]:
         api_key_id = os.getenv(config.papi_auth_id_key)
 
         if not api_key or not api_key_id:
-            raise ValueError("Missing  authentication headers")
+            raise ValueError("Missing authentication headers")
 
         context = MCPContext(auth_headers={"Authorization": api_key, "X-XDR-AUTH-ID": api_key_id})
 

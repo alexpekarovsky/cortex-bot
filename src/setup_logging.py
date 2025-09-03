@@ -5,15 +5,8 @@ import logging
 import sys
 
 def setup_logging(config: BaseSettings):
+    handler = logging.StreamHandler(sys.stdout)
 
-    from rich.logging import RichHandler
-
-    handler = RichHandler( # noqa
-        markup=True,
-        tracebacks_show_locals=True,
-        show_path=True,
-        omit_repeated_times=False,
-    )
     formatter = logging.Formatter(
         fmt="%(name)s | %(message)s",
         datefmt="%H:%M:%S"

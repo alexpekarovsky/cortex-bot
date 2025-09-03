@@ -2,3 +2,4 @@
 /dist
 .idea/
 *__pycache__*
+.run/
