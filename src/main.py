@@ -8,8 +8,8 @@ from fastmcp.server.server import Transport
 
 from config.config import config
 from service.cortex_mcp.server import create_mcp_server
-from src.usecase.xsiam import xsiam_mcp
-from src.pkg.setup_logging import setup_logging
+from usecase.xsiam import xsiam_mcp
+from pkg.setup_logging import setup_logging
 
 logger = logging.getLogger("Cortex MCP")
 
