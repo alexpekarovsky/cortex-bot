@@ -1,14 +1,15 @@
 import asyncio
+import os
 import signal
 import logging
 from functools import partial
 
 from fastmcp.server.server import Transport
 
-from core.config import config
-from servers.cortex_mcp.server import mcp
-from servers.cortex_mcp.xsiam import xsiam_mcp
-from setup_logging import setup_logging
+from config.config import config
+from service.cortex_mcp.server import create_mcp_server
+from src.usecase.xsiam import xsiam_mcp
+from src.pkg.setup_logging import setup_logging
 
 logger = logging.getLogger("Cortex MCP")
 
@@ -35,6 +36,9 @@ async def async_main(transport: Transport):
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, partial(lambda s: asyncio.create_task(shutdown(s, loop)), sig))
 
+    api_key = os.getenv(config.papi_auth_header_key)
+    api_key_id = os.getenv(config.papi_auth_id_key)
+    mcp = create_mcp_server(api_key, api_key_id)
     await mcp.import_server(prefix="cortex", server=xsiam_mcp)
     if config.mcp_transport == "stdio":
         await mcp.run_async(transport=transport)

@@ -3,9 +3,9 @@ import os
 
 from fastmcp import Context
 
-from common.MCPContext import MCPContext
-from core.client import PAPIClient
-from core.config import config
+from entities.MCPContext import MCPContext
+from pkg.client import PAPIClient
+from config.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +18,7 @@ async def get_fetcher(ctx: Context):
     if not (api_key and xdr_id):
         api_key = os.getenv(config.papi_auth_header_key)
         xdr_id = os.getenv(config.papi_auth_id_key)
+
 
     logger.info(f"Creating new fetcher for auth ID {xdr_id}")
     fetcher = Fetcher(url, api_key, xdr_id)
