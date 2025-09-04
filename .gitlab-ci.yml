@@ -1,0 +1,36 @@
+image: python:3.12-slim
+
+stages:
+  - install
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  POETRY_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pypoetry"
+  POETRY_VIRTUALENVS_IN_PROJECT: "true"
+  VENV_PATH: "$CI_PROJECT_DIR/.venv"
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .cache/pip
+    - .cache/pypoetry
+    - .venv
+
+before_script:
+  - python3 -V
+  - pip install --upgrade pip
+  - pip install poetry
+  - poetry install --no-root
+
+.install_template: &install_template
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+install:
+  stage: install
+  <<: *install_template
+  script:
+    - poetry install
+  artifacts:
+    paths:
+      - .venv
