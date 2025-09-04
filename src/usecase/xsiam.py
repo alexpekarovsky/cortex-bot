@@ -5,9 +5,9 @@ from typing import Annotated, Optional
 from fastmcp import Context, FastMCP
 from pydantic import Field
 
-from core.fetcher import get_fetcher
-from servers.cortex_mcp.llm_config import LLM_FORMATTING_BASE_INSTRUCTIONS
-from servers.util import create_response_and_report, read_file
+from usecase.fetcher import get_fetcher
+from entities.llm_config import LLM_FORMATTING_BASE_INSTRUCTIONS
+from pkg.util import create_response_and_report, read_file
 
 logger = logging.getLogger("XSIAM MCP")
 
