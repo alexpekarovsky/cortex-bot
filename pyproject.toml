@@ -10,12 +10,13 @@ packages = [
 
 [tool.poetry.dependencies]
 python = ">=3.12,<4.0"
-fastapi = "^0.115.0"
+fastapi = "0.116.1"
 uvicorn = { version = "^0.34.0", extras = ["standard"] }
 types-requests = "^2.32.0.20250515"
 requests = "^2.32.3"
 fastmcp = "^2.12.0"
 mcp = "^1.9.3"
+starlette = "0.47.2"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.11.10"
