@@ -5,6 +5,28 @@ import logging
 import sys
 
 def setup_logging(config: BaseSettings):
+    """
+    Configure logging for the application with a consistent format and handler.
+
+    Sets up a StreamHandler that outputs to stdout with a custom formatter,
+    and configures both the root logger and Uvicorn-specific loggers to use
+    the same handler and formatting.
+
+    Args:
+        config (BaseSettings): Configuration object that must contain a
+            'log_level' attribute specifying the desired logging level
+            (e.g., logging.DEBUG, logging.INFO, etc.)
+
+    Returns:
+        logging.Logger: The configured root logger instance
+
+    Note:
+        - Clears any existing handlers on the root logger and Uvicorn loggers
+        - Uvicorn loggers are configured with propagate=False to prevent
+          duplicate log messages
+        - Log format: "%(name)s | %(message)s"
+        - Time format: "%H:%M:%S"
+    """
     handler = logging.StreamHandler(sys.stdout)
 
     formatter = logging.Formatter(

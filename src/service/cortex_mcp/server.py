@@ -1,5 +1,4 @@
 import logging
-import os
 from contextlib import asynccontextmanager
 from typing import AsyncIterator, Optional
 
@@ -8,7 +7,6 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from entities.MCPContext import MCPContext
-from config.config import config
 
 logger = logging.getLogger("Cortex MCP")
 
