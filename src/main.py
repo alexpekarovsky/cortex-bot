@@ -1,3 +1,14 @@
+"""
+Cortex MCP Server Main Module
+
+This module serves as the entry point for the Cortex MCP (Model Context Protocol) Server.
+It handles server initialization, signal handling for graceful shutdown, and manages
+the async event loop for the MCP server operations.
+
+The server can operate in different transport modes (stdio, streamable-http) and integrates
+with XSIAM (Extended Security Intelligence and Automation Management) services.
+"""
+
 import asyncio
 import os
 import signal
@@ -13,13 +24,29 @@ from pkg.setup_logging import setup_logging
 
 logger = logging.getLogger("Cortex MCP")
 
+
 async def shutdown(sig: signal.Signals, loop: asyncio.AbstractEventLoop):
+    """
+    Handle graceful shutdown of the Cortex MCP Server.
+
+    This function is called when the server receives termination signals (SIGINT/SIGTERM).
+    It cancels all running tasks and stops the event loop cleanly.
+
+    Args:
+        sig (signal.Signals): The signal that triggered the shutdown (SIGINT or SIGTERM)
+        loop (asyncio.AbstractEventLoop): The current asyncio event loop to be stopped
+
+    Returns:
+        None
+    """
     logger.info(f"Received exit signal {sig.name}...")
 
+    # Get all running tasks except the current shutdown task
     tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
     [task.cancel() for task in tasks]
 
     logger.info("Cancelling outstanding tasks")
+    # Wait for all tasks to complete or be canceled
     await asyncio.gather(*tasks, return_exceptions=True)
 
     logger.info("Stopping the event loop")
@@ -27,22 +54,47 @@ async def shutdown(sig: signal.Signals, loop: asyncio.AbstractEventLoop):
 
 
 async def async_main(transport: Transport):
+    """
+    Main async function that initializes and runs the Cortex MCP Server.
+
+    This function sets up logging, configures signal handlers for graceful shutdown,
+    creates the MCP server with authentication, imports the XSIAM server module,
+    and starts the server with the appropriate transport configuration.
+
+    Args:
+        transport (Transport): The transport mechanism for the MCP server
+                              (e.g., 'stdio', 'streamable-http')
+
+    Returns:
+        None
+
+    Raises:
+        Exception: Any exception that occurs during server initialization or runtime.
+    """
     setup_logging(config)
-    logger.info(f"Starting Cortex MCP Server")
+    logger.info("Starting Cortex MCP Server")
 
     loop = asyncio.get_running_loop()
 
-    # Add signal handlers for SIGINT and SIGTERM
+    # Add signal handlers for SIGINT and SIGTERM for graceful shutdown
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, partial(lambda s: asyncio.create_task(shutdown(s, loop)), sig))
 
+    # Retrieve API credentials from environment variables
     api_key = os.getenv(config.papi_auth_header_key)
     api_key_id = os.getenv(config.papi_auth_id_key)
+
+    # Create MCP server instance with authentication
     mcp = create_mcp_server(api_key, api_key_id)
+
+    # Import XSIAM MCP server with 'cortex' prefix
     await mcp.import_server(prefix="cortex", server=xsiam_mcp)
+
+    # Start server with appropriate transport configuration
     if config.mcp_transport == "stdio":
         await mcp.run_async(transport=transport)
     else:
+        # Use websocket or other transport with host/port configuration
         await mcp.run_async(
             transport=transport,
             host=config.mcp_host,
@@ -52,6 +104,21 @@ async def async_main(transport: Transport):
 
 
 def main():
+    """
+    Entry point for the Cortex MCP Server application.
+
+    This function serves as the main entry point that wraps the async main function
+    in an asyncio.run() call. It handles top-level exception catching and ensures
+    proper cleanup and logging during shutdown.
+
+    Returns:
+        None
+
+    Side Effects:
+        - Starts the asyncio event loop
+        - Logs server startup and shutdown events
+        - Handles exceptions and ensures graceful shutdown
+    """
     try:
         asyncio.run(async_main(config.mcp_transport))
     except Exception as e:

@@ -7,7 +7,15 @@ from pydantic import Field
 
 from usecase.fetcher import get_fetcher
 from entities.llm_config import LLM_FORMATTING_BASE_INSTRUCTIONS
-from pkg.util import create_response_and_report, read_file
+from entities.exceptions import (
+    PAPIClientError,
+    PAPIConnectionError,
+    PAPIAuthenticationError,
+    PAPIServerError,
+    PAPIClientRequestError,
+    PAPIResponseError
+)
+from pkg.util import create_response, read_file
 
 logger = logging.getLogger("XSIAM MCP")
 
@@ -64,10 +72,13 @@ async def get_issues(ctx: Context,
             "formatting_instructions": LLM_FORMATTING_BASE_INSTRUCTIONS,
         }
 
-        return create_response_and_report(data=response_data)
+        return create_response(data=response_data)
+    except (PAPIConnectionError, PAPIAuthenticationError, PAPIServerError, PAPIClientRequestError, PAPIResponseError, PAPIClientError) as e:
+        logger.exception(f"PAPI error while getting issues: {e}")
+        return create_response(data={"error": str(e)}, is_error=True)
     except Exception as e:
-        logger.error(f"Failed to get issues: {e}")
-        return create_response_and_report(data={"error": str(e)}, is_error=True)
+        logger.exception(f"Failed to get issues: {e}")
+        return create_response(data={"error": str(e)}, is_error=True)
 
 @xsiam_mcp.resource(
     uri="resources://issues_response.json",
@@ -78,11 +89,16 @@ async def get_issues(ctx: Context,
 async def get_issues_response() -> str:
     try:
         issues_json = read_file("issues_response.json")
+        return create_response(data={"response": json.loads(issues_json)})
+    except FileNotFoundError as e:
+        logger.exception(f"Issues response file not found: {e}")
+        return create_response(data={"error": str(e)}, is_error=True)
+    except json.JSONDecodeError as e:
+        logger.exception(f"Invalid JSON in issues response file: {e}")
+        return create_response(data={"error": str(e)}, is_error=True)
     except Exception as e:
         logger.exception(f"Failed to read issues responses: {e}")
-        return create_response_and_report(data={"error": str(e)}, is_error=True)
-
-    return create_response_and_report(data={"response": json.loads(issues_json)})
+        return create_response(data={"error": str(e)}, is_error=True)
 
 
 @xsiam_mcp.resource(
@@ -94,11 +110,16 @@ async def get_issues_response() -> str:
 async def get_cases_response() -> str:
     try:
         cases_json = read_file("cases_response.json")
+        return create_response(data={"response": json.loads(cases_json)})
+    except FileNotFoundError as e:
+        logger.exception(f"Cases response file not found: {e}")
+        return create_response(data={"error": str(e)}, is_error=True)
+    except json.JSONDecodeError as e:
+        logger.exception(f"Invalid JSON in cases response file: {e}")
+        return create_response(data={"error": str(e)}, is_error=True)
     except Exception as e:
-        logger.exception(f"Failed to read issues responses: {e}")
-        return create_response_and_report(data={"error": str(e)}, is_error=True)
-
-    return create_response_and_report(data={"response": json.loads(cases_json)})
+        logger.exception(f"Failed to read cases responses: {e}")
+        return create_response(data={"error": str(e)}, is_error=True)
 
 @xsiam_mcp.tool()
 async def get_cases(ctx: Context,
@@ -149,8 +170,11 @@ async def get_cases(ctx: Context,
         fetcher = await get_fetcher(ctx)
         response_data = fetcher.send_request("case/search/", data=payload)
 
-        return create_response_and_report(data=response_data)
+        return create_response(data=response_data)
+    except (PAPIConnectionError, PAPIAuthenticationError, PAPIServerError, PAPIClientRequestError, PAPIResponseError, PAPIClientError) as e:
+        logger.exception(f"PAPI error while getting cases: {e}")
+        return create_response(data={"error": str(e)}, is_error=True)
     except Exception as e:
-        logger.error(f"Failed to get cases: {e}")
-        return create_response_and_report(data={"error": str(e)}, is_error=True)
+        logger.exception(f"Failed to get cases: {e}")
+        return create_response(data={"error": str(e)}, is_error=True)
 
