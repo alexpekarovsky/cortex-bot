@@ -33,4 +33,15 @@ line-length = 120
 target-version = ["py312"]
 
 [tool.ruff]
-fix = true
+fix = false
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
