@@ -46,3 +46,6 @@ select = [
     "C4",  # flake8-comprehensions
     "UP",  # pyupgrade
 ]
+ignore = [
+    "E501" # line too long
+]
