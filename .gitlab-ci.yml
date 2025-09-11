@@ -55,3 +55,8 @@ release:
       - cortex-mcp.zip
       - cortex-mcp.zip.sha256
     expire_in: 1 week
+include:
+  - project: shared-services/gitlab-ci-templates
+    ref: master
+    file:
+      - templates/Jobs/Security/secure-cicd.yml
