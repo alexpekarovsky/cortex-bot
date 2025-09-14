@@ -1,0 +1,9 @@
+openapi: 3.0.0
+info:
+  title: Cortex Platform API
+  description: |-
+    OpenAPI specification for the Palo Alto Networks Cortex Platform API,
+  version: "1.0.0"
+  contact:
+    name: Palo Alto Networks Support
+    url: https://www.paloaltonetworks.com/services/support

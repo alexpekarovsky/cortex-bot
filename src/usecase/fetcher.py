@@ -7,6 +7,7 @@ from fastmcp import Context
 from entities.MCPContext import MCPContext
 from pkg.client import PAPIClient
 from config.config import config
+from pkg.util import get_papi_auth_headers, get_papi_url
 
 logger = logging.getLogger(__name__)
 
@@ -24,9 +25,11 @@ class Fetcher:
             api_key (str): The API key to use with the public API
             api_key_id (str): The API key ID to use with the public API
         """
-        self.client: PAPIClient = PAPIClient(url, api_key, api_key_id)
+        self.url = url
+        self.api_key = api_key
+        self.api_key_id = api_key_id
 
-    def send_request(self, path: str, method: str = "POST", data: Optional[dict] = None, headers: Optional[dict] = None, omit_papi_prefix: bool = False) -> dict:
+    async def send_request(self, path: str, method: str = "POST", data: Optional[dict] = None, headers: Optional[dict] = None, omit_papi_prefix: bool = False) -> dict:
         """
         Send an HTTP request to the public API.
 
@@ -47,7 +50,12 @@ class Fetcher:
             # Add the API path
             if "/public_api/v1" not in path and "/public_api/v1/" not in path:
                 path = os.path.join("/public_api/v1", path.lstrip("/"))
-        return self.client.send_request(method, path, data, headers)
+
+        headers = get_papi_auth_headers(self.api_key, self.api_key_id)
+        async with PAPIClient(self.url, headers) as client:
+            result = await client.request(method, path, data=data, headers=headers)
+
+        return result
 
 
 async def get_fetcher(ctx: Context) -> Fetcher:
@@ -63,7 +71,7 @@ async def get_fetcher(ctx: Context) -> Fetcher:
     Returns:
         Fetcher: A configured Fetcher instance ready to make API requests.
     """
-    url = get_papi_url()
+    url = get_papi_url(os.getenv(config.papi_url_env_key))
     lifespan: MCPContext = ctx.request_context.lifespan_context
     api_key = lifespan.auth_headers.get("Authorization")
     xdr_id = lifespan.auth_headers.get("X-XDR-AUTH-ID")
@@ -75,29 +83,3 @@ async def get_fetcher(ctx: Context) -> Fetcher:
     fetcher = Fetcher(url, api_key, xdr_id)
     ctx.set_state("fetcher", fetcher)
     return fetcher
-
-def get_papi_url() -> str:
-    """
-    Construct and return the public API URL from environment variables.
-
-    Checks for custom URL override first, then falls back to the standard URL.
-    Ensures the URL uses HTTPS protocol and includes the 'api-' subdomain prefix.
-
-    Returns:
-        str: The properly formatted public API URL with HTTPS protocol and api- prefix.
-    """
-    custom_url = os.getenv(config.papi_url_custom_key)
-    url = os.getenv(config.papi_url_env_key)
-    if not url or (custom_url is not None and custom_url != ""):
-        url = custom_url
-
-    if not url.startswith("https://"):
-        if url.startswith("http://"):
-            url = url.replace("http://", "https://")
-        else:
-            url = f"https://{url}"
-
-    if "api-" not in url:
-        url = url.replace("https://", "https://api-")
-
-    return url
