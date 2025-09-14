@@ -1,8 +1,8 @@
-import json
 import logging
+from typing import Dict
 
-import requests
-from requests.exceptions import RequestException, ConnectionError, Timeout
+import httpx
+from httpx import RequestError, ConnectError, TimeoutException
 
 from entities.exceptions import PAPIConnectionError, PAPIClientError, PAPIResponseError, PAPIAuthenticationError, \
     PAPIClientRequestError, PAPIServerError
@@ -10,19 +10,48 @@ from entities.exceptions import PAPIConnectionError, PAPIClientError, PAPIRespon
 logger = logging.getLogger(__name__)
 
 
-class PAPIClient:
-    def __init__(self, url: str, api_key: str, api_key_id: str):
-        self.url = url
-        self.api_key = api_key
-        self.api_key_id = api_key_id
-
-    def send_request(self, method: str, path: str, data: dict = None, headers: dict = None) -> dict:
+class PAPIClient(httpx.AsyncClient):
+    def __init__(self, base_url: str, headers: Dict[str, str], timeout: int = 30, **kwargs):
         """
-        Send an HTTP request to the PAPI server.
+        Initialize PAPIClient as an AsyncClient.
+
+        Args:
+            base_url (str): Base URL for the PAPI server
+            headers (dict): default headers for PAPI
+            timeout (int): Request timeout in seconds
+            **kwargs: Additional arguments passed to httpx.AsyncClient
+        """
+        # Set default timeout if not provided in kwargs
+        if 'timeout' not in kwargs:
+            kwargs['timeout'] = timeout
+
+        super().__init__(base_url=base_url, headers=headers, **kwargs)
+
+
+    def _get_default_headers(self) -> httpx.Headers:
+        """Get default headers with authentication."""
+        headers = self.headers
+        headers.update({
+            'Content-Type': 'application/json',
+        })
+        return headers
+
+    async def request(self, method: str, url: str,
+                      *,
+        content = None,
+        data = None,
+        files = None,
+        json = None,
+        params = None,
+        headers = None,
+        cookies = None,
+        timeout = None) -> dict:
+        """
+        Send an HTTP request to the PAPI server asynchronously.
 
         Args:
             method (str): HTTP method (GET, POST, PUT, DELETE, etc.)
-            path (str): API endpoint path to append to the base URL
+            url (str): API endpoint path to append to the base URL
             data (dict, optional): Request payload data. Will be JSON serialized.
             headers (dict, optional): Custom HTTP headers. If not provided, default
                                     headers with authentication will be used.
@@ -66,76 +95,82 @@ class PAPIClient:
                 - Programming errors or edge cases
 
         Example:
-            >>> client = PAPIClient("https://api.example.com", "api_key", "key_id")
-            >>> try:
-            ...     result = client.send_request("GET", "/endpoints")
-            ... except PAPIAuthenticationError:
-            ...     print("Check your API credentials")
-            ... except PAPIConnectionError:
-            ...     print("Network connection issue")
-            ... except PAPIServerError:
-            ...     print("Server is experiencing issues")
+            >>> async with PAPIClient("https://api.example.com", {"Authorization": "XXX"}) as client:
+            ...     try:
+            ...         result = await client.request("GET", "/endpoints")
+            ...     except PAPIAuthenticationError:
+            ...         print("Check your API credentials")
+            ...     except PAPIConnectionError:
+            ...         print("Network connection issue")
+            ...     except PAPIServerError:
+            ...         print("Server is experiencing issues")
         """
-        if not headers:
-            headers = {
-                'Content-Type': 'application/json',
-                'Authorization': self.api_key,
-                'X-XDR-AUTH-ID': self.api_key_id
-            }
+        if headers is None:
+            headers = self._get_default_headers()
+        else:
+            # Merge with default headers, allowing custom headers to override
+            default_headers = self._get_default_headers()
+            default_headers.update(headers)
+            headers = default_headers
 
-        full_url = f'{self.url}{path}'
-        logger.info(f'Sending request to {full_url}')
+        full_url = f'{self.base_url}{url}'
+        logger.info(f'Sending async request to {full_url}')
 
         try:
-            response = requests.request(
+            response = await super().request(
                 method=method,
-                url=full_url,
-                data=json.dumps(data) if data else None,
-                headers=headers
+                url=url,
+                data=data,
+                params=params,
+                headers=headers,
+                cookies=cookies,
+                timeout=timeout if timeout else self.timeout,
+                json=json,
+                content=content,
             )
-        except ConnectionError as e:
-            logger.exception(f'Connection failed for request to {path}: {e}')
-            raise PAPIConnectionError(f'Failed to connect to PAPI server at {path}: {e}') from e
-        except Timeout as e:
-            logger.exception(f'Request timeout for request to {path}: {e}')
-            raise PAPIConnectionError(f'Request timeout for {path}: {e}') from e
-        except RequestException as e:
-            logger.exception(f'Request failed for request to {path}: {e}')
-            raise PAPIConnectionError(f'Request failed for {path}: {e}') from e
+        except ConnectError as e:
+            logger.exception(f'Connection failed for request to {url}: {e}')
+            raise PAPIConnectionError(f'Failed to connect to PAPI server at {url}: {e}') from e
+        except TimeoutException as e:
+            logger.exception(f'Request timeout for request to {url}: {e}')
+            raise PAPIConnectionError(f'Request timeout for {url}: {e}') from e
+        except RequestError as e:
+            logger.exception(f'Request failed for request to {url}: {e}')
+            raise PAPIConnectionError(f'Request failed for {url}: {e}') from e
         except Exception as e:
-            logger.exception(f'Unexpected error sending request to {path}: {e}')
-            raise PAPIClientError(f'Unexpected error for request to {path}: {e}') from e
+            logger.exception(f'Unexpected error sending request to {url}: {e}')
+            raise PAPIClientError(f'Unexpected error for request to {url}: {e}') from e
 
         if response is None:
-            err_msg = f'Received None response from server for request to {path}'
+            err_msg = f'Received None response from server for request to {url}'
             logger.error(err_msg)
             raise PAPIResponseError(err_msg)
 
         # Handle different HTTP status codes more specifically
         if response.status_code == 401:
-            err_msg = f'Authentication failed for request to {path}: {response.content}'
+            err_msg = f'Authentication failed for request to {url}: {response.text}'
             logger.error(err_msg)
             raise PAPIAuthenticationError(err_msg)
         elif response.status_code == 403:
-            err_msg = f'Authorization failed for request to {path}: {response.content}'
+            err_msg = f'Authorization failed for request to {url}: {response.text}'
             logger.error(err_msg)
             raise PAPIAuthenticationError(err_msg)
         elif 400 <= response.status_code < 500:
-            err_msg = f'Client error for request to {path}: {response.content} [{response.status_code}]'
+            err_msg = f'Client error for request to {url}: {response.text} [{response.status_code}]'
             logger.error(err_msg)
             raise PAPIClientRequestError(err_msg)
         elif 500 <= response.status_code < 600:
-            err_msg = f'Server error for request to {path}: {response.content} [{response.status_code}]'
+            err_msg = f'Server error for request to {url}: {response.text} [{response.status_code}]'
             logger.error(err_msg)
             raise PAPIServerError(err_msg)
         elif response.status_code < 200 or response.status_code >= 300:
-            err_msg = f'Unexpected response code for request to {path}: {response.content} [{response.status_code}]'
+            err_msg = f'Unexpected response code for request to {url}: {response.text} [{response.status_code}]'
             logger.error(err_msg)
             raise PAPIResponseError(err_msg)
 
         try:
             return response.json()
         except json.JSONDecodeError as e:
-            err_msg = f'Invalid JSON response from server for request to {path}: {e}'
+            err_msg = f'Invalid JSON response from server for request to {url}: {e}'
             logger.error(err_msg)
-            raise PAPIResponseError(err_msg) from e
+            raise PAPIResponseError(err_msg)

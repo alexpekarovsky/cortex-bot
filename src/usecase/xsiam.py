@@ -15,7 +15,7 @@ from entities.exceptions import (
     PAPIClientRequestError,
     PAPIResponseError
 )
-from pkg.util import create_response, read_file
+from pkg.util import create_response, read_resource
 
 logger = logging.getLogger("XSIAM MCP")
 
@@ -67,7 +67,7 @@ async def get_issues(ctx: Context,
 
     try:
         fetcher = await get_fetcher(ctx)
-        response_data = fetcher.send_request("/v1/issue/search/", data=payload, omit_papi_prefix=True)
+        response_data = await fetcher.send_request("/v1/issue/search/", data=payload, omit_papi_prefix=True)
         response_data["_metadata"] = {
             "formatting_instructions": LLM_FORMATTING_BASE_INSTRUCTIONS,
         }
@@ -88,7 +88,7 @@ async def get_issues(ctx: Context,
 )
 async def get_issues_response() -> str:
     try:
-        issues_json = read_file("issues_response.json")
+        issues_json = read_resource("issues_response.json")
         return create_response(data={"response": json.loads(issues_json)})
     except FileNotFoundError as e:
         logger.exception(f"Issues response file not found: {e}")
@@ -109,7 +109,7 @@ async def get_issues_response() -> str:
 )
 async def get_cases_response() -> str:
     try:
-        cases_json = read_file("cases_response.json")
+        cases_json = read_resource("cases_response.json")
         return create_response(data={"response": json.loads(cases_json)})
     except FileNotFoundError as e:
         logger.exception(f"Cases response file not found: {e}")
@@ -168,7 +168,7 @@ async def get_cases(ctx: Context,
 
     try:
         fetcher = await get_fetcher(ctx)
-        response_data = fetcher.send_request("case/search/", data=payload)
+        response_data = await fetcher.send_request("case/search/", data=payload)
 
         return create_response(data=response_data)
     except (PAPIConnectionError, PAPIAuthenticationError, PAPIServerError, PAPIClientRequestError, PAPIResponseError, PAPIClientError) as e:

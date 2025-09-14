@@ -18,8 +18,7 @@ class Settings(BaseSettings):
     isolate_endpoint_tool_enabled: bool = Field(False, validation_alias="MCP_ISOLATE_ENDPOINT_TOOL_ENABLED")
 
     # --- PAPI Settings ---
-    papi_url_env_key: str = Field("REPORTSCONF_REPORTS_FRONTEND_URL", validation_alias="PAPI_URL_ENV_KEY")
-    papi_url_custom_key: str = Field("CORTEX_MCP_PAPI_URL", validation_alias="PAPI_URL_CUSTOM_KEY")
+    papi_url_env_key: str = Field("CORTEX_MCP_PAPI_URL", validation_alias="PAPI_URL_ENV_KEY")
     papi_auth_header_key: str = Field("CORTEX_MCP_PAPI_AUTH_HEADER", validation_alias="PAPI_AUTH_HEADER_KEY")
     papi_auth_id_key: str = Field("CORTEX_MCP_PAPI_AUTH_ID", validation_alias="PAPI_AUTH_ID_KEY")
 
