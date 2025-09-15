@@ -48,7 +48,7 @@ release:
   <<: *install_template
   script:
     - apt-get update && apt-get install zip -y
-    - zip -r cortex-mcp.zip src pyproject.toml
+    - zip -r cortex-mcp.zip src Dockerfile pyproject.toml poetry.lock
     - sha256sum cortex-mcp.zip > cortex-mcp.zip.sha256
   artifacts:
     paths:
