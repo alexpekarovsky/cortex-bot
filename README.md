@@ -38,6 +38,14 @@ poetry run black .
 poetry run isort .
 ```
 
+
+## Docker Support
+Build Docker image:
+```bash
+docker build -t cortex-mcp .  
+docker run --env-file .env -it cortex-mcp
+```
+
 ## Contributing
 
 [Add contribution guidelines]
