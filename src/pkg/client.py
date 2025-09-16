@@ -33,6 +33,7 @@ class PAPIClient(httpx.AsyncClient):
         headers = self.headers
         headers.update({
             'Content-Type': 'application/json',
+            'X-IS-MCP': True
         })
         return headers
 
