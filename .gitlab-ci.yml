@@ -4,12 +4,16 @@ stages:
   - install
   - lint
   - release
+  - deploy-dev
+  - deploy-prod
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   POETRY_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pypoetry"
   POETRY_VIRTUALENVS_IN_PROJECT: "true"
   VENV_PATH: "$CI_PROJECT_DIR/.venv"
+  DEV_BUCKET: "mcp-dev"
+  PROD_BUCKET: "mcp-prod"
 
 cache:
   key: ${CI_COMMIT_REF_SLUG}
@@ -18,15 +22,25 @@ cache:
     - .cache/pypoetry
     - .venv
 
-before_script:
-  - python3 -V
-  - pip install --upgrade pip
-  - pip install poetry
-  - poetry install --no-root
-
 .install_template: &install_template
+  before_script:
+    - python3 -V
+    - pip install --upgrade pip
+    - pip install poetry
+    - poetry install --no-root
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_PIPELINE_SOURCE == "master"'
+    - if: '$CI_PIPELINE_SOURCE == "dev"'
+
+.master_branch_only: &master_branch_only
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+
+.dev_master_only: &dev_master_only
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_COMMIT_BRANCH == "dev"'
 
 install:
   stage: install
@@ -45,7 +59,7 @@ lint:
 
 release:
   stage: release
-  <<: *install_template
+  <<: *master_branch_only
   script:
     - apt-get update && apt-get install zip -y
     - zip -r cortex-mcp.zip src Dockerfile pyproject.toml poetry.lock
@@ -60,3 +74,34 @@ include:
     ref: master
     file:
       - templates/Jobs/Security/secure-cicd.yml
+deploy-dev:
+  stage: deploy-dev
+  image: google/cloud-sdk:alpine
+  tags:
+    - "cortex-mcp-dev-3304"
+  <<: *dev_master_only
+  dependencies:
+    - release
+  environment:
+    name: development
+  script:
+    - echo "Uploading cortex-mcp to DEV bucket..."
+    - gsutil cp cortex-mcp.zip gs://$DEV_BUCKET/cortex-mcp.zip
+    - gsutil cp cortex-mcp.zip.sha256 gs://$DEV_BUCKET/cortex-mcp.zip.sha256
+    - echo "Successfully uploaded to gs://$DEV_BUCKET/"
+deploy-prod:
+  stage: deploy-prod
+  image: google/cloud-sdk:alpine
+  tags:
+    - "cortex-mcp-prod-3304"
+  <<: *master_branch_only
+  dependencies:
+    - release
+  environment:
+    name: production
+  when: manual
+  script:
+    - echo "Uploading cortex-mcp to PROD bucket..."
+    - gsutil cp cortex-mcp.zip gs://$PROD_BUCKET/cortex-mcp.zip
+    - gsutil cp cortex-mcp.zip.sha256 gs://$PROD_BUCKET/cortex-mcp.zip.sha256
+    - echo "Successfully uploaded to gs://$PROD_BUCKET/"
