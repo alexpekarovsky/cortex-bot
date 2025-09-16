@@ -1,15 +1,20 @@
 import json
 from pathlib import Path
 
+from fastmcp import FastMCP
+
+from usecase.base_module import BaseModule
+from usecase.module_util import _discover_modules_in_directory
 from pkg.openapi.openapi import bundle_specs
 
 SCRIPT_DIR = Path(__file__).parent.parent
 RESOURCES_DIR = SCRIPT_DIR / "entities" / "resources"
 PKG_DIR = SCRIPT_DIR / "pkg"
 OPENAPI_DIR = PKG_DIR / "openapi"
-OPENAPI_BUILTIN_SPECS_DIR = SCRIPT_DIR / "usecase" / "builtin_tools" / "openapi"
-OPENAPI_CUSTOM_SPECS_DIR = SCRIPT_DIR / "usecase" / "custom_tools" / "openapi"
-OPENAPI_REMOTE_SPECS_DIR = SCRIPT_DIR / "usecase" / "remote_tools" / "openapi"
+USECASES_DIR = SCRIPT_DIR / "usecase"
+BUILTINS_DIR = USECASES_DIR / "builtin_components"
+CUSTOM_DIR = USECASES_DIR / "custom_components"
+REMOTE_DIR = USECASES_DIR / "remote_components"
 
 
 def create_response(data: dict, is_error: bool = False) -> str:
@@ -180,7 +185,8 @@ def bundle_openapi_from_folders():
         ValueError: If path traversal is detected in any file paths.
         FileNotFoundError: If any required OpenAPI files are not found.
     """
-    return bundle_openapi_files(OPENAPI_BUILTIN_SPECS_DIR, OPENAPI_CUSTOM_SPECS_DIR, OPENAPI_REMOTE_SPECS_DIR)
+    openapi_dirs = [base_dir / "openapi" for base_dir in [BUILTINS_DIR, CUSTOM_DIR, REMOTE_DIR]]
+    return bundle_openapi_files(*openapi_dirs)
 
 def bundle_openapi_files(*specs_dirs: Path) -> dict:
     """

@@ -22,8 +22,8 @@ from config.config import config
 from pkg.client import PAPIClient
 from pkg.util import get_papi_auth_headers, bundle_openapi_from_folders, get_papi_url
 from service.cortex_mcp.server import create_mcp_server
-from usecase.xsiam import xsiam_mcp
 from pkg.setup_logging import setup_logging
+from usecase.module_util import discover_and_register_modules
 
 logger = logging.getLogger("Cortex MCP")
 
@@ -92,11 +92,14 @@ async def async_main(transport: Transport):
     # Create MCP server instance with authentication
     mcp = create_mcp_server(api_key, api_key_id)
 
-    # Import XSIAM MCP server with 'cortex' prefix
-    await mcp.import_server(server=xsiam_mcp)
+    # Discover mcp components from modules
+    discover_and_register_modules(mcp)
+
+    # Discover mcp components from openapi specs and import them
     spec = bundle_openapi_from_folders()
     open_api_mcp = FastMCP.from_openapi(spec, PAPIClient(get_papi_url(papi_url), get_papi_auth_headers(api_key, api_key_id)))
     await mcp.import_server(server=open_api_mcp)
+
     # Start server with appropriate transport configuration
     if config.mcp_transport == "stdio":
         await mcp.run_async(transport=transport)
