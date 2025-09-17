@@ -32,6 +32,7 @@ cache:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_PIPELINE_SOURCE == "master"'
     - if: '$CI_PIPELINE_SOURCE == "dev"'
+    - if: '$DEPLOY_DEV == "true"'
 
 .master_branch_only: &master_branch_only
   rules:
@@ -41,6 +42,7 @@ cache:
   rules:
     - if: '$CI_COMMIT_BRANCH == "master"'
     - if: '$CI_COMMIT_BRANCH == "dev"'
+    - if: '$DEPLOY_DEV == "true"'
 
 install:
   stage: install
@@ -59,7 +61,7 @@ lint:
 
 release:
   stage: release
-  <<: *master_branch_only
+  <<: *install_template
   script:
     - apt-get update && apt-get install zip -y
     - zip -r cortex-mcp.zip src Dockerfile pyproject.toml poetry.lock
@@ -76,7 +78,7 @@ include:
       - templates/Jobs/Security/secure-cicd.yml
 deploy-dev:
   stage: deploy-dev
-  image: google/cloud-sdk:alpine
+  image: google/cloud-sdk:539.0.0-stable
   tags:
     - "cortex-mcp-dev-3304"
   <<: *dev_master_only
@@ -91,7 +93,7 @@ deploy-dev:
     - echo "Successfully uploaded to gs://$DEV_BUCKET/"
 deploy-prod:
   stage: deploy-prod
-  image: google/cloud-sdk:alpine
+  image: google/cloud-sdk:539.0.0-stable
   tags:
     - "cortex-mcp-prod-3304"
   <<: *master_branch_only
