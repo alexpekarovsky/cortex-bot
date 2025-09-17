@@ -10,7 +10,6 @@ with XSIAM (Extended Security Intelligence and Automation Management) services.
 """
 
 import asyncio
-import os
 import signal
 import logging
 from functools import partial
@@ -18,7 +17,7 @@ from functools import partial
 from fastmcp import FastMCP
 from fastmcp.server.server import Transport
 
-from config.config import config
+from config.config import get_config
 from pkg.client import PAPIClient
 from pkg.util import get_papi_auth_headers, bundle_openapi_from_folders, get_papi_url
 from service.cortex_mcp.server import create_mcp_server
@@ -75,6 +74,7 @@ async def async_main(transport: Transport):
     Raises:
         Exception: Any exception that occurs during server initialization or runtime.
     """
+    config = get_config()
     setup_logging(config)
     logger.info("Starting Cortex MCP Server")
 
@@ -85,9 +85,9 @@ async def async_main(transport: Transport):
         loop.add_signal_handler(sig, partial(lambda s: asyncio.create_task(shutdown(s, loop)), sig))
 
     # Retrieve API credentials from environment variables
-    api_key = os.getenv(config.papi_auth_header_key)
-    api_key_id = os.getenv(config.papi_auth_id_key)
-    papi_url = os.getenv(config.papi_url_env_key)
+    api_key = config.papi_auth_header_key
+    api_key_id = config.papi_auth_id_key
+    papi_url = config.papi_url_env_key
 
     # Create MCP server instance with authentication
     mcp = create_mcp_server(api_key, api_key_id)
@@ -130,7 +130,7 @@ def main():
         - Handles exceptions and ensures graceful shutdown
     """
     try:
-        asyncio.run(async_main(config.mcp_transport))
+        asyncio.run(async_main(get_config().mcp_transport))
     except Exception as e:
         logger.exception(f"Main loop stopped: {e}")
     finally:

@@ -1,3 +1,4 @@
+import io
 import logging
 import os
 from typing import Optional
@@ -6,7 +7,7 @@ from fastmcp import Context
 
 from entities.MCPContext import MCPContext
 from pkg.client import PAPIClient
-from config.config import config
+from config.config import get_config
 from pkg.util import get_papi_auth_headers, get_papi_url
 
 logger = logging.getLogger(__name__)
@@ -29,7 +30,7 @@ class Fetcher:
         self.api_key = api_key
         self.api_key_id = api_key_id
 
-    async def send_request(self, path: str, method: str = "POST", data: Optional[dict] = None, headers: Optional[dict] = None, omit_papi_prefix: bool = False) -> dict:
+    async def send_request(self, path: str, method: str = "POST", data: Optional[dict] = None, headers: Optional[dict] = None, omit_papi_prefix: bool = False, stream: bool = False) -> dict | io.BytesIO:
         """
         Send an HTTP request to the public API.
 
@@ -42,6 +43,7 @@ class Fetcher:
             data (dict, optional): The request payload data. Defaults to None.
             headers (dict, optional): Additional HTTP headers to include. Defaults to None.
             omit_papi_prefix (bool, optional): Whether to skip adding the /public_api/v1 prefix. Defaults to False.
+            stream (bool, optional): Whether to stream response. Defaults to False.
 
         Returns:
             dict: The response from the request.
@@ -53,7 +55,10 @@ class Fetcher:
 
         headers = get_papi_auth_headers(self.api_key, self.api_key_id)
         async with PAPIClient(self.url, headers) as client:
-            result = await client.request(method, path, data=data, headers=headers)
+            if stream:
+                result = await client.stream(method, path, data=data, headers=headers)
+            else:
+                result = await client.request(method, path, data=data, headers=headers)
 
         return result
 
@@ -71,13 +76,14 @@ async def get_fetcher(ctx: Context) -> Fetcher:
     Returns:
         Fetcher: A configured Fetcher instance ready to make API requests.
     """
-    url = get_papi_url(os.getenv(config.papi_url_env_key))
+    config = get_config()
+    url = get_papi_url(config.papi_url_env_key)
     lifespan: MCPContext = ctx.request_context.lifespan_context
     api_key = lifespan.auth_headers.get("Authorization")
     xdr_id = lifespan.auth_headers.get("X-XDR-AUTH-ID")
     if not (api_key and xdr_id):
-        api_key = os.getenv(config.papi_auth_header_key)
-        xdr_id = os.getenv(config.papi_auth_id_key)
+        api_key = config.papi_auth_header_key
+        xdr_id = config.papi_auth_id_key
 
     logger.info(f"Creating new fetcher for auth ID {xdr_id}")
     fetcher = Fetcher(url, api_key, xdr_id)
