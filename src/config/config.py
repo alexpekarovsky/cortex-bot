@@ -1,6 +1,8 @@
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from pkg.util import REMOTE_DIR
+
 
 class Settings(BaseSettings):
     """
@@ -18,9 +20,9 @@ class Settings(BaseSettings):
     isolate_endpoint_tool_enabled: bool = Field(False, validation_alias="MCP_ISOLATE_ENDPOINT_TOOL_ENABLED")
 
     # --- PAPI Settings ---
-    papi_url_env_key: str = Field("CORTEX_MCP_PAPI_URL", validation_alias="PAPI_URL_ENV_KEY")
-    papi_auth_header_key: str = Field("CORTEX_MCP_PAPI_AUTH_HEADER", validation_alias="PAPI_AUTH_HEADER_KEY")
-    papi_auth_id_key: str = Field("CORTEX_MCP_PAPI_AUTH_ID", validation_alias="PAPI_AUTH_ID_KEY")
+    papi_url_env_key: str = Field("", validation_alias="CORTEX_MCP_PAPI_URL")
+    papi_auth_header_key: str = Field("", validation_alias="CORTEX_MCP_PAPI_AUTH_HEADER")
+    papi_auth_id_key: str = Field("", validation_alias="CORTEX_MCP_PAPI_AUTH_ID")
 
     max_objects_to_retrieve: int = Field(50, validation_alias="MAX_OBJECTS_TO_RETRIEVE")
 
@@ -33,5 +35,19 @@ class Settings(BaseSettings):
     # 2. Ignore any extra environment variables that aren't defined in this class.
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
+    # --- Update Settings ---
+    update_folder: str = Field(REMOTE_DIR.as_posix(), validation_alias="CORTEX_MCP_UPDATE_FOLDER")
 
+
+# Global config instance
 config = Settings()
+
+def reload_config():
+    """Reload the global config instance"""
+    global config
+    config = Settings()
+    return config
+
+def get_config():
+    """Get the current config instance"""
+    return config

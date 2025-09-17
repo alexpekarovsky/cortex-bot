@@ -1,13 +1,10 @@
 import json
 from pathlib import Path
 
-from fastmcp import FastMCP
-
-from usecase.base_module import BaseModule
-from usecase.module_util import _discover_modules_in_directory
 from pkg.openapi.openapi import bundle_specs
 
-SCRIPT_DIR = Path(__file__).parent.parent
+MAIN_DIR = Path(__file__).parent.parent.parent
+SCRIPT_DIR = MAIN_DIR / "src"
 RESOURCES_DIR = SCRIPT_DIR / "entities" / "resources"
 PKG_DIR = SCRIPT_DIR / "pkg"
 OPENAPI_DIR = PKG_DIR / "openapi"
