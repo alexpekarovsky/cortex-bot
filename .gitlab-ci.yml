@@ -3,6 +3,7 @@ image: python:3.12-slim
 stages:
   - install
   - lint
+  - test
   - release
   - deploy-dev
   - deploy-prod
@@ -58,6 +59,12 @@ lint:
   <<: *install_template
   script:
     - poetry run ruff check . --exit-zero
+
+test:
+  stage: test
+  <<: *install_template
+  script:
+    - poetry run pytest tests/ -v
 
 release:
   stage: release
