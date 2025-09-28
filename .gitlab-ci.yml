@@ -34,6 +34,7 @@ cache:
     - if: '$CI_PIPELINE_SOURCE == "master"'
     - if: '$CI_PIPELINE_SOURCE == "dev"'
     - if: '$DEPLOY_DEV == "true"'
+    - if: '$CI_COMMIT_BRANCH == "master"'
 
 .master_branch_only: &master_branch_only
   rules:
