@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import io
+import json
 import logging
 import shutil
 import subprocess
@@ -16,7 +17,7 @@ import requests
 from main import async_main
 from config.config import get_config, reload_config
 from pkg.setup_logging import setup_logging
-from pkg.util import REMOTE_DIR, MAIN_DIR
+from pkg.util import REMOTE_DIR, SCRIPT_DIR
 from usecase.fetcher import get_papi_url, Fetcher
 
 config = get_config()
@@ -186,7 +187,7 @@ async def download_update_package() -> str:
     # Send POST request to download the zip file
     response: io.BytesIO = await fetcher.send_request(
         path=download_endpoint,
-        data={"request_data": {"is_update": True}},
+        data=json.dumps({"request_data": {"is_update": True}}),
         stream=True
     )
 
@@ -237,7 +238,7 @@ def extract_remote_tools(zip_path: str) -> Tuple[str, str]:
         safe_extract(zip_ref, temp_extract_dir)
 
     # Define the known path to remote tools in the extracted content
-    extracted_remote_tools_path: str = os.path.join(temp_extract_dir, REMOTE_DIR.relative_to(MAIN_DIR.parent).as_posix())
+    extracted_remote_tools_path: str = os.path.join(temp_extract_dir, REMOTE_DIR.relative_to(SCRIPT_DIR.parent).as_posix())
 
     if not os.path.exists(extracted_remote_tools_path):
         raise FileNotFoundError(

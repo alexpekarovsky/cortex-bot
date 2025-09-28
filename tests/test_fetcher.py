@@ -34,7 +34,7 @@ class TestFetcher:
         mock_context.set_state = MagicMock()
 
         # Execute
-        with patch('src.usecase.fetcher.config') as mock_config:
+        with patch('src.usecase.fetcher.get_config') as mock_config:
             mock_config.papi_url_env_key = "PAPI_URL"
             result = await get_fetcher(mock_context)
 
@@ -69,17 +69,17 @@ class TestFetcher:
         mock_context.set_state = MagicMock()
 
         # Execute
-        with patch('src.usecase.fetcher.config') as mock_config:
-            mock_config.papi_url_env_key = "PAPI_URL"
-            mock_config.papi_auth_header_key = "PAPI_AUTH_HEADER"
-            mock_config.papi_auth_id_key = "PAPI_AUTH_ID"
+        with patch('src.usecase.fetcher.get_config') as mock_config:
+            mock_config().papi_url_env_key = "PAPI_URL"
+            mock_config().papi_auth_header_key = "PAPI_AUTH_HEADER"
+            mock_config().papi_auth_id_key = "PAPI_AUTH_ID"
             result = await get_fetcher(mock_context)
 
         # Verify
         assert isinstance(result, Fetcher)
         assert result.url == mock_url
-        assert result.api_key == "env_api_key"
-        assert result.api_key_id == "env_auth_id"
+        assert result.api_key == "PAPI_AUTH_HEADER"
+        assert result.api_key_id == "PAPI_AUTH_ID"
         mock_context.set_state.assert_called_once_with("fetcher", result)
 
     @pytest.mark.asyncio
@@ -109,16 +109,17 @@ class TestFetcher:
         mock_context.set_state = MagicMock()
 
         # Execute
-        with patch('src.usecase.fetcher.config') as mock_config:
-            mock_config.papi_url_env_key = "PAPI_URL"
-            mock_config.papi_auth_header_key = "PAPI_AUTH_HEADER"
-            mock_config.papi_auth_id_key = "PAPI_AUTH_ID"
+        with patch('src.usecase.fetcher.get_config') as mock_config:
+            mock_config().papi_url_env_key = "PAPI_URL"
+            mock_config().papi_auth_header_key = "PAPI_AUTH_HEADER"
+            mock_config().papi_auth_id_key = "PAPI_AUTH_ID"
             result = await get_fetcher(mock_context)
 
         # Verify - should use env vars since lifespan auth is incomplete
         assert isinstance(result, Fetcher)
         assert result.url == mock_url
-        assert result.api_key == "env_api_key"
+        assert result.api_key == "PAPI_AUTH_HEADER"
+        assert result.api_key_id == "PAPI_AUTH_ID"
 
     @pytest.mark.asyncio
     @patch('src.usecase.fetcher.get_papi_auth_headers')

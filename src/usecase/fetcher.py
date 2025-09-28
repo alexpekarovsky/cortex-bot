@@ -30,7 +30,7 @@ class Fetcher:
         self.api_key = api_key
         self.api_key_id = api_key_id
 
-    async def send_request(self, path: str, method: str = "POST", data: Optional[dict] = None, headers: Optional[dict] = None, omit_papi_prefix: bool = False, stream: bool = False) -> dict | io.BytesIO:
+    async def send_request(self, path: str, method: str = "POST", data: Optional[dict | str] = None, headers: Optional[dict] = None, omit_papi_prefix: bool = False, stream: bool = False) -> dict | io.BytesIO:
         """
         Send an HTTP request to the public API.
 
@@ -40,7 +40,7 @@ class Fetcher:
         Args:
             path (str): The API endpoint path to send the request to.
             method (str, optional): The HTTP method to use. Defaults to "POST".
-            data (dict, optional): The request payload data. Defaults to None.
+            data (dict | str, optional): The request payload data. Defaults to None.
             headers (dict, optional): Additional HTTP headers to include. Defaults to None.
             omit_papi_prefix (bool, optional): Whether to skip adding the /public_api/v1 prefix. Defaults to False.
             stream (bool, optional): Whether to stream response. Defaults to False.
