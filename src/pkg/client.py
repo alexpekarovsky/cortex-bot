@@ -5,6 +5,7 @@ from typing import Dict
 import httpx
 from httpx import RequestError, ConnectError, TimeoutException
 
+from config.config import get_config
 from entities.exceptions import PAPIConnectionError, PAPIClientError, PAPIResponseError, PAPIAuthenticationError, \
     PAPIClientRequestError, PAPIServerError
 
@@ -184,6 +185,7 @@ class PAPIClient(httpx.AsyncClient):
             err_msg = f'Invalid JSON response from server for request to {url}: {e}'
             logger.error(err_msg)
             raise PAPIResponseError(err_msg)
+
     async def stream(self, method: str, url: str,
             *,
             content=None,
@@ -225,9 +227,6 @@ class PAPIClient(httpx.AsyncClient):
             default_headers.update(headers)
             headers = default_headers
 
-        full_url = f'{self.base_url}{url}'
-        logger.info(f'Sending async streaming request to {full_url}')
-
         try:
             # Use io.BytesIO to create an in-memory binary buffer.
             zip_buffer = io.BytesIO()
@@ -244,28 +243,48 @@ class PAPIClient(httpx.AsyncClient):
                     content=content,
                     follow_redirects=True) as response:
 
+                # Helper function to safely get response content for error messages
+                async def get_response_content() -> str:
+                    try:
+                        # For streaming responses, we need to read the content
+                        content_bytes = b""
+                        async for res_chunk in response.aiter_bytes():
+                            content_bytes += res_chunk
+                            # Limit content size for error messages (first 1000 chars)
+                            if len(content_bytes) > get_config().http_response_error_message_max_size:
+                                break
+                        return content_bytes.decode('utf-8', errors='ignore')
+                    except Exception:
+                        return f"Unable to read response content (status: {response.status_code})"
+
                 # Handle different HTTP status codes using the same pattern as request()
                 if response.status_code == 401:
-                    err_msg = f'Authentication failed for request to {url}: {response.text}'
+                    response_text = await get_response_content()
+                    err_msg = f'Authentication failed for request to {url}: {response_text}'
                     logger.error(err_msg)
                     raise PAPIAuthenticationError(err_msg)
                 elif response.status_code == 403:
-                    err_msg = f'Authorization failed for request to {url}: {response.text}'
+                    response_text = await get_response_content()
+                    err_msg = f'Authorization failed for request to {url}: {response_text}'
                     logger.error(err_msg)
                     raise PAPIAuthenticationError(err_msg)
                 elif 400 <= response.status_code < 500:
-                    err_msg = f'Client error for request to {url}: {response.text} [{response.status_code}]'
+                    response_text = await get_response_content()
+                    err_msg = f'Client error for request to {url}: {response_text} [{response.status_code}]'
                     logger.error(err_msg)
                     raise PAPIClientRequestError(err_msg)
                 elif 500 <= response.status_code < 600:
-                    err_msg = f'Server error for request to {url}: {response.text} [{response.status_code}]'
+                    response_text = await get_response_content()
+                    err_msg = f'Server error for request to {url}: {response_text} [{response.status_code}]'
                     logger.error(err_msg)
                     raise PAPIServerError(err_msg)
                 elif response.status_code < 200 or response.status_code >= 300:
-                    err_msg = f'Unexpected response code for request to {url}: {response.text} [{response.status_code}]'
+                    response_text = await get_response_content()
+                    err_msg = f'Unexpected response code for request to {url}: {response_text} [{response.status_code}]'
                     logger.error(err_msg)
                     raise PAPIResponseError(err_msg)
 
+                # If we get here, the response was successful (2xx)
                 # Get the total file size from headers if available.
                 total_size = int(response.headers.get("Content-Length", 0))
                 downloaded_size = 0
