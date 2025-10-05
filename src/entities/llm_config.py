@@ -1,3 +1,4 @@
+# ruff: noqa
 LLM_FORMATTING_BASE_INSTRUCTIONS = """
 When using the Cortex MCP security cases and issues tools, follow these guidelines to enhance presentation and usability:
 COMPREHENSIVE SECURITY DATA HANDLING AND FORMATTING INSTRUCTIONS:

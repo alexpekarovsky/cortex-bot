@@ -110,14 +110,14 @@ def read_file(file_path: str, file_directory: Path) -> str:
         if not str(full_path).startswith(str(file_directory.resolve())):
             raise ValueError("Invalid file path: path traversal detected")
 
-        with open(full_path, "r") as file:
+        with open(full_path) as file:
             return file.read()
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Resource file not found: {file_path}")
-    except PermissionError:
-        raise PermissionError(f"Access denied to resource file: {file_path}")
+    except FileNotFoundError as e:
+        raise FileNotFoundError(f"Resource file not found: {file_path}") from e
+    except PermissionError as e:
+        raise PermissionError(f"Access denied to resource file: {file_path}") from e
     except UnicodeDecodeError as e:
-        raise ValueError(f"Unable to decode file {file_path}: {e}")
+        raise ValueError(f"Unable to decode file {file_path}: {e}") from e
 
 def get_papi_auth_headers(api_key: str, api_key_id: str) -> dict:
     """

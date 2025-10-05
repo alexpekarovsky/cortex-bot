@@ -1,19 +1,24 @@
 import io
 import logging
-from typing import Dict
 
 import httpx
-from httpx import RequestError, ConnectError, TimeoutException
+from httpx import ConnectError, RequestError, TimeoutException
 
 from config.config import get_config
-from entities.exceptions import PAPIConnectionError, PAPIClientError, PAPIResponseError, PAPIAuthenticationError, \
-    PAPIClientRequestError, PAPIServerError
+from entities.exceptions import (
+    PAPIAuthenticationError,
+    PAPIClientError,
+    PAPIClientRequestError,
+    PAPIConnectionError,
+    PAPIResponseError,
+    PAPIServerError,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class PAPIClient(httpx.AsyncClient):
-    def __init__(self, base_url: str, headers: Dict[str, str], timeout: int = 30, **kwargs):
+    def __init__(self, base_url: str, headers: dict[str, str], timeout: int = 30, **kwargs):
         """
         Initialize PAPIClient as an AsyncClient.
 
@@ -184,7 +189,7 @@ class PAPIClient(httpx.AsyncClient):
         except json.JSONDecodeError as e:
             err_msg = f'Invalid JSON response from server for request to {url}: {e}'
             logger.error(err_msg)
-            raise PAPIResponseError(err_msg)
+            raise PAPIResponseError(err_msg) from e
 
     async def stream(self, method: str, url: str,
             *,

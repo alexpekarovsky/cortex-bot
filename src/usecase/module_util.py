@@ -3,7 +3,6 @@ import inspect
 import logging
 import sys
 from pathlib import Path
-from typing import Type
 
 from fastmcp import FastMCP
 
@@ -81,7 +80,7 @@ def _discover_modules_in_directory(directory: Path, mcp: FastMCP) -> list[BaseMo
     return modules
 
 
-def _load_base_module_classes(python_file: Path) -> list[Type[BaseModule]]:
+def _load_base_module_classes(python_file: Path) -> list[type[BaseModule]]:
     """
     Load a Python file and extract all classes that inherit from BaseModule.
 
@@ -114,7 +113,7 @@ def _load_base_module_classes(python_file: Path) -> list[Type[BaseModule]]:
         spec.loader.exec_module(module)
 
         # Find all classes in the module that inherit from BaseModule
-        for name, obj in inspect.getmembers(module, inspect.isclass):
+        for _, obj in inspect.getmembers(module, inspect.isclass):
             # Check if it's a subclass of BaseModule but not BaseModule itself
             if (issubclass(obj, BaseModule) and
                     obj is not BaseModule and
@@ -122,6 +121,6 @@ def _load_base_module_classes(python_file: Path) -> list[Type[BaseModule]]:
                 module_classes.append(obj)
 
     except Exception as e:
-        raise ImportError(f"Failed to load module from {python_file}: {e}")
+        raise ImportError(f"Failed to load module from {python_file}: {e}") from e
 
     return module_classes

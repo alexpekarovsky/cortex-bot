@@ -2,14 +2,20 @@ import json
 import logging
 from typing import Annotated, Optional
 
-from fastmcp import FastMCP, Context
+from fastmcp import Context, FastMCP
 from pydantic import Field
 
-from entities.exceptions import PAPIConnectionError, PAPIAuthenticationError, PAPIServerError, PAPIClientRequestError, \
-    PAPIResponseError, PAPIClientError
+from entities.exceptions import (
+    PAPIAuthenticationError,
+    PAPIClientError,
+    PAPIClientRequestError,
+    PAPIConnectionError,
+    PAPIResponseError,
+    PAPIServerError,
+)
 from entities.llm_config import LLM_FORMATTING_BASE_INSTRUCTIONS
-from usecase.base_module import BaseModule
 from pkg.util import create_response, read_resource
+from usecase.base_module import BaseModule
 from usecase.fetcher import get_fetcher
 
 logger = logging.getLogger(__name__)
@@ -114,4 +120,4 @@ class IssuesModule(BaseModule):
 
     def __init__(self, mcp: FastMCP):
         super().__init__(mcp)
-    
+

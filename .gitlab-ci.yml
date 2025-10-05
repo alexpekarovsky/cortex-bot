@@ -59,7 +59,7 @@ lint:
   stage: lint
   <<: *install_template
   script:
-    - poetry run ruff check . --exit-zero
+    - poetry run ruff check .
 
 test:
   stage: test

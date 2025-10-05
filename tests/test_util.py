@@ -9,12 +9,12 @@ import pytest
 from jsonschema import ValidationError
 
 from src.pkg.util import (
+    RESOURCES_DIR,
     create_response,
-    read_resource,
-    read_file,
     get_papi_auth_headers,
     get_papi_url,
-    RESOURCES_DIR
+    read_file,
+    read_resource,
 )
 
 

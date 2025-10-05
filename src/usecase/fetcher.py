@@ -5,9 +5,9 @@ from typing import Optional
 
 from fastmcp import Context
 
+from config.config import get_config
 from entities.MCPContext import MCPContext
 from pkg.client import PAPIClient
-from config.config import get_config
 from pkg.util import get_papi_auth_headers, get_papi_url
 
 logger = logging.getLogger(__name__)
