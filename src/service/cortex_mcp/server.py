@@ -1,6 +1,7 @@
 import logging
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator, Optional
+from typing import Optional
 
 from fastmcp import FastMCP
 from starlette.requests import Request

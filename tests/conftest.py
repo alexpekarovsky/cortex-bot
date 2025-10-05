@@ -1,16 +1,18 @@
 """Pytest configuration and fixtures for cortex-mcp tests."""
 
 
-import tempfile
 import shutil
-import yaml
+import tempfile
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, Mock
+
 import pytest
-from unittest.mock import MagicMock, AsyncMock, Mock
+import yaml
 from fastmcp import Context, FastMCP
 
-from src.usecase.fetcher import Fetcher
 from src.entities.MCPContext import MCPContext
+from src.usecase.fetcher import Fetcher
+
 
 @pytest.fixture
 def temp_dir():
@@ -42,11 +44,11 @@ def individual_openapi_specs(all_usecase_folders):
             for file_path in folder.rglob('*.yaml'):
                 if file_path and file_path.is_file():
                     try:
-                        with open(file_path, 'r') as f:
+                        with open(file_path) as f:
                             spec = yaml.safe_load(f)
                         spec_file = file_path
                         break  # Use the first valid YAML file found
-                    except (yaml.YAMLError, IOError, ImportError):
+                    except (OSError, yaml.YAMLError, ImportError):
                         continue
 
             if spec is not None:

@@ -1,10 +1,11 @@
 import os
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from fastmcp import Context
 
-from src.usecase.fetcher import Fetcher, get_fetcher
 from src.entities.MCPContext import MCPContext
+from src.usecase.fetcher import Fetcher, get_fetcher
 
 
 class TestFetcher:

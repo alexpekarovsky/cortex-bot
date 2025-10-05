@@ -1,23 +1,23 @@
 import logging
 import os
 from pathlib import Path
+from typing import Any, Optional
 
 import yaml
-from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
 
-def deep_merge(source: Dict[str, Any], destination: Dict[str, Any]) -> Dict[str, Any]:
+def deep_merge(source: dict[str, Any], destination: dict[str, Any]) -> dict[str, Any]:
     """
     Recursively merges the 'source' dictionary into the 'destination' dictionary.
 
     Args:
-        source (Dict[str, Any]): The source dictionary to merge from
-        destination (Dict[str, Any]): The destination dictionary to merge into
+        source (dict[str, Any]): The source dictionary to merge from
+        destination (dict[str, Any]): The destination dictionary to merge into
 
     Returns:
-        Dict[str, Any]: The merged dictionary (modifies destination in-place and returns it)
+        dict[str, Any]: The merged dictionary (modifies destination in-place and returns it)
 
     Example:
         >>> source = {'a': {'b': 2}}
@@ -36,7 +36,7 @@ def deep_merge(source: Dict[str, Any], destination: Dict[str, Any]) -> Dict[str,
     return destination
 
 
-def bundle_specs(template_file: Path, *specs_dirs: Path) -> Optional[Dict[str, Any]]:
+def bundle_specs(template_file: Path, *specs_dirs: Path) -> Optional[dict[str, Any]]:
     """
     Loads a main template, walks directories of specs, merges them,
     and returns a single bundled OpenAPI specification.
@@ -46,7 +46,7 @@ def bundle_specs(template_file: Path, *specs_dirs: Path) -> Optional[Dict[str, A
         *specs_dirs (Path): Directories containing OpenAPI specification files to merge
 
     Returns:
-        Optional[Dict[str, Any]]: The bundled OpenAPI specification as a dictionary,
+        Optional[dict[str, Any]]: The bundled OpenAPI specification as a dictionary,
                                  or None if an error occurred
 
     Raises:
@@ -57,7 +57,7 @@ def bundle_specs(template_file: Path, *specs_dirs: Path) -> Optional[Dict[str, A
     try:
         # 1. Load the main template
         logger.debug(f"Loading main template from '{template_file}'...")
-        with open(template_file, 'r') as f:
+        with open(template_file) as f:
             main_spec = yaml.safe_load(f)
 
         # Ensure top-level keys exist
@@ -78,7 +78,7 @@ def bundle_specs(template_file: Path, *specs_dirs: Path) -> Optional[Dict[str, A
                         logger.debug(f"Merging '{file_path}'")
 
                         try:
-                            with open(file_path, 'r') as f:
+                            with open(file_path) as f:
                                 spec_to_merge = yaml.safe_load(f)
 
                             # Merge the contents into the main spec

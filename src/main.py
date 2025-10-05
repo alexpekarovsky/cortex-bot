@@ -10,8 +10,8 @@ with XSIAM (Extended Security Intelligence and Automation Management) services.
 """
 
 import asyncio
-import signal
 import logging
+import signal
 from functools import partial
 
 from fastmcp import FastMCP
@@ -19,9 +19,9 @@ from fastmcp.server.server import Transport
 
 from config.config import get_config
 from pkg.client import PAPIClient
-from pkg.util import get_papi_auth_headers, bundle_openapi_from_folders, get_papi_url
-from service.cortex_mcp.server import create_mcp_server
 from pkg.setup_logging import setup_logging
+from pkg.util import bundle_openapi_from_folders, get_papi_auth_headers, get_papi_url
+from service.cortex_mcp.server import create_mcp_server
 from usecase.module_util import discover_and_register_modules
 
 logger = logging.getLogger("Cortex MCP")

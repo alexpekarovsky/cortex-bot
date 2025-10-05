@@ -1,8 +1,9 @@
 # fmt: off
-from pydantic_settings import BaseSettings
-
 import logging
 import sys
+
+from pydantic_settings import BaseSettings
+
 
 def setup_logging(config: BaseSettings):
     """

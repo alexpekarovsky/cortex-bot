@@ -3,22 +3,22 @@ import asyncio
 import io
 import json
 import logging
+import os
 import shutil
 import subprocess
-import os
 import sys
 import tempfile
-import zipfile
 import time
-from typing import Optional, Tuple
+import zipfile
+from typing import Optional
 
 import requests
 
-from main import async_main
 from config.config import get_config, reload_config
+from main import async_main
 from pkg.setup_logging import setup_logging
 from pkg.util import REMOTE_DIR, SCRIPT_DIR
-from usecase.fetcher import get_papi_url, Fetcher
+from usecase.fetcher import Fetcher, get_papi_url
 
 config = get_config()
 logger = logging.getLogger("CORTEX MCP CLI")
@@ -36,19 +36,19 @@ def setup_api_arguments(subparser: argparse.ArgumentParser):
         '--api_key_id',
         type=int,
         default=config.papi_auth_id_key,
-        help=f'The ID of the api key (default: environment variable: CORTEX_MCP_PAPI_AUTH_ID).'
+        help='The ID of the api key (default: environment variable: CORTEX_MCP_PAPI_AUTH_ID).'
     )
     subparser.add_argument(
         '--api_key_secret',
         type=str,
         default=config.papi_auth_header_key,
-        help=f'The API key (default: environment variable: CORTEX_MCP_PAPI_AUTH_HEADER).'
+        help='The API key (default: environment variable: CORTEX_MCP_PAPI_AUTH_HEADER).'
     )
     subparser.add_argument(
         '--server-url',
         type=str,
         default=config.papi_url_env_key,
-        help=f'The server url (default: environment variable: CORTEX_MCP_PAPI_URL).'
+        help='The server url (default: environment variable: CORTEX_MCP_PAPI_URL).'
     )
 
 
@@ -81,7 +81,7 @@ def setup_commands(subparsers: argparse._SubParsersAction):
         '--folder',
         default=config.update_folder,
         type=str,
-        help=f'The path to the content folder to be updated (default: environment variable: CORTEX_MCP_UPDATE_FOLDER).'
+        help='The path to the content folder to be updated (default: environment variable: CORTEX_MCP_UPDATE_FOLDER).'
     )
     update_parser.set_defaults(func=update_tools)
 
@@ -98,17 +98,17 @@ def setup_env(args: argparse.Namespace):
     """
     # Validate required API key arguments
     if not args.api_key_id:
-        logger.error(f"[Python] Error: API key ID is required. Please provide --api_key_id or set CORTEX_MCP_PAPI_AUTH_ID environment variable.")
+        logger.error("[Python] Error: API key ID is required. Please provide --api_key_id or set CORTEX_MCP_PAPI_AUTH_ID environment variable.")
         sys.exit(1)
     os.environ["CORTEX_MCP_PAPI_AUTH_ID"] = str(args.api_key_id)
 
     if not args.api_key_secret:
-        logger.error(f"[Python] Error: API key is required. Please provide --api_key_secret or set CORTEX_MCP_PAPI_AUTH_HEADER environment variable.")
+        logger.error("[Python] Error: API key is required. Please provide --api_key_secret or set CORTEX_MCP_PAPI_AUTH_HEADER environment variable.")
         sys.exit(1)
     os.environ["CORTEX_MCP_PAPI_AUTH_HEADER"] = args.api_key_secret
 
     if not args.server_url:
-        logger.error(f"[Python] Error: PAPI Server URL is required. Please provide --server_url or set CORTEX_MCP_PAPI_URL environment variable.")
+        logger.error("[Python] Error: PAPI Server URL is required. Please provide --server_url or set CORTEX_MCP_PAPI_URL environment variable.")
         sys.exit(1)
     os.environ["CORTEX_MCP_PAPI_URL"] = args.server_url
 
@@ -214,7 +214,7 @@ def safe_extract(zip_ref: zipfile.ZipFile, extract_to: str):
             raise ValueError(f"Unsafe path: {member.filename}")
     zip_ref.extractall(extract_to)
 
-def extract_remote_tools(zip_path: str) -> Tuple[str, str]:
+def extract_remote_tools(zip_path: str) -> tuple[str, str]:
     """
     Extracts the zip file and returns the path to the remote_tools directory.
 

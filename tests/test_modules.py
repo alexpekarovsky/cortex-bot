@@ -1,8 +1,9 @@
 from pathlib import Path
 from unittest.mock import Mock, patch
-import pytest
 
+import pytest
 from fastmcp import FastMCP
+
 from src.usecase.module_util import (
     discover_and_register_modules,
 )
