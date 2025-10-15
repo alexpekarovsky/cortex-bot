@@ -38,7 +38,7 @@ async def get_issues(ctx: Context,
                     filters: Annotated[list, Field(description="Filters list to get the issues by. Leave empty go get all issues")],
                     search_from: Annotated[int, Field(description="Marker for pagination starting point", default=0)] = 0,
                     search_to: Annotated[int, Field(description="Marker for pagination ending point", default=30)] = 30,
-                    sort: Annotated[Optional[dict], Field(description="Field to sort by. By default the sort is defined as creation_time, desc.", default={})] = None,
+                    sort: Annotated[Optional[dict], Field(description="Dictionary of field and keyword to sort by. By default the sort is defined as creation_time, desc")] = None,
                     ) -> str:
     """
     Retrieves a list of issues or alerts from the Cortex platform.
@@ -54,6 +54,7 @@ async def get_issues(ctx: Context,
                         "value": ["new", "under_investigation"]
             }]
             Leave empty go get all issues.
+            Allowed values:"issue_id","external_id","detection_method","domain","severity","_insert_time","status"
         search_from: Marker for pagination starting point.
         search_to: Marker for pagination ending point.
         sort: Field to sort by. Example -
@@ -114,7 +115,7 @@ class IssuesModule(BaseModule):
 
     def register_resources(self):
         self._add_resource(get_issues_response, uri="resources://issues_response.json",
-    name="issues_response.json.json",
+    name="issues_response.json",
     description="Example response from the issues API",
     mime_type="application/json",)
 

@@ -21,23 +21,24 @@ paths:
               filtered_request:
                 summary: Example request with filters and sorting
                 value:
-                  filters:
-                    - field: "name"
-                      operator: "in"
-                      value: "AsmAssetsFilter_value"
-                  sort:
-                    - FIELD: "xdm.asset.name"
-                      ORDER: "DESC"
-                  search_from: 0
-                  search_to: 100
+                  request_data:
+                    filters:
+                      - field: "name"
+                        operator: "in"
+                        value: "AsmAssetsFilter_value"
+                    sort:
+                      - FIELD: "xdm.asset.name"
+                        ORDER: "DESC"
+                    search_from: 0
+                    search_to: 100
               on_demand_fields_request:
                 summary: Example with on-demand fields
                 value:
-                  filters: []
-                  on_demand_fields:
-                    - "xdm.host.ipv4_addresses"
-                  search_to: 50
-
+                  request_data:
+                    filters: []
+                    on_demand_fields:
+                      - "xdm.host.ipv4_addresses"
+                    search_to: 50
       responses:
         '200':
           description: Successful response containing a list of assets.
@@ -65,12 +66,14 @@ paths:
                   error:
                     type: string
                     example: "Forbidden"
-      security:
-        - ApiKeyAuth: []
-
 components:
   schemas:
     AssetRequest:
+      type: object
+      properties:
+        request_data:
+          $ref: '#/components/schemas/AssetRequestPayload'
+    AssetRequestPayload:
       type: object
       properties:
         filters:
@@ -85,22 +88,37 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SortItem'
-        search_from: { type: integer, default: 0 }
-        search_to: { type: integer, default: 1000 }
-
+        search_from:
+          type: integer
+          default: 0
+        search_to:
+          type: integer
+          default: 1000
     Filter:
       type: object
       properties:
-        field: { type: string }
-        operator: { type: string, enum: [in, gte, lte, contains, like] }
-        value: { type: string }
-
+        field:
+          type: string
+        operator:
+          type: string
+          enum:
+            - in
+            - gte
+            - lte
+            - contains
+            - like
+        value:
+          type: string
     SortItem:
       type: object
       properties:
-        FIELD: { type: string }
-        ORDER: { type: string, enum: [ASC, DESC] }
-
+        FIELD:
+          type: string
+        ORDER:
+          type: string
+          enum:
+            - ASC
+            - DESC
     AssetResponse:
       type: object
       properties:
@@ -122,7 +140,6 @@ components:
                 total_count:
                   type: integer
                   description: The total number of assets available.
-
     Asset:
       type: object
       description: Represents a single asset with its properties.
@@ -130,10 +147,14 @@ components:
         issues_breakdown:
           type: object
           properties:
-            critical: { type: integer }
-            high: { type: integer }
-            low: { type: integer }
-            medium: { type: integer }
+            critical:
+              type: integer
+            high:
+              type: integer
+            low:
+              type: integer
+            medium:
+              type: integer
         'xdm.asset.first_observed':
           type: integer
           format: int64
@@ -160,10 +181,14 @@ components:
         cases_breakdown:
           type: object
           properties:
-            critical: { type: integer }
-            high: { type: integer }
-            low: { type: integer }
-            medium: { type: integer }
+            critical:
+              type: integer
+            high:
+              type: integer
+            low:
+              type: integer
+            medium:
+              type: integer
         'xdm.asset.provider':
           type: string
         'xdm.asset.type.class':

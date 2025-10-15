@@ -39,7 +39,7 @@ async def get_cases(ctx: Context,
                     filters: Annotated[list, Field(description="Filters list to get the cases by. Leave empty go get all cases")],
                     search_from: Annotated[int, Field(description="Marker for pagination starting point", default=0)] = 0,
                     search_to: Annotated[int, Field(description="Marker for pagination ending point", default=30)] = 30,
-                    sort: Annotated[Optional[dict], Field(description="Field to sort by. By default the sort is defined as modification_time, desc")] = None,
+                    sort: Annotated[Optional[dict], Field(description="Dictionary of field and keyword to sort by. By default the sort is defined as creation_time, desc")] = None,
                     ) -> str:
     """
     Retrieves a list of cases or incidents from the Cortex platform.
@@ -51,18 +51,16 @@ async def get_cases(ctx: Context,
         ctx: The FastMCP context.
         filters: Filters list to get the cases by. Example -
             [{
-                        "field": "status",
+                        "field": "severity",
                         "operator": "in",
-                        "value": ["new", "under_investigation"]
+                        "value": ["high", "critical"]
             }]
             Leave empty go get all cases.
+            Allowed values:"case_id","case_domain","severity","creation_time","status_progress"
         search_from: Marker for pagination starting point.
         search_to: Marker for pagination ending point.
-        sort: Field to sort by. Example -
-            {
-                    "field": "modification_time",
-                    "keyword": "desc"
-            }
+        sort: Field to sort by in the structure of "field" with the field name and "keyword" of "desc" or "asc".
+            Allowed values:"case_id","severity","creation_time"
 
     Returns:
         JSON response containing case data.

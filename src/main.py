@@ -89,19 +89,10 @@ async def async_main(transport: Transport):
     api_key_id = config.papi_auth_id_key
     papi_url = config.papi_url_env_key
 
-    # Create MCP server instance with authentication
-    mcp = create_mcp_server(api_key, api_key_id)
-
-    # Discover mcp components from modules
-    discover_and_register_modules(mcp)
-
-    # Discover mcp components from openapi specs and import them
-    spec = bundle_openapi_from_folders()
-    open_api_mcp = FastMCP.from_openapi(spec, PAPIClient(get_papi_url(papi_url), get_papi_auth_headers(api_key, api_key_id)))
-    await mcp.import_server(server=open_api_mcp)
+    mcp = await initialize_mcp_server(api_key, api_key_id, papi_url)
 
     # Start server with appropriate transport configuration
-    if config.mcp_transport == "stdio":
+    if transport == "stdio":
         await mcp.run_async(transport=transport)
     else:
         # Use http stream or other transport with host/port configuration
@@ -111,6 +102,22 @@ async def async_main(transport: Transport):
             port=config.mcp_port,
             path=config.mcp_path,
         )
+
+
+async def initialize_mcp_server(api_key: str, api_key_id: str, papi_url: str) -> FastMCP:
+    # Create MCP server instance with authentication
+    mcp = create_mcp_server(api_key, api_key_id)
+
+    # Discover mcp components from modules
+    discover_and_register_modules(mcp)
+
+    # Discover mcp components from openapi specs and import them
+    spec = bundle_openapi_from_folders()
+    open_api_mcp = FastMCP.from_openapi(spec,
+                                        PAPIClient(get_papi_url(papi_url), get_papi_auth_headers(api_key, api_key_id)))
+    await mcp.import_server(server=open_api_mcp)
+
+    return mcp
 
 
 def main():
