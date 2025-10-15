@@ -29,7 +29,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AssessmentProfileResponse'
+                type: object
         '400':
           description: Bad request - invalid input parameters.
           content:
@@ -86,88 +86,4 @@ components:
           type: string
           enum: [contains, not_contains]
         value:
-          type: string
-
-    AssessmentProfileResponse:
-      type: object
-      properties:
-        reply:
-          type: object
-          properties:
-            total_count:
-              type: integer
-            result_count:
-              type: integer
-            standard_filter_count:
-              type: integer
-            standard_total_count:
-              type: integer
-            data:
-              type: array
-              items:
-                $ref: '#/components/schemas/AssessmentProfileDataWrapper'
-
-    AssessmentProfileDataWrapper:
-      type: object
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/AssessmentProfileResult'
-
-    AssessmentProfileResult:
-      type: object
-      properties:
-        TYPE:
-          type: string
-        SCORE:
-          type: number
-          nullable: true
-        ASSET_GROUP_NAME:
-          type: string
-          nullable: true
-        ASSET_GROUP_ID:
-          type: string
-          nullable: true
-        ADDITIONAL_DATA:
-          type: object
-          nullable: true
-        LAST_EVALUATION_TIME:
-          type: integer
-          format: int64
-        STANDARD_NAME:
-          type: string
-        PROFILES_COUNT:
-          type: integer
-        STANDARD_ID:
-          type: integer
-          format: int64
-        LABELS:
-          type: array
-          items:
-            type: string
-        PATH:
-          type: array
-          items:
-            type: string
-        FAILED_CONTROLS_SEVERITY:
-          type: array
-          items:
-            $ref: '#/components/schemas/BreakdownItem'
-        CONTROLS_STATUS:
-          type: array
-          items:
-            $ref: '#/components/schemas/BreakdownItem'
-        ASSESSMENT_PROFILE_REVISION:
-          type: object
-          nullable: true
-
-    BreakdownItem:
-      type: object
-      properties:
-        value:
-          type: string
-        count:
-          type: integer
-        pretty_name:
           type: string
