@@ -28,7 +28,7 @@ def setup_logging(config: BaseSettings):
         - Log format: "%(name)s | %(message)s"
         - Time format: "%H:%M:%S"
     """
-    handler = logging.StreamHandler(sys.stdout)
+    handler = logging.StreamHandler(sys.stderr)
 
     formatter = logging.Formatter(
         fmt="%(name)s | %(message)s",

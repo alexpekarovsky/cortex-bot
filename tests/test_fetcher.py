@@ -146,7 +146,7 @@ class TestFetcher:
         mock_client_instance.request.assert_called_once_with(
             "POST",
             "/public_api/v1/test/endpoint",
-            data=None,
+            json=None,
             headers=mock_headers
         )
         assert result == mock_response
@@ -184,7 +184,7 @@ class TestFetcher:
         mock_client_instance.request.assert_called_once_with(
             method,
             "/public_api/v1/custom/endpoint",
-            data=data,
+            json=data,
             headers=mock_headers
         )
         assert result == mock_response
@@ -211,7 +211,7 @@ class TestFetcher:
         mock_client_instance.request.assert_called_once_with(
             "POST",
             "/custom/raw/endpoint",  # No prefix added
-            data=None,
+            json=None,
             headers=mock_headers
         )
         assert result == mock_response
@@ -238,7 +238,7 @@ class TestFetcher:
         mock_client_instance.request.assert_called_once_with(
             "POST",
             "/public_api/v1/already/prefixed",
-            data=None,
+            json=None,
             headers=mock_headers
         )
         assert result == mock_response
@@ -265,7 +265,7 @@ class TestFetcher:
         mock_client_instance.request.assert_called_once_with(
             "POST",
             "/public_api/v1/already/prefixed",
-            data=None,
+            json=None,
             headers=mock_headers
         )
         assert result == mock_response
@@ -292,7 +292,7 @@ class TestFetcher:
         mock_client_instance.request.assert_called_once_with(
             "POST",
             "/public_api/v1/test/endpoint",
-            data=None,
+            json=None,
             headers=mock_headers
         )
         assert result == mock_response
