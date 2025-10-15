@@ -47,14 +47,19 @@ async def get_issues(ctx: Context,
 
     Args:
         ctx: The FastMCP context.
-        filters: Filters list to get the issues by. Example -
+        filters: Filters list to get the issues by. Examples -
+            [{
+                        "field": "id",
+                        "operator": "in",
+                        "value": ["123"]
+            }],
             [{
                         "field": "status",
                         "operator": "in",
                         "value": ["new", "under_investigation"]
             }]
             Leave empty go get all issues.
-            Allowed values:"issue_id","external_id","detection_method","domain","severity","_insert_time","status"
+            Allowed values:"id","external_id","detection_method","domain","severity","_insert_time","status"
         search_from: Marker for pagination starting point.
         search_to: Marker for pagination ending point.
         sort: Field to sort by. Example -

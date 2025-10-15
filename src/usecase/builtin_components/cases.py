@@ -54,7 +54,12 @@ async def get_cases(ctx: Context,
                         "field": "severity",
                         "operator": "in",
                         "value": ["high", "critical"]
-            }]
+            }],
+            [{
+                        "field": "id",
+                        "operator": "in",
+                        "value": [123]
+            }],
             Leave empty go get all cases.
             Allowed values:"case_id","case_domain","severity","creation_time","status_progress"
         search_from: Marker for pagination starting point.
