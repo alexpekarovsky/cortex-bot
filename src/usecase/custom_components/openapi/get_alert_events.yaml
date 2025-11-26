@@ -1,0 +1,137 @@
+openapi: 3.0.0
+paths:
+  /public_api/v2/alerts/get_alerts_multi_events:
+    post:
+      summary: Get Complete Alert Event Data
+      description: |-
+        Retrieves comprehensive event data for one or more alerts/issues.
+        This provides much more detail than the basic get_issues endpoint,
+        including all raw event data, full process chains, network connections,
+        file operations, and complete forensic context.
+
+        Use this when:
+        - You need the full forensic details of an alert
+        - The basic alert information is insufficient for investigation
+        - You want to see all raw events associated with an alert
+        - You need deep context for incident analysis
+
+        This endpoint provides:
+        - Complete raw event data
+        - Full process execution chains
+        - Network connection details (IPs, ports, protocols)
+        - File system operations and modifications
+        - Registry changes (Windows)
+        - User and authentication context
+        - Complete timeline of all related events
+
+        This is v2 of the API which provides enhanced data compared to v1.
+      operationId: get_alert_multi_events
+      tags:
+        - Alerts
+      requestBody:
+        description: JSON object containing alert IDs to retrieve detailed event data for
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetAlertEventsRequest'
+            examples:
+              single_alert:
+                summary: Get events for a single alert by ID
+                value:
+                  request_data:
+                    filters:
+                      - field: "alert_id"
+                        operator: "in"
+                        value: ["12345"]
+              multiple_alerts:
+                summary: Get events for multiple alerts
+                value:
+                  request_data:
+                    filters:
+                      - field: "alert_id"
+                        operator: "in"
+                        value: ["12345", "12346", "12347"]
+              by_severity:
+                summary: Get alerts by severity
+                value:
+                  request_data:
+                    filters:
+                      - field: "severity"
+                        operator: "in"
+                        value: ["high", "critical"]
+      responses:
+        '200':
+          description: Successful response containing detailed alert event data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reply:
+                    type: object
+                    properties:
+                      alerts:
+                        type: array
+                        items:
+                          type: object
+                          description: Complete alert data with all associated events
+        '400':
+          description: Bad request - invalid parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Bad Request"
+        '401':
+          description: Unauthorized - invalid API credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Unauthorized"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Forbidden"
+
+components:
+  schemas:
+    GetAlertEventsRequest:
+      type: object
+      properties:
+        request_data:
+          type: object
+          properties:
+            filters:
+              type: array
+              description: Array of filter objects to filter alerts
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                    description: Field to filter on (e.g., alert_id, severity, host_name)
+                  operator:
+                    type: string
+                    description: Comparison operator
+                    enum: [in, eq, gte, lte]
+                  value:
+                    description: Value(s) to filter by - can be string or array
+                    oneOf:
+                      - type: string
+                      - type: array
+                        items:
+                          type: string

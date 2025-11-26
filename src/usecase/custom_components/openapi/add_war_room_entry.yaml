@@ -1,0 +1,83 @@
+openapi: 3.0.0
+paths:
+  /public_api/v1/entries/insert:
+    post:
+      summary: Add War Room Entry
+      description: |-
+        Add an entry to the cases or alert War Room, including data or commands.
+
+        The War Room is the collaborative investigation workspace in Cortex XSIAM where
+        analysts can add notes, run commands, and document their investigation.
+
+        Use this to:
+        - Document investigation findings
+        - Add analyst notes to incidents
+        - Run War Room automation commands
+        - Collaborate with team members
+        - Create audit trail of investigation steps
+
+        ID Format:
+        - For cases: Prepend "CASE-" (e.g., "CASE-1093")
+        - For alerts/issues: Use alert ID directly (e.g., "3890")
+
+        You can add plain text notes or run War Room commands (starting with !)
+      operationId: add_war_room_entry
+      tags:
+        - Incident Management
+      requestBody:
+        description: JSON object with case/alert ID and entry data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddWarRoomEntryRequest'
+            examples:
+              add_note_to_case:
+                summary: Add investigation note to case
+                value:
+                  id: "CASE-1093"
+                  data: "Investigation findings: All 20 alerts involve legitimately signed executables blocked from C:\\temp. Likely security testing scenario."
+              add_note_to_alert:
+                summary: Add note to alert
+                value:
+                  id: "3890"
+                  data: "Reviewed file hash - confirmed benign by WildFire. False positive from test IOC rule."
+              run_command:
+                summary: Run War Room command
+                value:
+                  id: "CASE-1093"
+                  data: "!Print value=Investigation started"
+      responses:
+        '200':
+          description: Successful response - entry added to War Room
+        '400':
+          description: Bad request - invalid parameters
+        '401':
+          description: Unauthorized - invalid API credentials
+        '402':
+          description: Payment required
+        '403':
+          description: Forbidden - insufficient permissions
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    AddWarRoomEntryRequest:
+      type: object
+      required:
+        - id
+        - data
+      properties:
+        id:
+          type: string
+          description: |
+            Case or alert ID.
+            - For cases: Use "CASE-{id}" format (e.g., "CASE-1093")
+            - For alerts: Use alert ID directly (e.g., "3890")
+        data:
+          type: string
+          description: |
+            The data to add or command to run in the War Room.
+            - Plain text for notes
+            - Commands start with ! (e.g., "!Print value=test")

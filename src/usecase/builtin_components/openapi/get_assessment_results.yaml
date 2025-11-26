@@ -1,6 +1,6 @@
 openapi: 3.0.0
 paths:
-  /public_api/v1/compliance/get_assessment_results/:
+  /public_api/v1/compliance/get_assessment_results:
     post:
       summary: Get assessment profile results
       description: Retrieve assessment profile results with optional filtering based on the last successful evaluation.

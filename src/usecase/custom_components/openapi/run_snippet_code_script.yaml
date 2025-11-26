@@ -1,0 +1,92 @@
+openapi: 3.0.0
+paths:
+  /public_api/v1/scripts/run_snippet_code_script:
+    post:
+      summary: Run Snippet Code Script
+      description: |-
+        Initiate a new endpoint script execution action using provided snippet code.
+        Cortex XDR supports sending your request in Base64.
+
+        This allows you to run ad-hoc scripts without pre-registering them in the library.
+
+        CAUTION: This is a powerful tool - only run trusted, tested code.
+
+        Use this for:
+        - Quick diagnostic commands
+        - One-off investigations
+        - Proof-of-concept testing
+      operationId: run_snippet_code_script
+      tags:
+        - Script Execution
+      requestBody:
+        description: JSON object with snippet code to execute
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RunSnippetCodeScriptRequest'
+            examples:
+              windows_example:
+                summary: Run PowerShell snippet
+                value:
+                  request_data:
+                    filters:
+                      - field: "endpoint_id_list"
+                        operator: "in"
+                        value: ["endpoint-id-here"]
+                    snippet_code: "Write-Host 'Test'"
+                    timeout: 300
+      responses:
+        '200':
+          description: Successful response - snippet execution initiated
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '402':
+          description: Payment required
+        '403':
+          description: Forbidden
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    RunSnippetCodeScriptRequest:
+      type: object
+      required:
+        - request_data
+      properties:
+        request_data:
+          type: object
+          required:
+            - filters
+            - snippet_code
+          properties:
+            filters:
+              type: array
+              description: Filter criteria for selecting endpoints
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                    enum: [endpoint_id_list]
+                  operator:
+                    type: string
+                    enum: [in]
+                  value:
+                    type: array
+                    items:
+                      type: string
+                required: [field, operator, value]
+            snippet_code:
+              type: string
+              description: Code snippet to execute on endpoints
+            timeout:
+              type: integer
+              description: Timeout in seconds (default 600)
+              default: 600
+            incident_id:
+              type: string
+              description: Incident ID to associate with this action

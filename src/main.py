@@ -19,6 +19,7 @@ from fastmcp.server.server import Transport
 
 from config.config import get_config
 from pkg.client import PAPIClient
+from pkg.openapi_client import OpenAPIClient
 from pkg.setup_logging import setup_logging
 from pkg.util import bundle_openapi_from_folders, get_papi_auth_headers, get_papi_url
 from service.cortex_mcp.server import create_mcp_server
@@ -113,8 +114,10 @@ async def initialize_mcp_server(api_key: str, api_key_id: str, papi_url: str) ->
 
     # Discover mcp components from openapi specs and import them
     spec = bundle_openapi_from_folders()
+    # Use OpenAPIClient instead of PAPIClient for FastMCP.from_openapi
+    # because FastMCP expects a client that returns Response objects, not dicts
     open_api_mcp = FastMCP.from_openapi(spec,
-                                        PAPIClient(get_papi_url(papi_url), get_papi_auth_headers(api_key, api_key_id)))
+                                        OpenAPIClient(get_papi_url(papi_url), get_papi_auth_headers(api_key, api_key_id)))
     await mcp.import_server(server=open_api_mcp)
 
     return mcp

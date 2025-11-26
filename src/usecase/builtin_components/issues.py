@@ -39,6 +39,7 @@ async def get_issues(ctx: Context,
                     search_from: Annotated[int, Field(description="Marker for pagination starting point", default=0)] = 0,
                     search_to: Annotated[int, Field(description="Marker for pagination ending point", default=30)] = 30,
                     sort: Annotated[Optional[dict], Field(description="Dictionary of field and keyword to sort by. By default the sort is defined as creation_time, desc")] = None,
+                    include_fields: Annotated[Optional[list], Field(description="Fields to include in response. Allowed values: normalized_fields, custom_fields")] = None,
                     ) -> str:
     """
     Retrieves a list of issues or alerts from the Cortex platform.
@@ -49,9 +50,9 @@ async def get_issues(ctx: Context,
         ctx: The FastMCP context.
         filters: Filters list to get the issues by. Examples -
             [{
-                        "field": "id",
+                        "field": "issue_id",
                         "operator": "in",
-                        "value": ["123"]
+                        "value": [123]
             }],
             [{
                         "field": "status",
@@ -59,15 +60,17 @@ async def get_issues(ctx: Context,
                         "value": ["new", "under_investigation"]
             }]
             Leave empty go get all issues.
-            Allowed values:"id","external_id","detection_method","domain","severity","_insert_time","status"
+            Allowed values:"issue_id","external_id","detection_method","domain","severity","_insert_time","status"
         search_from: Marker for pagination starting point.
         search_to: Marker for pagination ending point.
         sort: Field to sort by. Example -
             {
-                    "field": "modification_time",
+                    "field": "_insert_time",
                     "keyword": "desc"
             }
-            By default the sort is defined as creation_time, desc.
+            By default the sort is defined as _insert_time, desc.
+            Allowed sort fields: "_insert_time", "severity", "issue_id"
+        include_fields: Fields to include in response (optional). Values: "normalized_fields", "custom_fields"
     Returns:
         JSON response containing issue data.
       """
@@ -82,10 +85,12 @@ async def get_issues(ctx: Context,
         payload["request_data"]["filters"] = filters
     if sort:
         payload["request_data"]["sort"] = sort
+    if include_fields:
+        payload["request_data"]["include_fields"] = include_fields
 
     try:
         fetcher = await get_fetcher(ctx)
-        response_data = await fetcher.send_request("/v1/issue/search/", data=payload, omit_papi_prefix=True)
+        response_data = await fetcher.send_request("/v1/issue/search", data=payload, omit_papi_prefix=True)
         response_data["_metadata"] = {
             "formatting_instructions": LLM_FORMATTING_BASE_INSTRUCTIONS,
         }

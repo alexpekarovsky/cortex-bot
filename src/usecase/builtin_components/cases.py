@@ -38,7 +38,7 @@ async def get_cases_response() -> str:
 async def get_cases(ctx: Context,
                     filters: Annotated[list, Field(description="Filters list to get the cases by. Leave empty go get all cases")],
                     search_from: Annotated[int, Field(description="Marker for pagination starting point", default=0)] = 0,
-                    search_to: Annotated[int, Field(description="Marker for pagination ending point", default=30)] = 30,
+                    search_to: Annotated[int, Field(description="Marker for pagination ending point (max 10 per request to avoid response size issues)", default=10)] = 10,
                     sort: Annotated[Optional[dict], Field(description="Dictionary of field and keyword to sort by. By default the sort is defined as creation_time, desc")] = None,
                     ) -> str:
     """
@@ -70,6 +70,12 @@ async def get_cases(ctx: Context,
     Returns:
         JSON response containing case data.
       """
+
+    # Enforce maximum page size to prevent oversized responses
+    MAX_PAGE_SIZE = 10
+    if (search_to - search_from) > MAX_PAGE_SIZE:
+        logger.warning(f"Requested page size {search_to - search_from} exceeds maximum {MAX_PAGE_SIZE}, limiting to {MAX_PAGE_SIZE}")
+        search_to = search_from + MAX_PAGE_SIZE
 
     payload = {
         "request_data": {
