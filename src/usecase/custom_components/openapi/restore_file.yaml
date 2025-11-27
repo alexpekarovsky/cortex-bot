@@ -1,0 +1,91 @@
+openapi: 3.0.0
+paths:
+  /public_api/v1/endpoints/restore/:
+    post:
+      summary: Restore Quarantined Files
+      description: |-
+        Restores previously quarantined files back to their original locations.
+        Use this when a quarantined file has been determined to be benign or
+        when you need to restore a false positive.
+
+        CAUTION: Only restore files after thorough analysis confirms they are safe.
+        Restoring malicious files will make them executable again.
+
+        Use this when:
+        - A quarantined file was a false positive
+        - Analysis confirms a file is safe and needs to be restored
+        - Business operations require restoration of a quarantined file
+      operationId: restore_file
+      tags:
+        - Endpoint Response
+      requestBody:
+        description: JSON object containing the file hash to restore
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RestoreFileRequest'
+            examples:
+              restore_file_by_hash:
+                summary: Restore a quarantined file by its hash
+                value:
+                  request_data:
+                    file_hash: "abc123def456789"
+      responses:
+        '200':
+          description: Successful response - restore action initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reply:
+                    type: object
+                    properties:
+                      action_id:
+                        type: integer
+                        description: Unique ID for tracking this restore action
+        '400':
+          description: Bad request - invalid parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Bad Request"
+        '401':
+          description: Unauthorized - invalid API credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Unauthorized"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Forbidden"
+
+components:
+  schemas:
+    RestoreFileRequest:
+      type: object
+      properties:
+        request_data:
+          type: object
+          required:
+            - file_hash
+          properties:
+            file_hash:
+              type: string
+              description: The hash of the quarantined file to restore

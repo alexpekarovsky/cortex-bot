@@ -1,0 +1,59 @@
+openapi: 3.0.0
+paths:
+  /public_api/v1/scripts/get_script_execution_status:
+    post:
+      summary: Get Script Execution Status
+      description: |-
+        Retrieve the status of a script execution action.
+
+        Shows:
+        - Overall status (PENDING, IN_PROGRESS, COMPLETED, etc.)
+        - Breakdown by endpoint status
+        - Number of endpoints in each state
+
+        Use this to monitor script execution progress.
+      operationId: get_script_execution_status
+      tags:
+        - Script Execution
+      requestBody:
+        description: JSON object containing action_id
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetScriptExecutionStatusRequest'
+            examples:
+              check_status:
+                summary: Check script execution status
+                value:
+                  request_data:
+                    action_id: "12345"
+      responses:
+        '200':
+          description: Successful response with execution status
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '402':
+          description: Payment required
+        '403':
+          description: Forbidden
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    GetScriptExecutionStatusRequest:
+      type: object
+      required:
+        - request_data
+      properties:
+        request_data:
+          type: object
+          required:
+            - action_id
+          properties:
+            action_id:
+              type: string
+              description: Action ID from run_script response

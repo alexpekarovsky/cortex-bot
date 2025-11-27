@@ -1,0 +1,61 @@
+openapi: 3.0.0
+paths:
+  /public_api/v1/scripts/get_script_execution_results:
+    post:
+      summary: Get Script Execution Results
+      description: |-
+        Retrieve the results of a script execution action.
+
+        Returns:
+        - Script name and description
+        - Parameters used
+        - Per-endpoint execution results
+        - Standard output from script
+        - Files retrieved (if any)
+
+        Use this to view output from executed scripts.
+      operationId: get_script_execution_results
+      tags:
+        - Script Execution
+      requestBody:
+        description: JSON object containing action_id
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetScriptExecutionResultsRequest'
+            examples:
+              get_results:
+                summary: Get script output
+                value:
+                  request_data:
+                    action_id: "12345"
+      responses:
+        '200':
+          description: Successful response with execution results
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '402':
+          description: Payment required
+        '403':
+          description: Forbidden
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    GetScriptExecutionResultsRequest:
+      type: object
+      required:
+        - request_data
+      properties:
+        request_data:
+          type: object
+          required:
+            - action_id
+          properties:
+            action_id:
+              type: string
+              description: Action ID from run_script response
