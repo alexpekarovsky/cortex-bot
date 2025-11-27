@@ -1,0 +1,52 @@
+Metadata-Version: 2.3
+Name: py-key-value-aio
+Version: 0.2.8
+Summary: Async Key-Value
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Requires-Dist: beartype>=0.22.2
+Requires-Dist: py-key-value-shared==0.2.8
+Requires-Dist: diskcache>=5.6.0 ; extra == 'disk'
+Requires-Dist: pathvalidate>=3.3.1 ; extra == 'disk'
+Requires-Dist: aioboto3>=13.3.0 ; extra == 'dynamodb'
+Requires-Dist: types-aiobotocore-dynamodb>=2.16.0 ; extra == 'dynamodb'
+Requires-Dist: elasticsearch>=9.0.0 ; extra == 'elasticsearch'
+Requires-Dist: aiohttp>=3.12 ; extra == 'elasticsearch'
+Requires-Dist: keyring>=25.6.0 ; extra == 'keyring'
+Requires-Dist: keyring>=25.6.0 ; extra == 'keyring-linux'
+Requires-Dist: dbus-python>=1.4.0 ; extra == 'keyring-linux'
+Requires-Dist: aiomcache>=0.8.0 ; extra == 'memcached'
+Requires-Dist: cachetools>=6.0.0 ; extra == 'memory'
+Requires-Dist: pymongo>=4.15.0 ; extra == 'mongodb'
+Requires-Dist: pydantic>=2.11.9 ; extra == 'pydantic'
+Requires-Dist: redis>=4.3.0 ; extra == 'redis'
+Requires-Dist: rocksdict>=0.3.0 ; extra == 'rocksdb'
+Requires-Dist: valkey-glide>=2.1.0 ; extra == 'valkey'
+Requires-Dist: hvac>=2.3.0 ; extra == 'vault'
+Requires-Dist: types-hvac>=2.3.0 ; extra == 'vault'
+Requires-Dist: cryptography>=45.0.0 ; extra == 'wrappers-encryption'
+Requires-Python: >=3.10
+Provides-Extra: disk
+Provides-Extra: dynamodb
+Provides-Extra: elasticsearch
+Provides-Extra: keyring
+Provides-Extra: keyring-linux
+Provides-Extra: memcached
+Provides-Extra: memory
+Provides-Extra: mongodb
+Provides-Extra: pydantic
+Provides-Extra: redis
+Provides-Extra: registry
+Provides-Extra: rocksdb
+Provides-Extra: valkey
+Provides-Extra: vault
+Provides-Extra: wrappers-encryption
+Description-Content-Type: text/markdown
+
+See the root [README.md](../../README.md) for more information.

@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incident Report #1083 - Ransomware Attack Chain</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%);
+            color: white;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .incident-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            font-size: 48px;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header-meta {
+            display: flex;
+            gap: 30px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .meta-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 28px;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .section-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+
+        .alert-critical {
+            background: linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(255,107,107,0.3);
+        }
+
+        .alert-critical h3 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .stat-subtext {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 40px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+
+        .timeline-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -34px;
+            top: 25px;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border: 4px solid #667eea;
+            border-radius: 50%;
+        }
+
+        .timeline-time {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .timeline-phase {
+            font-weight: bold;
+            color: #c92a2a;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .timeline-desc {
+            color: #495057;
+            line-height: 1.6;
+        }
+
+        .technique-badge {
+            display: inline-block;
+            background: #e9ecef;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-top: 8px;
+            color: #495057;
+            border: 1px solid #dee2e6;
+        }
+
+        .ioc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .ioc-card {
+            background: #fff;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+
+        .ioc-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 20px rgba(102,126,234,0.2);
+        }
+
+        .ioc-type {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .ioc-value {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #c92a2a;
+            word-break: break-all;
+            font-weight: bold;
+        }
+
+        .malicious {
+            color: #fd9a14;
+            font-weight: bold;
+            background: rgba(253,154,20,0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .mitre-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .mitre-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #c92a2a;
+        }
+
+        .mitre-id {
+            font-weight: bold;
+            color: #c92a2a;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .mitre-name {
+            color: #495057;
+            font-size: 14px;
+        }
+
+        .action-list {
+            list-style: none;
+        }
+
+        .action-item {
+            background: #fff;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+        }
+
+        .action-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .action-number {
+            display: inline-block;
+            width: 35px;
+            height: 35px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 35px;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+
+        .action-title {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .action-desc {
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        .severity-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .severity-critical {
+            background: linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%);
+            color: white;
+        }
+
+        .severity-high {
+            background: linear-gradient(135deg, #ff922b 0%, #fd7e14 100%);
+            color: white;
+        }
+
+        .footer {
+            background: #2c3e50;
+            color: white;
+            padding: 30px 40px;
+            text-align: center;
+        }
+
+        .footer-links {
+            margin-top: 15px;
+        }
+
+        .footer-link {
+            color: #667eea;
+            text-decoration: none;
+            margin: 0 15px;
+            transition: color 0.3s;
+        }
+
+        .footer-link:hover {
+            color: #764ba2;
+        }
+
+        .host-card {
+            background: white;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .host-card.attacker {
+            border-color: #c92a2a;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe3e3 100%);
+        }
+
+        .host-card.victim {
+            border-color: #fd7e14;
+            background: linear-gradient(135deg, #fff4e6 0%, #ffe8cc 100%);
+        }
+
+        .host-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .host-label.attacker {
+            color: #c92a2a;
+        }
+
+        .host-label.victim {
+            color: #fd7e14;
+        }
+
+        .host-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .host-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .host-detail {
+            font-size: 14px;
+        }
+
+        .host-detail-label {
+            color: #6c757d;
+            font-size: 12px;
+        }
+
+        .host-detail-value {
+            font-family: 'Courier New', monospace;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <div class="incident-badge">🚨 ACTIVE INCIDENT</div>
+                <h1>Case #1083: Ransomware Attack Chain</h1>
+                <p style="font-size: 18px; opacity: 0.9; margin-bottom: 20px;">Sophisticated multi-stage ransomware attack involving webshell deployment and network encryption</p>
+                <div class="header-meta">
+                    <div class="meta-item">
+                        <div class="meta-icon">⚠️</div>
+                        <div>
+                            <div style="font-size: 12px; opacity: 0.8;">Severity</div>
+                            <div style="font-size: 20px; font-weight: bold;">HIGH</div>
+                        </div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-icon">📊</div>
+                        <div>
+                            <div style="font-size: 12px; opacity: 0.8;">Risk Score</div>
+                            <div style="font-size: 20px; font-weight: bold;">84/100</div>
+                        </div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-icon">🔔</div>
+                        <div>
+                            <div style="font-size: 12px; opacity: 0.8;">Alerts</div>
+                            <div style="font-size: 20px; font-weight: bold;">16 Issues</div>
+                        </div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-icon">🕐</div>
+                        <div>
+                            <div style="font-size: 12px; opacity: 0.8;">Detected</div>
+                            <div style="font-size: 16px; font-weight: bold;">2025-07-28 12:31 UTC</div>
+                        </div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-icon">📋</div>
+                        <div>
+                            <div style="font-size: 12px; opacity: 0.8;">Status</div>
+                            <div style="font-size: 16px; font-weight: bold;">NEW - Unassigned</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="alert-critical">
+                <h3>🚨 CRITICAL ALERT: Active Ransomware Encryption Detected</h3>
+                <p style="font-size: 16px; line-height: 1.6; margin-top: 10px;">
+                    This incident involves an active ransomware attack that has successfully encrypted files across your network.
+                    The attack originated from a compromised IIS web server and spread to internal systems.
+                    <strong>Immediate containment actions are required to prevent further damage.</strong>
+                </p>
+            </div>
+
+            <section class="section">
+                <h2 class="section-title">
+                    <span class="section-icon">📊</span>
+                    Incident Statistics
+                </h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Affected Hosts</div>
+                        <div class="stat-value">2</div>
+                        <div class="stat-subtext">Systems compromised</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Compromised Users</div>
+                        <div class="stat-value">2</div>
+                        <div class="stat-subtext">Including privileged accounts</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">High Severity Issues</div>
+                        <div class="stat-value">16</div>
+                        <div class="stat-subtext">0 Medium, 0 Low</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Attack Duration</div>
+                        <div class="stat-value">34m</div>
+                        <div class="stat-subtext">From first execution to detection</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2 class="section-title">
+                    <span class="section-icon">🎯</span>
+                    Affected Systems
+                </h2>
+                <div class="host-card attacker">
+                    <div class="host-label attacker">🔴 ATTACK ORIGIN - WEBSHELL COMPROMISED</div>
+                    <div class="host-name">WIN-MJP6BLQAAPP</div>
+                    <div class="host-details">
+                        <div class="host-detail">
+                            <div class="host-detail-label">IP Address</div>
+                            <div class="host-detail-value">172.16.223.135</div>
+                        </div>
+                        <div class="host-detail">
+                            <div class="host-detail-label">Domain</div>
+                            <div class="host-detail-value">WORKGROUP</div>
+                        </div>
+                        <div class="host-detail">
+                            <div class="host-detail-label">Role</div>
+                            <div class="host-detail-value">IIS Web Server</div>
+                        </div>
+                        <div class="host-detail">
+                            <div class="host-detail-label">Compromise</div>
+                            <div class="host-detail-value">Webshell (DefaultAppPool)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="host-card victim">
+                    <div class="host-label victim">🟠 RANSOMWARE VICTIM</div>
+                    <div class="host-name">WIN-3B1DOFBPT6U</div>
+                    <div class="host-details">
+                        <div class="host-detail">
+                            <div class="host-detail-label">IP Address</div>
+                            <div class="host-detail-value">172.16.223.142</div>
+                        </div>
+                        <div class="host-detail">
+                            <div class="host-detail-label">Domain</div>
+                            <div class="host-detail-value">FOO.INTERNAL</div>
+                        </div>
+                        <div class="host-detail">
+                            <div class="host-detail-label">Compromised Account</div>
+                            <div class="host-detail-value">FOO\Administrator</div>
+                        </div>
+                        <div class="host-detail">
+                            <div class="host-detail-label">Impact</div>
+                            <div class="host-detail-value">File Encryption</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2 class="section-title">
+                    <span class="section-icon">⏱️</span>
+                    Attack Timeline
+                </h2>
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-time">Time Unknown (Before Detection)</div>
+                        <div class="timeline-phase">Initial Access</div>
+                        <div class="timeline-desc">
+                            Unknown initial access vector led to compromise of IIS web server (WIN-MJP6BLQAAPP).
+                            Investigation needed to determine webshell upload method.
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-time">Before 12:14:45 UTC</div>
+                        <div class="timeline-phase">Webshell Deployment</div>
+                        <div class="timeline-desc">
+                            Attacker uploaded webshell to IIS server at WIN-MJP6BLQAAPP (172.16.223.135).
+                            Webshell executed via w3wp.exe process under DefaultAppPool.
+                        </div>
+                        <span class="technique-badge">T1505.003 - Web Shell</span>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-time">12:14:45 UTC</div>
+                        <div class="timeline-phase">Defense Evasion & Execution</div>
+                        <div class="timeline-desc">
+                            Attacker used webshell to move laterally and executed malicious file
+                            <span class="malicious">svchost.exe</span> from
+                            <span class="malicious">C:\Users\Administrator\Desktop\</span>
+                            on WIN-3B1DOFBPT6U (172.16.223.142).
+                        </div>
+                        <span class="technique-badge">T1036.005 - Masquerading</span>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-time">12:15:05 UTC</div>
+                        <div class="timeline-phase">Continued Execution</div>
+                        <div class="timeline-desc">
+                            Attacker used legitimate <span class="malicious">cmd.exe</span> to execute
+                            another instance of disguised malware <span class="malicious">svchost.exe</span>.
+                        </div>
+                        <span class="technique-badge">T1036.005 - Masquerading</span>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-time">12:27:48 UTC</div>
+                        <div class="timeline-phase">Ransomware Deployment</div>
+                        <div class="timeline-desc">
+                            Initial ransomware activity detected - files being remotely renamed to extensions
+                            commonly used by ransomware.
+                        </div>
+                        <span class="technique-badge">T1486 - Data Encrypted for Impact (Precursor)</span>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-time">12:28:07 UTC</div>
+                        <div class="timeline-phase">Active Encryption</div>
+                        <div class="timeline-desc">
+                            Active ransomware encryption confirmed - files being encrypted via network connections
+                            from 172.16.223.135 targeting 172.16.223.142.
+                        </div>
+                        <span class="technique-badge">T1486 - Data Encrypted for Impact</span>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-time">12:31:48 UTC</div>
+                        <div class="timeline-phase">Webshell Detection</div>
+                        <div class="timeline-desc">
+                            Webshell detected on IIS server (WIN-MJP6BLQAAPP) by Anti-Webshell Protection module.
+                            Suspicious command execution from <span class="malicious">w3wp.exe</span> process.
+                        </div>
+                        <span class="technique-badge">T1505.003 - Web Shell (Detection)</span>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-time">12:48:46 UTC</div>
+                        <div class="timeline-phase">Continued Encryption</div>
+                        <div class="timeline-desc">
+                            Additional alerts confirmed ongoing ransomware encryption activities across the network
+                            from the compromised web server.
+                        </div>
+                        <span class="technique-badge">T1486 - Data Encrypted for Impact</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2 class="section-title">
+                    <span class="section-icon">🔍</span>
+                    Indicators of Compromise (IOCs)
+                </h2>
+                <div class="ioc-grid">
+                    <div class="ioc-card">
+                        <div class="ioc-type">🔴 Malicious File</div>
+                        <div class="ioc-value">C:\Users\Administrator\Desktop\svchost.exe</div>
+                    </div>
+                    <div class="ioc-card">
+                        <div class="ioc-type">🔑 SHA256 Hash</div>
+                        <div class="ioc-value">bc448ef031258eb75bef2c753e880966eeefa09326bd27202d7015818ada1e16</div>
+                    </div>
+                    <div class="ioc-card">
+                        <div class="ioc-type">🔑 MD5 Hash</div>
+                        <div class="ioc-value">9f9648c2e3e6463f5cc7d34c87c02462</div>
+                    </div>
+                    <div class="ioc-card">
+                        <div class="ioc-type">🌐 Attacker IP</div>
+                        <div class="ioc-value">172.16.223.135</div>
+                    </div>
+                    <div class="ioc-card">
+                        <div class="ioc-type">🌐 Victim IP</div>
+                        <div class="ioc-value">172.16.223.142</div>
+                    </div>
+                    <div class="ioc-card">
+                        <div class="ioc-type">👤 Compromised User</div>
+                        <div class="ioc-value">FOO\Administrator</div>
+                    </div>
+                    <div class="ioc-card">
+                        <div class="ioc-type">⚙️ IIS Pool</div>
+                        <div class="ioc-value">DefaultAppPool</div>
+                    </div>
+                    <div class="ioc-card">
+                        <div class="ioc-type">💻 Webshell Process</div>
+                        <div class="ioc-value">w3wp.exe</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2 class="section-title">
+                    <span class="section-icon">🎭</span>
+                    MITRE ATT&CK Techniques
+                </h2>
+                <div class="mitre-grid">
+                    <div class="mitre-card">
+                        <div class="mitre-id">T1505.003</div>
+                        <div class="mitre-name">Server Software Component: Web Shell</div>
+                    </div>
+                    <div class="mitre-card">
+                        <div class="mitre-id">T1036.005</div>
+                        <div class="mitre-name">Masquerading: Match Legitimate Name or Location</div>
+                    </div>
+                    <div class="mitre-card">
+                        <div class="mitre-id">T1486</div>
+                        <div class="mitre-name">Data Encrypted for Impact</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 10px;">
+                    <strong>Tactics Observed:</strong><br>
+                    <span class="technique-badge">TA0002 - Execution</span>
+                    <span class="technique-badge">TA0003 - Persistence</span>
+                    <span class="technique-badge">TA0005 - Defense Evasion</span>
+                    <span class="technique-badge">TA0010 - Exfiltration</span>
+                    <span class="technique-badge">TA0040 - Impact</span>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2 class="section-title">
+                    <span class="section-icon">🚀</span>
+                    Immediate Actions Required
+                </h2>
+                <ul class="action-list">
+                    <li class="action-item">
+                        <span class="action-number">1</span>
+                        <div style="display: inline-block; vertical-align: top; width: calc(100% - 60px);">
+                            <div class="action-title">🔒 ISOLATE ENDPOINTS IMMEDIATELY</div>
+                            <div class="action-desc">
+                                Isolate both WIN-MJP6BLQAAPP and WIN-3B1DOFBPT6U from the network to prevent
+                                further lateral movement and encryption. Use Cortex XDR endpoint isolation feature.
+                            </div>
+                        </div>
+                    </li>
+                    <li class="action-item">
+                        <span class="action-number">2</span>
+                        <div style="display: inline-block; vertical-align: top; width: calc(100% - 60px);">
+                            <div class="action-title">🔑 RESET COMPROMISED CREDENTIALS</div>
+                            <div class="action-desc">
+                                Reset password for FOO\Administrator account immediately. Audit all privileged
+                                accounts in the FOO.INTERNAL domain for suspicious activity and potential compromise.
+                            </div>
+                        </div>
+                    </li>
+                    <li class="action-item">
+                        <span class="action-number">3</span>
+                        <div style="display: inline-block; vertical-align: top; width: calc(100% - 60px);">
+                            <div class="action-title">💾 COLLECT FORENSIC EVIDENCE</div>
+                            <div class="action-desc">
+                                Collect memory dumps and disk images from both compromised hosts. Preserve IIS logs
+                                from WIN-MJP6BLQAAPP. Document all encrypted file paths and extensions.
+                            </div>
+                        </div>
+                    </li>
+                    <li class="action-item">
+                        <span class="action-number">4</span>
+                        <div style="display: inline-block; vertical-align: top; width: calc(100% - 60px);">
+                            <div class="action-title">🔬 SUBMIT MALWARE FOR ANALYSIS</div>
+                            <div class="action-desc">
+                                Submit malicious svchost.exe (SHA256: bc448ef...) to WildFire and VirusTotal.
+                                Analyze webshell payload to identify ransomware family and capabilities.
+                            </div>
+                        </div>
+                    </li>
+                    <li class="action-item">
+                        <span class="action-number">5</span>
+                        <div style="display: inline-block; vertical-align: top; width: calc(100% - 60px);">
+                            <div class="action-title">🔍 THREAT HUNTING</div>
+                            <div class="action-desc">
+                                Run XQL queries to search for similar webshell activity across all web servers.
+                                Check for lateral movement from 172.16.223.135. Scan all IIS servers for unauthorized files.
+                            </div>
+                        </div>
+                    </li>
+                    <li class="action-item">
+                        <span class="action-number">6</span>
+                        <div style="display: inline-block; vertical-align: top; width: calc(100% - 60px);">
+                            <div class="action-title">🛡️ CREATE IOC BLOCKING RULES</div>
+                            <div class="action-desc">
+                                Add malicious file hash and attacker IP (172.16.223.135) to EDL and firewall policies.
+                                Create custom detection rules for similar masquerading techniques.
+                            </div>
+                        </div>
+                    </li>
+                    <li class="action-item">
+                        <span class="action-number">7</span>
+                        <div style="display: inline-block; vertical-align: top; width: calc(100% - 60px);">
+                            <div class="action-title">💿 RESTORE FROM BACKUP</div>
+                            <div class="action-desc">
+                                Identify encrypted files and restore from clean backups. Verify backup integrity
+                                before restoration. Prioritize critical business data for recovery.
+                            </div>
+                        </div>
+                    </li>
+                    <li class="action-item">
+                        <span class="action-number">8</span>
+                        <div style="display: inline-block; vertical-align: top; width: calc(100% - 60px);">
+                            <div class="action-title">🔐 HARDEN IIS SERVERS</div>
+                            <div class="action-desc">
+                                Review and harden all IIS server configurations. Implement strict file upload
+                                restrictions. Enable enhanced application pool security. Remove unnecessary features.
+                            </div>
+                        </div>
+                    </li>
+                    <li class="action-item">
+                        <span class="action-number">9</span>
+                        <div style="display: inline-block; vertical-align: top; width: calc(100% - 60px);">
+                            <div class="action-title">📧 NOTIFY STAKEHOLDERS</div>
+                            <div class="action-desc">
+                                Notify security team, management, and affected business units. Follow incident
+                                response communication procedures. Document all actions taken.
+                            </div>
+                        </div>
+                    </li>
+                    <li class="action-item">
+                        <span class="action-number">10</span>
+                        <div style="display: inline-block; vertical-align: top; width: calc(100% - 60px);">
+                            <div class="action-title">📊 POST-INCIDENT REVIEW</div>
+                            <div class="action-desc">
+                                Conduct root cause analysis to identify initial webshell upload vector.
+                                Review security controls and implement improvements to prevent recurrence.
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </section>
+
+            <section class="section">
+                <h2 class="section-title">
+                    <span class="section-icon">📋</span>
+                    Case Information
+                </h2>
+                <div style="background: #f8f9fa; padding: 25px; border-radius: 10px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                        <div>
+                            <strong>Case ID:</strong><br>
+                            <span style="font-family: monospace; font-size: 18px;">1083</span>
+                        </div>
+                        <div>
+                            <strong>Domain:</strong><br>
+                            <span style="font-family: monospace;">Security</span>
+                        </div>
+                        <div>
+                            <strong>Creation Time:</strong><br>
+                            <span style="font-family: monospace;">2025-07-28 12:31:58 UTC</span>
+                        </div>
+                        <div>
+                            <strong>Last Modified:</strong><br>
+                            <span style="font-family: monospace;">2025-07-28 14:24:31 UTC</span>
+                        </div>
+                        <div>
+                            <strong>Assigned To:</strong><br>
+                            <span style="color: #c92a2a; font-weight: bold;">UNASSIGNED</span>
+                        </div>
+                        <div>
+                            <strong>SLA Timer:</strong><br>
+                            <span style="color: #c92a2a; font-weight: bold;">Time to Assign: 5 min goal</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <a href="https://cortexxsiam.xdr.il.paloaltonetworks.com/incident-view?caseId=1083"
+                           style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 25px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                            🔗 View in XSIAM Console
+                        </a>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div class="footer">
+            <p style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">
+                Cortex XSIAM Security Operations Center
+            </p>
+            <p style="font-size: 14px; opacity: 0.8;">
+                Automated Incident Report | Generated: 2025-11-05
+            </p>
+            <div class="footer-links">
+                <a href="#" class="footer-link">Incident Response Playbook</a>
+                <a href="#" class="footer-link">MITRE ATT&CK Framework</a>
+                <a href="#" class="footer-link">Contact SOC Team</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
