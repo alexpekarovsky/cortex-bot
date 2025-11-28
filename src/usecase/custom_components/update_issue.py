@@ -98,9 +98,10 @@ async def update_issue(
     try:
         fetcher = await get_fetcher(ctx)
         response_data = await fetcher.send_request(
-            f"/issue/{issue_id}",
-            method="PATCH",
-            data=payload
+            f"/v1/issue/{issue_id}",
+            method="POST",
+            data=payload,
+            omit_papi_prefix=True
         )
 
         return create_response(data=response_data)
