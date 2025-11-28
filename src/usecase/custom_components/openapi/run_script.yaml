@@ -2,17 +2,27 @@ openapi: 3.0.0
 paths:
   /public_api/v1/scripts/run_script/:
     post:
-      summary: Execute Custom Scripts on Endpoints
+      summary: Execute Pre-Registered Scripts on Endpoints
       description: |-
-        Executes custom PowerShell (Windows) or shell (Linux/Mac) scripts on target endpoints.
-        This provides powerful forensic and remediation capabilities for advanced incident response.
+        Executes PRE-REGISTERED scripts from your XSIAM script library on target endpoints.
+        Use this for running tested, approved scripts. For ad-hoc code, use run_snippet_code_script.
 
-        Use this for:
-        - Advanced forensics and evidence collection
-        - Custom remediation actions not covered by built-in tools
-        - Gathering specific system information
-        - Performing complex investigations
-        - Automated response workflows
+        WORKFLOW:
+        1. get_scripts → Find available scripts and their script_uid
+        2. get_script_metadata → Get required parameters for the script
+        3. run_script → Execute with script_uid and parameters_values
+        4. get_script_execution_status → Monitor execution progress
+        5. get_script_execution_results → Retrieve output when complete
+
+        Use this tool when:
+        - Running pre-built, tested scripts from the XSIAM library
+        - Executing standard forensic or remediation scripts
+        - You know the script_uid (use get_scripts to find it)
+
+        Use run_snippet_code_script instead when:
+        - Running ad-hoc, one-off code snippets
+        - Quick diagnostic commands
+        - Proof-of-concept testing
 
         Supported script types:
         - PowerShell (Windows endpoints)
@@ -33,8 +43,6 @@ paths:
         - Non-destructive unless intended
         - Appropriate for the target OS
         - Compliant with organizational policies
-
-        The script output is returned in the action results.
       operationId: run_script
       tags:
         - Endpoint Response

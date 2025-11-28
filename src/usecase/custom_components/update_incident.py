@@ -28,28 +28,41 @@ async def update_incident(
     resolve_comment: Annotated[Optional[str], Field(description="Comment to add when resolving the incident")] = None,
     unassign_user: Annotated[Optional[bool], Field(description="Set to true to unassign the incident")] = False,
     aisummary: Annotated[Optional[str], Field(description="AI-generated investigation summary in markdown format")] = None,
+    timeline: Annotated[Optional[str], Field(description="HTML visual timeline of the case showing all alerts and events chronologically")] = None,
 ) -> str:
     """
-    Updates an incident's status, assignment, severity, or adds resolution comments.
-    This is critical for incident management workflow - assigning incidents to analysts,
-    updating status as investigation progresses, and closing incidents with resolution notes.
+    Updates a CASE/INCIDENT's status, assignment, severity, or adds resolution comments.
+    This is for case-level management - assigning cases to analysts, updating investigation
+    status, and closing cases with resolution notes.
 
-    Use this tool after investigating an incident to update its properties, assign it to a team member,
-    escalate severity, or mark it as resolved with appropriate comments.
+    IMPORTANT: This tool updates CASES (also called incidents). For updating individual
+    ALERTS/ISSUES within a case, use update_issue instead.
+
+    Use this tool when:
+    - Assigning a case to an analyst (assigned_user_mail)
+    - Changing case status (new → under_investigation → resolved_*)
+    - Escalating or adjusting case severity
+    - Adding resolution comments when closing a case
+    - Updating the AI-generated case summary
+
+    Do NOT use this for:
+    - Triaging individual alerts → use update_issue instead
+    - Updating alert severity → use update_issue instead
+    - Marking alerts as false positive → use update_issue instead
 
     Args:
         ctx: The FastMCP context.
-        incident_id: The ID of the incident to update.
-        status: New status for the incident (optional). Options include:
-            - new: Newly created incident
+        incident_id: The case/incident ID to update (e.g., "350").
+        status: New status for the case (optional). Options include:
+            - new: Newly created case
             - under_investigation: Actively being investigated
             - resolved_threat_handled: Real threat that was mitigated
             - resolved_known_issue: Known non-malicious behavior
-            - resolved_duplicate: Duplicate of another incident
-            - resolved_false_positive: False positive alert
+            - resolved_duplicate: Duplicate of another case
+            - resolved_false_positive: False positive case
             - resolved_other: Resolved for other reasons
             - resolved_auto: Automatically resolved
-        assigned_user_mail: Email of the user to assign this incident to (optional).
+        assigned_user_mail: Email of the user to assign this case to (optional).
         manual_severity: Override the automatic severity (optional). Values: low, medium, high, critical.
         resolve_comment: Comment explaining the resolution (optional, recommended when resolving).
         unassign_user: Set to true to remove the current assignee (optional).
@@ -79,10 +92,13 @@ async def update_incident(
     if aisummary is not None:
         payload["request_data"]["update_data"]["aisummary"] = aisummary
 
+    if timeline is not None:
+        payload["request_data"]["update_data"]["timeline"] = timeline
+
     # Validate that at least one update field is provided
     if not payload["request_data"]["update_data"]:
         return create_response(
-            data={"error": "At least one update field must be provided (status, assigned_user_mail, manual_severity, resolve_comment, unassign_user, or aisummary)"},
+            data={"error": "At least one update field must be provided (status, assigned_user_mail, manual_severity, resolve_comment, unassign_user, aisummary, or timeline)"},
             is_error=True
         )
 

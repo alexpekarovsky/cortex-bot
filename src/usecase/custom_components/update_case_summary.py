@@ -102,19 +102,27 @@ async def update_case_ai_summary(
         users = incident_details.get('users', [])
         alerts = incident_details.get('alerts', [])
 
-        # 3. Get risky users
-        risky_users_response = await fetcher.send_request(
-            "/public_api/v1/get_risky_users",
-            data={}
-        )
-        risky_users = risky_users_response.get('reply', [])
+        # 3. Get risky users (optional - may fail if ITDR not configured)
+        risky_users = []
+        try:
+            risky_users_response = await fetcher.send_request(
+                "/public_api/v1/get_risky_users",
+                data={}
+            )
+            risky_users = risky_users_response.get('reply', [])
+        except Exception as e:
+            logger.warning(f"Could not retrieve risky users (ITDR may not be configured): {e}")
 
-        # 4. Get risky hosts
-        risky_hosts_response = await fetcher.send_request(
-            "/public_api/v1/get_risky_hosts",
-            data={}
-        )
-        risky_hosts = risky_hosts_response.get('reply', [])
+        # 4. Get risky hosts (optional - may fail if ITDR not configured)
+        risky_hosts = []
+        try:
+            risky_hosts_response = await fetcher.send_request(
+                "/public_api/v1/get_risky_hosts",
+                data={}
+            )
+            risky_hosts = risky_hosts_response.get('reply', [])
+        except Exception as e:
+            logger.warning(f"Could not retrieve risky hosts (ITDR may not be configured): {e}")
 
         logger.info(f"Collected case data: {len(hosts)} hosts, {len(users)} users, {len(alerts)} alerts")
 

@@ -31,26 +31,33 @@ async def run_xql_query(
     Executes an XQL (Extended Query Language) query for threat hunting and data analysis.
 
     XQL is XSIAM's powerful query language that allows you to search, filter, correlate,
-    and analyze security data across all your data sources. Use this for:
-    - Threat hunting across your environment
-    - Searching for indicators of compromise (IOCs)
-    - Custom investigations and analytics
-    - Historical analysis of security events
-    - Correlating data from multiple sources
+    and analyze security data across all your data sources. The query executes asynchronously
+    and this tool automatically polls for results until completion or timeout.
 
-    The query executes asynchronously and this tool automatically polls for results
-    until completion or timeout.
+    Use this tool when:
+    - Threat hunting for specific IOCs or attack patterns
+    - Searching historical security events
+    - Investigating suspicious activity across your environment
+    - Building custom analytics and correlations
+    - Validating detection rules
+    - Performing forensic analysis
+
+    Do NOT use this for:
+    - Simple alert listing - use get_issues instead
+    - Incident details - use get_incident_extra_data instead
+    - Running XSOAR commands - use run_xsoar_automation instead
 
     Example XQL queries:
     - Find all processes: "dataset = xdr_data | filter event_type = ENUM.PROCESS"
     - Hunt for specific IP: "dataset = xdr_data | filter action_remote_ip = '192.168.1.100'"
     - Search for malware: "dataset = xdr_data | filter action_file_name contains 'malware'"
     - User activity: "dataset = xdr_data | filter actor_effective_username = 'john.doe'"
+    - Process with parent: "dataset = xdr_data | filter event_type = ENUM.PROCESS and action_process_image_name = 'cmd.exe'"
 
     Args:
         ctx: The FastMCP context.
-        query: The XQL query string to execute.
-        time_frame: Relative time range (e.g., "1 hour", "24 hours", "7 days").
+        query: The XQL query string to execute. Must start with dataset specification.
+        time_frame: Relative time range (e.g., "1 hour", "24 hours", "7 days", "30 days").
                    If not provided, uses default time range.
         timeout: Maximum seconds to wait for query completion (default: 600 = 10 minutes).
 

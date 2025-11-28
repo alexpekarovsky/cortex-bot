@@ -52,8 +52,6 @@ components:
   schemas:
     GetScriptsRequest:
       type: object
-      required:
-        - request_data
       properties:
         request_data:
           type: object

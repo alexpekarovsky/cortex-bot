@@ -41,17 +41,17 @@ paths:
                 value:
                   request_data:
                     filters:
-                      - field: "alert_id"
+                      - field: "alert_id_list"
                         operator: "in"
-                        value: ["12345"]
+                        value: [12345]
               multiple_alerts:
                 summary: Get events for multiple alerts
                 value:
                   request_data:
                     filters:
-                      - field: "alert_id"
+                      - field: "alert_id_list"
                         operator: "in"
-                        value: ["12345", "12346", "12347"]
+                        value: [12345, 12346, 12347]
               by_severity:
                 summary: Get alerts by severity
                 value:
@@ -123,15 +123,18 @@ components:
                 properties:
                   field:
                     type: string
-                    description: Field to filter on (e.g., alert_id, severity, host_name)
+                    description: "Field to filter on. Allowed: alert_id_list, external_id_list, alert_source, creation_time, last_modified_ts, server_creation_time, severity"
                   operator:
                     type: string
                     description: Comparison operator
                     enum: [in, eq, gte, lte]
                   value:
-                    description: Value(s) to filter by - can be string or array
+                    description: "Value(s) to filter by. IMPORTANT: For alert_id_list, values must be integers (e.g., [6126]), not strings."
                     oneOf:
                       - type: string
+                      - type: integer
                       - type: array
                         items:
-                          type: string
+                          oneOf:
+                            - type: string
+                            - type: integer

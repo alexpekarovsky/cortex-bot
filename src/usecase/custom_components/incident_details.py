@@ -26,15 +26,25 @@ async def get_incident_extra_data(
     alerts_limit: Annotated[int, Field(description="Maximum number of alerts to return in the incident", default=1000)] = 1000,
 ) -> str:
     """
-    Retrieves comprehensive detailed information about a specific incident.
+    Retrieves comprehensive detailed information about a specific incident/case.
 
     This tool provides the complete incident context including all related alerts,
     affected users, involved hosts, file artifacts, network connections, and a full
     timeline of events. This is essential for deep-dive incident investigation.
 
-    Use this tool when you need the full story of an incident - all the alerts it contains,
-    what users and endpoints are involved, what files were touched, network connections made,
-    and the complete sequence of events.
+    Use this tool when:
+    - You need the full forensic details of an incident
+    - Investigating all alerts within a case
+    - Identifying affected users and endpoints
+    - Analyzing file artifacts and network connections
+    - Building a complete attack timeline
+    - Reviewing MITRE ATT&CK techniques used
+
+    Do NOT use this for:
+    - Listing multiple incidents - use get_cases instead
+    - Individual alert raw events - use get_alert_multi_events instead
+
+    Workflow: Use get_cases to list incidents, then use this tool to get full details of a specific incident.
 
     The response includes:
     - Full incident metadata (severity, status, creation time, etc.)
@@ -48,7 +58,7 @@ async def get_incident_extra_data(
 
     Args:
         ctx: The FastMCP context.
-        incident_id: The ID of the incident to retrieve detailed information for.
+        incident_id: The ID of the incident to retrieve detailed information for (e.g., "350" or "CASE-350").
         alerts_limit: Maximum number of alerts to include (default: 1000, max: 1000).
 
     Returns:

@@ -107,22 +107,36 @@ async def _wait_for_url_enrichment_results(
 async def enrich_url(
     ctx: Context,
     url: Annotated[str, Field(description="URL to enrich (must include protocol http:// or https://)")],
-    alert_id: Annotated[Optional[str], Field(description="Alert ID to add enrichment to")] = None,
-    case_id: Annotated[Optional[str], Field(description="Case ID to add enrichment to")] = None,
+    alert_id: Annotated[Optional[str], Field(description="Alert ID to add enrichment to (e.g., '6126')")] = None,
+    case_id: Annotated[Optional[str], Field(description="Case ID to add enrichment to (e.g., '350' or 'CASE-350')")] = None,
 ) -> str:
     """
     Enriches a URL using XSOAR threat intelligence integrations.
 
     Runs the !url command in the War Room and automatically retrieves URL reputation,
-    categorization, malware associations, and scanner detection results.
+    categorization, malware associations, and scanner detection results from configured
+    threat intelligence sources.
 
-    Returns URL reputation, category (malware/phishing), hosting info, and redirect chains.
+    Use this tool when:
+    - Investigating suspicious URLs from phishing emails
+    - Analyzing malware download locations
+    - Checking C2 check-in URLs
+    - Validating URLs from web traffic logs
+    - Reviewing user-reported suspicious links
+
+    Returns:
+    - URL reputation scores
+    - Category (malware/phishing/safe)
+    - Associated malware downloads
+    - Detection by URL scanners
+    - Redirect chains
+    - Hosting IP and ASN information
 
     Args:
         ctx: The FastMCP context.
-        url: URL to enrich (must include http:// or https://).
-        alert_id: Alert ID (e.g., "6126").
-        case_id: Case ID (e.g., "350").
+        url: URL to enrich - must include protocol (e.g., "http://malicious.com/payload.exe").
+        alert_id: Alert ID to add enrichment to (e.g., "6126").
+        case_id: Case ID to add enrichment to (e.g., "350" or "CASE-350").
 
     Returns:
         JSON response with enrichment data from all configured threat intel sources.

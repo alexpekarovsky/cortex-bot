@@ -151,8 +151,11 @@ async def enrich_ip_address(
     """
     Enriches an IP address using XSOAR threat intelligence integrations.
 
-    Runs the !ip command in the War Room to gather reputation and context from configured
-    threat intelligence sources (VirusTotal, Google Threat Intelligence, threat feeds, etc.).
+    This is a convenience wrapper around the XSOAR !ip command. For advanced options
+    or integration-specific commands, use run_xsoar_automation instead.
+
+    IMPORTANT: Requires alert_id OR case_id to specify which investigation War Room
+    to run the enrichment in. Prefer using alert_id for alert-specific enrichment.
 
     The enrichment will:
     - Check IP reputation across threat feeds
@@ -161,22 +164,25 @@ async def enrich_ip_address(
     - Identify if IP is in blocklists
     - Show passive DNS history (if available)
     - Update indicator context with reputation scores
-    - Add DBot message to War Room with results
 
-    Use this to investigate suspicious IPs from:
-    - Network connection alerts
-    - C2 communication indicators
-    - Lateral movement activity
-    - External threat intelligence reports
+    Use this when:
+    - Investigating suspicious IPs from alerts
+    - Enriching C2 communication indicators
+    - Checking reputation of external connections
+    - Adding threat intel context to investigations
+
+    For advanced enrichment:
+    - Use run_xsoar_automation with integration-specific commands
+    - Example: !vt-ip-report ip=8.8.8.8 (for VirusTotal-specific options)
 
     Args:
         ctx: The FastMCP context.
         ip_address: IP address to enrich (IPv4 or IPv6).
-        alert_id: Alert ID to add enrichment to (optional, use alert ID directly like "6126").
-        case_id: Case ID to add enrichment to (optional, use "CASE-350" or just "350").
+        alert_id: Alert ID to run enrichment in (e.g., "6126") - PREFERRED.
+        case_id: Case ID alternative (e.g., "350") - use alert_id when possible.
 
     Returns:
-        JSON response with War Room entry ID and command execution status.
+        JSON response with enrichment results and War Room entry ID.
     """
     # Validate that at least one ID is provided
     if not case_id and not alert_id:

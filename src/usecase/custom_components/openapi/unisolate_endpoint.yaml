@@ -52,34 +52,29 @@ components:
       type: object
       properties:
         request_data:
-          $ref: '#/components/schemas/EndpointIdentifier'
-
-    EndpointIdentifier:
-      type: object
-      properties:
-        filters:
-          type: array
-          description: Filter criteria for selecting endpoints
-          items:
-            type: object
-            properties:
-              field:
-                type: string
-                enum: [endpoint_id_list]
-                description: Field to filter on
-              operator:
-                type: string
-                enum: [in]
-                description: Filter operator
-              value:
-                type: array
-                description: List of endpoint IDs
-                items:
-                  type: string
-            required: [field, operator, value]
-        endpoint_id:
-          type: string
-          description: Single endpoint ID (alternative to filters)
-      oneOf:
-        - required: [filters]
-        - required: [endpoint_id]
+          type: object
+          description: Request data containing endpoint filters
+          properties:
+            filters:
+              type: array
+              description: Filter criteria for selecting endpoints
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                    enum: [endpoint_id_list]
+                    description: Field to filter on
+                  operator:
+                    type: string
+                    enum: [in]
+                    description: Filter operator
+                  value:
+                    type: array
+                    description: List of endpoint IDs
+                    items:
+                      type: string
+                required: [field, operator, value]
+            endpoint_id:
+              type: string
+              description: Single endpoint ID (alternative to filters)

@@ -36,7 +36,7 @@ paths:
                 summary: Get download URLs for retrieved files
                 value:
                   request_data:
-                    group_action_id: "12345"
+                    group_action_id: 12345
       responses:
         '200':
           description: Successful response with download URLs
@@ -55,8 +55,6 @@ components:
   schemas:
     GetFileRetrievalDetailsRequest:
       type: object
-      required:
-        - request_data
       properties:
         request_data:
           type: object
@@ -64,5 +62,5 @@ components:
             - group_action_id
           properties:
             group_action_id:
-              type: string
-              description: The action ID from the Retrieve File API response
+              type: integer
+              description: The action ID from the Retrieve File API response (must be an integer)

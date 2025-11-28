@@ -2,19 +2,29 @@ openapi: 3.0.0
 paths:
   /public_api/v1/scripts/run_snippet_code_script:
     post:
-      summary: Run Snippet Code Script
+      summary: Run Ad-Hoc Code Snippets on Endpoints
       description: |-
-        Initiate a new endpoint script execution action using provided snippet code.
-        Cortex XDR supports sending your request in Base64.
+        Executes AD-HOC code snippets on endpoints without pre-registering them.
+        For running pre-registered, tested scripts, use run_script instead.
 
-        This allows you to run ad-hoc scripts without pre-registering them in the library.
+        Use this tool when:
+        - Running quick, one-off diagnostic commands
+        - Ad-hoc investigations that don't need a registered script
+        - Proof-of-concept testing before creating a registered script
+        - Simple commands that don't warrant full script registration
+
+        Use run_script instead when:
+        - Running pre-built, tested scripts from the library
+        - Executing standard forensic or remediation procedures
+        - You have a script_uid for a registered script
+
+        WORKFLOW:
+        1. run_snippet_code_script → Execute ad-hoc code
+        2. get_script_execution_status → Monitor execution progress
+        3. get_script_execution_results → Retrieve output when complete
 
         CAUTION: This is a powerful tool - only run trusted, tested code.
-
-        Use this for:
-        - Quick diagnostic commands
-        - One-off investigations
-        - Proof-of-concept testing
+        Scripts execute with agent privileges.
       operationId: run_snippet_code_script
       tags:
         - Script Execution
@@ -54,8 +64,6 @@ components:
   schemas:
     RunSnippetCodeScriptRequest:
       type: object
-      required:
-        - request_data
       properties:
         request_data:
           type: object

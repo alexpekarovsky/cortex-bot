@@ -25,21 +25,27 @@ async def get_contributing_events(
     alert_id: Annotated[str, Field(description="The alert ID to get contributing events for (must be a correlation alert)")],
 ) -> str:
     """
-    Retrieves the individual events that contributed to a correlation alert.
+    Retrieves the individual events that contributed to a CORRELATION alert.
+
+    WARNING: This tool ONLY works with CORRELATION alerts! If you use it with a
+    non-correlation alert, it will return an error. For non-correlation alerts,
+    use get_alert_multi_events instead.
 
     Correlation alerts are created when XSIAM's analytics engine detects multiple
     related events that together indicate a security threat or attack pattern.
     This tool shows you the complete attack chain - all the individual events that
     were correlated together to trigger the alert.
 
-    IMPORTANT: This tool only works with correlation alerts. If you use it with a
-    non-correlation alert, it will return an error.
+    Use this tool when:
+    - Investigating a CORRELATION alert (check alert type first!)
+    - You need to see all events that triggered the correlation
+    - Understanding the timeline and sequence of a multi-stage attack
+    - Breaking down a complex alert into its component events
 
-    Use this tool when investigating a correlation alert to understand:
-    - What individual events triggered the correlation
-    - The timeline and sequence of the attack
-    - The complete context of the security incident
-    - How different activities across your environment are related
+    Do NOT use this for:
+    - Non-correlation alerts → use get_alert_multi_events instead
+    - Getting detailed event data for any alert type → use get_alert_multi_events
+    - If unsure about alert type → use get_alert_multi_events (works on all alerts)
 
     Example use cases:
     - "Show me all the events that led to this lateral movement alert"
@@ -48,7 +54,7 @@ async def get_contributing_events(
 
     Args:
         ctx: The FastMCP context.
-        alert_id: The ID of the correlation alert to get contributing events for.
+        alert_id: The ID of the correlation alert (e.g., "6126").
 
     Returns:
         JSON response containing all individual events that contributed to the

@@ -1,12 +1,15 @@
 openapi: 3.0.0
 paths:
-  /public_api/v1/endpoints/terminate_causality/:
+  /public_api/v1/endpoints/terminate_causality:
     post:
-      summary: Terminate Process and Entire Causality Chain
+      summary: Terminate Process and Entire Causality Chain (RECOMMENDED for Malware)
       description: |-
         Terminates a process and its entire causality chain (all parent and child processes).
         This is more aggressive than terminate_process and ensures complete eradication
         of malicious process trees.
+
+        RECOMMENDED: This is the preferred tool for most malware remediation scenarios.
+        For killing processes by name, use run_script with the process_kill_name script.
 
         A causality chain includes:
         - The target process
@@ -19,8 +22,11 @@ paths:
         - A process has spawned multiple malicious child processes
         - You want to ensure no related malicious processes remain running
         - The threat involves a complex process tree (e.g., script-based attacks)
+        - You're unsure whether child processes exist (this is the safe choice)
 
-        This is the recommended approach for most malware remediation scenarios.
+        To kill by process name instead of causality ID:
+        - Use run_script with script_uid 'fd0a544a99a9421222b4f57a11839481' (process_kill_name)
+        - This allows terminating processes without needing the causality ID
       operationId: terminate_causality
       tags:
         - Endpoint Response

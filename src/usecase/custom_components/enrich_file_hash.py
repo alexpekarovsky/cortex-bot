@@ -103,8 +103,8 @@ async def _wait_for_file_enrichment_results(
 async def enrich_file_hash(
     ctx: Context,
     file_hash: Annotated[str, Field(description="File hash to enrich (MD5, SHA1, or SHA256)")],
-    alert_id: Annotated[Optional[str], Field(description="Alert ID to add enrichment to")] = None,
-    case_id: Annotated[Optional[str], Field(description="Case ID to add enrichment to")] = None,
+    alert_id: Annotated[Optional[str], Field(description="Alert ID to add enrichment to (e.g., '6126')")] = None,
+    case_id: Annotated[Optional[str], Field(description="Case ID to add enrichment to (e.g., '350' or 'CASE-350')")] = None,
 ) -> str:
     """
     Enriches a file hash using XSOAR threat intelligence integrations.
@@ -112,13 +112,25 @@ async def enrich_file_hash(
     Runs the !file command in the War Room and automatically retrieves results from
     VirusTotal, Google Threat Intelligence, and other configured integrations.
 
-    Returns file reputation, AV detection verdicts, malware family names, and related IOCs.
+    Use this tool when:
+    - Investigating suspicious file hashes from malware alerts
+    - Analyzing files from process execution events
+    - Checking downloaded or created files
+    - Validating file reputation
+    - Threat hunting for known malware
+
+    Returns:
+    - File reputation scores
+    - AV detection verdicts (number of engines detecting as malicious)
+    - Malware family names and classifications
+    - Related IOCs (if premium API)
+    - Behavioral analysis results
 
     Args:
         ctx: The FastMCP context.
-        file_hash: File hash to enrich (MD5, SHA1, or SHA256).
-        alert_id: Alert ID (e.g., "6126").
-        case_id: Case ID (e.g., "350" or "CASE-350").
+        file_hash: File hash to enrich - MD5, SHA1, or SHA256 (e.g., "44d88612fea8a8f36de82e1278abb02f").
+        alert_id: Alert ID to add enrichment to (e.g., "6126").
+        case_id: Case ID to add enrichment to (e.g., "350" or "CASE-350").
 
     Returns:
         JSON response with enrichment data from all configured threat intel sources.

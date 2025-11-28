@@ -1,4 +1,5 @@
 import io
+import json
 import logging
 
 import httpx
@@ -57,7 +58,7 @@ class PAPIClient(httpx.AsyncClient):
         content = None,
         data = None,
         files = None,
-        json = None,
+        json_data = None,
         params = None,
         headers = None,
         cookies = None,
@@ -141,7 +142,7 @@ class PAPIClient(httpx.AsyncClient):
                 headers=headers,
                 cookies=cookies,
                 timeout=timeout if timeout else self.timeout,
-                json=json,
+                json=json_data,
                 content=content,
             )
         except ConnectError as e:

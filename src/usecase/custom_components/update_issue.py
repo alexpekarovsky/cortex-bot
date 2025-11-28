@@ -21,30 +21,41 @@ logger = logging.getLogger(__name__)
 
 async def update_issue(
     ctx: Context,
-    issue_id: Annotated[int, Field(description="Numeric ID of the issue to update")],
+    issue_id: Annotated[int, Field(description="Numeric issue/alert ID as INTEGER (e.g., 6142, NOT '6142')")],
     severity: Annotated[Optional[str], Field(description="New severity. Allowed values: INFO, LOW, MEDIUM, HIGH, CRITICAL")] = None,
-    status: Annotated[Optional[str], Field(description="New status. Allowed values: New, Under Investigation, Resolved")] = None,
+    status: Annotated[Optional[str], Field(description="New status. Allowed values: New, In Progress, Resolved")] = None,
     status_resolution_reason: Annotated[Optional[str], Field(description="Resolution reason when status is Resolved. Allowed values: RESOLVED_KNOWN_ISSUE, RESOLVED_FALSE_POSITIVE, RESOLVED_DUPLICATE, RESOLVED_OTHER")] = None,
     status_resolution_comment: Annotated[Optional[str], Field(description="Comment explaining the resolution")] = None,
 ) -> str:
     """
-    Updates an existing issue (alert) in the system.
-
-    This tool allows updating issue properties such as severity, status, and resolution details.
-    Essential for alert management workflow - triaging alerts, marking false positives,
+    Updates an individual ALERT/ISSUE's severity, status, and resolution details.
+    This is for triaging individual alerts - marking false positives, updating severity,
     and documenting resolution reasons.
 
-    Use this tool after investigating an issue to:
-    - Update its severity based on findings
-    - Change status as investigation progresses
-    - Mark as resolved with appropriate reason and comments
-    - Document false positives or known issues
+    IMPORTANT: This tool updates individual ALERTS/ISSUES. For updating CASES (incidents),
+    use update_incident instead. Status values are DIFFERENT between the two tools!
+
+    Use this tool when:
+    - Triaging individual alerts within a case
+    - Marking an alert as false positive or known issue
+    - Updating alert severity based on investigation findings
+    - Changing alert status as investigation progresses
+    - Adding resolution comments to individual alerts
+
+    Do NOT use this for:
+    - Case-level status updates → use update_incident instead
+    - Assigning cases to analysts → use update_incident instead
+    - Case resolution comments → use update_incident instead
+
+    CRITICAL: Status values for this tool are DIFFERENT from update_incident:
+    - This tool: "New", "In Progress", "Resolved" (Title Case!)
+    - update_incident: "new", "under_investigation", "resolved_*" (lowercase!)
 
     Args:
         ctx: The FastMCP context.
-        issue_id: Numeric ID of the issue to update.
+        issue_id: Numeric issue/alert ID as INTEGER (e.g., 6142, NOT a string).
         severity: New severity level (optional). Values: INFO, LOW, MEDIUM, HIGH, CRITICAL.
-        status: New status (optional). Values: New, Under Investigation, Resolved.
+        status: New status (optional). Values: New, In Progress, Resolved (Title Case!).
         status_resolution_reason: Resolution reason when closing (optional). Values:
             - RESOLVED_KNOWN_ISSUE: Known non-malicious behavior
             - RESOLVED_FALSE_POSITIVE: False positive alert
@@ -87,9 +98,9 @@ async def update_issue(
     try:
         fetcher = await get_fetcher(ctx)
         response_data = await fetcher.send_request(
-            f"/v1/issue/{issue_id}",
-            data=payload,
-            omit_papi_prefix=True
+            f"/issue/{issue_id}",
+            method="PATCH",
+            data=payload
         )
 
         return create_response(data=response_data)

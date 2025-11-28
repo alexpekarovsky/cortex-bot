@@ -103,23 +103,36 @@ async def _wait_for_domain_enrichment_results(
 async def enrich_domain(
     ctx: Context,
     domain: Annotated[str, Field(description="Domain name to enrich")],
-    alert_id: Annotated[Optional[str], Field(description="Alert ID to add enrichment to")] = None,
-    case_id: Annotated[Optional[str], Field(description="Case ID to add enrichment to")] = None,
+    alert_id: Annotated[Optional[str], Field(description="Alert ID to add enrichment to (e.g., '6126')")] = None,
+    case_id: Annotated[Optional[str], Field(description="Case ID to add enrichment to (e.g., '350' or 'CASE-350')")] = None,
 ) -> str:
     """
     Enriches a domain name using XSOAR threat intelligence integrations.
 
     Runs the !domain command in the War Room and automatically retrieves WHOIS,
-    reputation, DNS records, and threat categorization data.
+    reputation, DNS records, and threat categorization data from configured threat
+    intelligence sources (VirusTotal, Google Threat Intelligence, etc.).
 
-    Returns domain reputation, registration info, passive DNS, malware associations,
-    and phishing/malicious categorization.
+    Use this tool when:
+    - Investigating suspicious domains from phishing emails
+    - Analyzing C2 infrastructure domains
+    - Checking domains found in network logs
+    - Validating sender domains
+    - Threat hunting for malicious domains
+
+    Returns:
+    - Domain reputation scores
+    - WHOIS registration information
+    - Passive DNS records
+    - Malware family associations
+    - Phishing/malicious categorization
+    - Domain age and registrar details
 
     Args:
         ctx: The FastMCP context.
-        domain: Domain name to enrich.
-        alert_id: Alert ID (e.g., "6126").
-        case_id: Case ID (e.g., "350").
+        domain: Domain name to enrich (e.g., "example.com", "malicious-site.net").
+        alert_id: Alert ID to add enrichment to (e.g., "6126").
+        case_id: Case ID to add enrichment to (e.g., "350" or "CASE-350").
 
     Returns:
         JSON response with enrichment data from all configured threat intel sources.

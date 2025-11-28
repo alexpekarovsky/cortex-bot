@@ -23,6 +23,12 @@ paths:
 
         The endpoint agent will locate and extract the specified files, making them
         available for download through the XSIAM interface.
+
+        WORKFLOW:
+        1. retrieve_files → Initiate file retrieval (returns action_id)
+        2. get_action_status → Monitor retrieval progress using action_id
+        3. get_file_retrieval_details → Get download URLs when complete
+        4. Download the file using the provided URL
       operationId: retrieve_files
       tags:
         - Endpoint Response

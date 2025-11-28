@@ -141,8 +141,8 @@ async def _wait_for_automation_results(
 async def run_xsoar_automation(
     ctx: Context,
     command: Annotated[str, Field(description="XSOAR command to execute (e.g., '!GetInstances instance_status=\"both\"' or '!ip ip=1.1.1.1')")],
-    alert_id: Annotated[Optional[str], Field(description="Alert ID to run command in")] = None,
-    case_id: Annotated[Optional[str], Field(description="Case ID to run command in")] = None,
+    alert_id: Annotated[Optional[str], Field(description="Alert ID to run command in (e.g., '6126')")] = None,
+    case_id: Annotated[Optional[str], Field(description="Case ID to run command in (e.g., '350')")] = None,
     wait_for_results: Annotated[bool, Field(description="Wait for and return automation results (default: True)", default=True)] = True,
     timeout_seconds: Annotated[int, Field(description="Seconds to wait for results (default: 20)", default=20)] = 20,
 ) -> str:
@@ -153,12 +153,19 @@ async def run_xsoar_automation(
     script, or enrichment command. It automatically waits for and retrieves results
     from XSOAR integrations.
 
-    Use this to:
-    - Run discovery commands (!GetInstances, !GetIntegrations)
-    - Execute enrichment commands (!ip, !file, !domain, !url, !email)
-    - Run automation scripts  (!Print, !SetIncident, !AssignToMe)
-    - Query integrations (!vt-get-file-report, !qradar-search, !ad-get-user)
-    - Run ANY custom XSOAR command available in your instance
+    Use this tool when:
+    - Running discovery commands (!GetInstances, !GetIntegrations)
+    - Executing enrichment commands (!ip, !file, !domain, !url, !email)
+    - Running automation scripts (!Print, !SetIncident, !AssignToMe)
+    - Querying integrations (!vt-get-file-report, !qradar-search, !ad-get-user)
+    - Executing ANY custom XSOAR command available in your instance
+    - Testing integration availability
+
+    Do NOT use this for:
+    - IP enrichment - use enrich_ip_address instead (simpler)
+    - File hash enrichment - use enrich_file_hash instead (simpler)
+    - Domain enrichment - use enrich_domain instead (simpler)
+    - URL enrichment - use enrich_url instead (simpler)
 
     Examples:
     - Discovery: !GetInstances instance_status="both"

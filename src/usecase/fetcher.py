@@ -58,7 +58,7 @@ class Fetcher:
             if stream:
                 result = await client.stream(method, path, data=data, headers=headers)
             else:
-                result = await client.request(method, path, json=data, headers=headers)
+                result = await client.request(method, path, json_data=data, headers=headers)
 
         return result
 
