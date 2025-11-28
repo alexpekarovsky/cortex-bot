@@ -102,28 +102,6 @@ async def update_case_ai_summary(
         users = incident_details.get('users', [])
         alerts = incident_details.get('alerts', [])
 
-        # 3. Get risky users (optional - may fail if ITDR not configured)
-        risky_users = []
-        try:
-            risky_users_response = await fetcher.send_request(
-                "/public_api/v1/get_risky_users",
-                data={}
-            )
-            risky_users = risky_users_response.get('reply', [])
-        except Exception as e:
-            logger.warning(f"Could not retrieve risky users (ITDR may not be configured): {e}")
-
-        # 4. Get risky hosts (optional - may fail if ITDR not configured)
-        risky_hosts = []
-        try:
-            risky_hosts_response = await fetcher.send_request(
-                "/public_api/v1/get_risky_hosts",
-                data={}
-            )
-            risky_hosts = risky_hosts_response.get('reply', [])
-        except Exception as e:
-            logger.warning(f"Could not retrieve risky hosts (ITDR may not be configured): {e}")
-
         logger.info(f"Collected case data: {len(hosts)} hosts, {len(users)} users, {len(alerts)} alerts")
 
         # Generate comprehensive summary
@@ -220,14 +198,6 @@ Based on observed TTPs, this threat demonstrates:
 - Strong operational security
 - Multi-stage attack methodology
 - Environment reconnaissance expertise
-
-### Environmental Risk Indicators
-
-**High-Risk Users Identified:** {len([u for u in risky_users if u.get('risk_level') == 'HIGH'])}
-{chr(10).join(f"- {user.get('id', 'N/A')} (Risk Score: {user.get('score', 0)}, Level: {user.get('risk_level', 'N/A')})" for user in risky_users[:5] if user.get('risk_level') == 'HIGH')}
-
-**High-Risk Hosts Identified:** {len([h for h in risky_hosts if h.get('risk_level') == 'HIGH'])}
-{chr(10).join(f"- {host.get('id', 'N/A')} (Risk Score: {host.get('score', 0)}, Level: {host.get('risk_level', 'N/A')})" for host in risky_hosts[:5] if host.get('risk_level') == 'HIGH')}
 
 ### Wildfire Analysis
 **Malware Detections:** {case_data.get('wildfire_hits', 0)} known malicious files identified
