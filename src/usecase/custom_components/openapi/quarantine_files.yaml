@@ -4,10 +4,16 @@ paths:
     post:
       summary: Quarantine Malicious Files
       description: |-
+        DESTRUCTIVE ACTION - Risk Level: HIGH
+        Reversal: Use restore_file to restore quarantined files.
+
         Quarantines one or more suspicious or malicious files on an endpoint.
         Quarantined files are moved to a secure location and prevented from executing,
         but are not deleted. This allows for later forensic analysis or restoration
         if the file is determined to be benign.
+
+        WARNING: Quarantined files may break applications that depend on them.
+        Ensure you understand what the file is used for before quarantining.
 
         Use this when:
         - You've identified malicious files that need to be neutralized
@@ -15,7 +21,7 @@ paths:
         - You need to contain a threat while preserving files for analysis
         - Multiple suspicious files need to be quarantined simultaneously
 
-        Files can be restored later using the restore_file endpoint if needed.
+        Files can be restored later using the restore_file tool if needed.
       operationId: quarantine_files
       tags:
         - Endpoint Response

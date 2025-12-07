@@ -64,6 +64,10 @@ async def get_incident_extra_data(
     Returns:
         JSON response containing comprehensive incident data including all alerts,
         affected entities, artifacts, and timeline information.
+
+    WARNING: This tool can return LARGE responses. Cases with many alerts
+    (up to 1000) will produce substantial output. Use alerts_limit parameter
+    to control response size if needed.
     """
 
     payload = {

@@ -74,9 +74,8 @@ async def get_issues(ctx: Context,
         search_from: Marker for pagination starting point (default: 0).
         search_to: Marker for pagination ending point (default: 30).
         sort: Field to sort by. Example -
-            {"field": "_insert_time", "keyword": "desc"}
-            By default the sort is defined as _insert_time, desc.
-            Allowed sort fields: "_insert_time", "severity", "id"
+            {"field": "severity", "keyword": "desc"}
+            Allowed sort fields: "severity", "id", "observation_time"
         include_fields: Fields to include in response (optional). Values: "normalized_fields", "custom_fields"
 
     Returns:

@@ -1,0 +1,89 @@
+commonfields:
+  id: PingMonitor
+  version: -1
+name: PingMonitor
+display: Ping Monitor
+category: Utilities
+description: Long-running integration that continuously monitors hosts via ping and sends email alerts for downtime events
+configuration:
+  - display: Host IP Address
+    name: host_ip
+    defaultvalue: ''
+    type: 0
+    required: true
+  - display: Ping Interval (seconds)
+    name: ping_interval
+    defaultvalue: '60'
+    type: 0
+    required: true
+  - display: Alert Email Address
+    name: alert_email
+    defaultvalue: ''
+    type: 0
+    required: false
+  - display: Email Instance Name
+    name: email_instance
+    defaultvalue: 'Gmail'
+    type: 0
+    required: false
+    additionalinfo: Name of the email integration instance to use for sending alerts
+  - display: Long running instance
+    name: longRunning
+    type: 8
+    required: false
+  - display: Listen Port
+    name: longRunningPort
+    type: 0
+    required: false
+    additionalinfo: 'Port to listen on for long-running integration (optional)'
+script:
+  script: ''
+  type: python
+  subtype: python3
+  dockerimage: demisto/python3:3.10.14.100715
+  longRunning: true
+  longRunningPort: false
+  commands:
+    - name: ping-monitor-status
+      arguments: []
+      outputs:
+        - contextPath: PingMonitor.HostIP
+          description: IP address being monitored
+          type: String
+        - contextPath: PingMonitor.Status
+          description: Current status (up/down)
+          type: String
+        - contextPath: PingMonitor.Uptime
+          description: Total uptime in seconds
+          type: Number
+        - contextPath: PingMonitor.Downtime
+          description: Total downtime in seconds
+          type: Number
+        - contextPath: PingMonitor.UptimePercentage
+          description: Uptime percentage
+          type: Number
+        - contextPath: PingMonitor.LastCheck
+          description: Timestamp of last ping check
+          type: Date
+        - contextPath: PingMonitor.LastLatency
+          description: Last measured latency in milliseconds
+          type: Number
+        - contextPath: PingMonitor.TotalChecks
+          description: Total number of ping checks performed
+          type: Number
+        - contextPath: PingMonitor.FailedChecks
+          description: Number of failed ping checks
+          type: Number
+      description: Get current monitoring status and statistics
+    - name: ping-monitor-stop
+      arguments: []
+      description: Stop the ping monitoring service
+    - name: ping-monitor-start
+      arguments:
+        - name: host_ip
+          description: IP address to monitor (overrides configured value)
+          required: false
+      description: Start or restart the ping monitoring service
+fromversion: 6.0.0
+tests:
+  - No tests

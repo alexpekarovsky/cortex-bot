@@ -1,0 +1,48 @@
+commonfields:
+  id: PingCheck
+  version: -1
+name: PingCheck
+script: ''
+type: python
+tags:
+  - network
+  - diagnostic
+comment: Pings an IP address and returns latency, packet loss, and success/failure status
+enabled: true
+args:
+  - name: ip_address
+    required: true
+    description: IP address to ping
+outputs:
+  - contextPath: PingCheck.IPAddress
+    description: IP address that was pinged
+    type: String
+  - contextPath: PingCheck.Success
+    description: Whether the ping was successful
+    type: Boolean
+  - contextPath: PingCheck.PacketsSent
+    description: Number of packets sent
+    type: Number
+  - contextPath: PingCheck.PacketsReceived
+    description: Number of packets received
+    type: Number
+  - contextPath: PingCheck.PacketLoss
+    description: Packet loss percentage
+    type: Number
+  - contextPath: PingCheck.MinLatency
+    description: Minimum latency in milliseconds
+    type: Number
+  - contextPath: PingCheck.AvgLatency
+    description: Average latency in milliseconds
+    type: Number
+  - contextPath: PingCheck.MaxLatency
+    description: Maximum latency in milliseconds
+    type: Number
+  - contextPath: PingCheck.Error
+    description: Error message if ping failed
+    type: String
+scripttarget: 0
+subtype: python3
+dockerimage: demisto/python3:3.10.14.100715
+runas: DBotWeakRole
+fromversion: 6.0.0

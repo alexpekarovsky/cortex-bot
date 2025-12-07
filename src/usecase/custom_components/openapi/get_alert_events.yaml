@@ -25,6 +25,10 @@ paths:
         - Complete timeline of all related events
 
         This is v2 of the API which provides enhanced data compared to v1.
+
+        WARNING: This tool can return LARGE responses with detailed event data.
+        For cases with many events, responses may be very large. Consider filtering
+        by specific alert IDs rather than broad criteria to manage response size.
       operationId: get_alert_multi_events
       tags:
         - Alerts

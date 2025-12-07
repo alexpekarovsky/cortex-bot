@@ -117,6 +117,12 @@ async def enrich_url(
     categorization, malware associations, and scanner detection results from configured
     threat intelligence sources.
 
+    IMPORTANT: Requires alert_id from an alert that is PART OF A CASE. The alert must have
+    an associated investigation (War Room). To find valid alert IDs:
+    1. Use get_incident_extra_data to get alerts from a case, OR
+    2. Use get_issues to find alerts, then check if they have a case_id field, OR
+    3. Ask the user for an alert ID from a case they are investigating.
+
     Use this tool when:
     - Investigating suspicious URLs from phishing emails
     - Analyzing malware download locations

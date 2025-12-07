@@ -98,19 +98,29 @@ async def update_issue(
     try:
         fetcher = await get_fetcher(ctx)
         response_data = await fetcher.send_request(
-            f"/v1/issue/{issue_id}",
+            f"/issue/{issue_id}",
             method="POST",
-            data=payload,
-            omit_papi_prefix=True
+            data=payload
         )
 
         return create_response(data=response_data)
+    except PAPIResponseError as e:
+        # API returns 204 No Content on success, which causes JSON parse error
+        # Check if error message indicates empty response (successful update)
+        if "Invalid JSON response" in str(e) and "column 1" in str(e):
+            return create_response(data={
+                "success": True,
+                "issue_id": issue_id,
+                "message": f"Issue {issue_id} updated successfully",
+                "updates_applied": update_data
+            })
+        logger.exception(f"PAPI response error while updating issue: {e}")
+        return create_response(data={"error": str(e)}, is_error=True)
     except (
         PAPIConnectionError,
         PAPIAuthenticationError,
         PAPIServerError,
         PAPIClientRequestError,
-        PAPIResponseError,
         PAPIClientError,
     ) as e:
         logger.exception(f"PAPI error while updating issue: {e}")

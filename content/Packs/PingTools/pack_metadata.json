@@ -1,0 +1,31 @@
+{
+  "name": "Ping Tools",
+  "description": "Network connectivity monitoring tools including ping scripts and continuous monitoring integration",
+  "support": "community",
+  "currentVersion": "1.0.0",
+  "author": "XSOAR Community",
+  "url": "",
+  "email": "",
+  "created": "2025-12-07T00:00:00Z",
+  "categories": [
+    "Utilities",
+    "Network Security"
+  ],
+  "tags": [
+    "ping",
+    "network",
+    "monitoring",
+    "connectivity"
+  ],
+  "useCases": [
+    "Network Monitoring",
+    "Connectivity Testing"
+  ],
+  "keywords": [
+    "ping",
+    "icmp",
+    "uptime",
+    "downtime",
+    "latency"
+  ]
+}

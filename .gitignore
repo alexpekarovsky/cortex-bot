@@ -1,9 +1,85 @@
-/.env
-/dist
-.idea/
-*__pycache__*
-.run/
+# Environment and secrets
 .env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.run/
+
+# Testing
+.coverage
+.tox/
+.nox/
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+coverage.xml
+*.cover
+
+# Documentation
+docs/_build/
+site/
+
+# Logs
+*.log
+logs/
+
+# Build artifacts
 cortex-mcp.zip
 cortex-mcp.zip.sha256
-cortex-mcp.log
+*.zip.sha256
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Local development
+.claude/
+*.html
+!docs/**/*.html
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak

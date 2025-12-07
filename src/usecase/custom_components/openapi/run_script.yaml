@@ -4,6 +4,9 @@ paths:
     post:
       summary: Execute Pre-Registered Scripts on Endpoints
       description: |-
+        DESTRUCTIVE ACTION - Risk Level: HIGH
+        Scripts can make irreversible changes depending on their content.
+
         Executes PRE-REGISTERED scripts from your XSIAM script library on target endpoints.
         Use this for running tested, approved scripts. For ad-hoc code, use run_snippet_code_script.
 

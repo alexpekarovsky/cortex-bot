@@ -27,8 +27,8 @@ async def update_incident(
     manual_severity: Annotated[Optional[str], Field(description="Manual severity override. Allowed values: low, medium, high, critical")] = None,
     resolve_comment: Annotated[Optional[str], Field(description="Comment to add when resolving the incident")] = None,
     unassign_user: Annotated[Optional[bool], Field(description="Set to true to unassign the incident")] = False,
-    aisummary: Annotated[Optional[str], Field(description="AI-generated investigation summary in markdown format")] = None,
-    timeline: Annotated[Optional[str], Field(description="HTML visual timeline of the case showing all alerts and events chronologically")] = None,
+    aisummary: Annotated[Optional[str], Field(description="AI-generated investigation summary in MARKDOWN format. Use this for detailed case summaries.")] = None,
+    timeline: Annotated[Optional[str], Field(description="Visual timeline in HTML format showing alerts chronologically. Must be valid HTML.")] = None,
 ) -> str:
     """
     Updates a CASE/INCIDENT's status, assignment, severity, or adds resolution comments.
@@ -38,12 +38,21 @@ async def update_incident(
     IMPORTANT: This tool updates CASES (also called incidents). For updating individual
     ALERTS/ISSUES within a case, use update_issue instead.
 
+    CRITICAL - VALID CUSTOM FIELDS:
+    Only TWO custom fields are supported. Do NOT invent or use any other field names:
+    - aisummary: Markdown format - for AI investigation summaries
+    - timeline: HTML format - for visual timeline displays
+
+    Do NOT use fields like 'dynamictimeline', 'customfield', or any other made-up names.
+    The API will reject invalid field names.
+
     Use this tool when:
     - Assigning a case to an analyst (assigned_user_mail)
     - Changing case status (new → under_investigation → resolved_*)
     - Escalating or adjusting case severity
     - Adding resolution comments when closing a case
-    - Updating the AI-generated case summary
+    - Updating the AI-generated case summary (aisummary field - MARKDOWN)
+    - Updating the visual timeline (timeline field - HTML)
 
     Do NOT use this for:
     - Triaging individual alerts → use update_issue instead
@@ -66,6 +75,8 @@ async def update_incident(
         manual_severity: Override the automatic severity (optional). Values: low, medium, high, critical.
         resolve_comment: Comment explaining the resolution (optional, recommended when resolving).
         unassign_user: Set to true to remove the current assignee (optional).
+        aisummary: AI investigation summary in MARKDOWN format (optional).
+        timeline: Visual timeline in HTML format (optional).
 
     Returns:
         JSON response indicating success or failure of the update operation.

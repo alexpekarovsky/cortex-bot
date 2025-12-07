@@ -34,9 +34,15 @@ async def terminate_process(
     endpoint_id: Annotated[str, Field(description="The endpoint ID where the process should be terminated")],
     process_name: Annotated[str, Field(description="Name of the process to terminate (e.g., 'malware.exe', 'powershell.exe')")],
     timeout: Annotated[Optional[int], Field(description="Script execution timeout in seconds (default: 600)")] = 600,
+    confirm_destructive_action: Annotated[bool, Field(
+        description="REQUIRED: Must be True to execute. This is a destructive action that cannot be undone."
+    )] = False,
 ) -> str:
     """
     Terminates a process by name on a specific endpoint.
+
+    DESTRUCTIVE ACTION - Risk Level: HIGH
+    This action CANNOT be reversed. Terminated processes are gone permanently.
 
     This tool uses the built-in 'process_kill_name' script to terminate all processes
     matching the specified name on the target endpoint. It's useful for stopping
@@ -61,10 +67,24 @@ async def terminate_process(
         endpoint_id: The endpoint ID where the process is running.
         process_name: Name of the process to terminate (e.g., 'malware.exe').
         timeout: Script execution timeout in seconds (default: 600).
+        confirm_destructive_action: Must be True to execute this destructive action.
 
     Returns:
         JSON response with action_id for tracking the termination.
     """
+    # Safety check - require explicit confirmation
+    if not confirm_destructive_action:
+        return create_response(
+            data={
+                "error": "Destructive action not confirmed",
+                "message": "This is a HIGH risk action that terminates processes permanently. "
+                           "Set confirm_destructive_action=True to proceed.",
+                "risk_level": "HIGH",
+                "reversible": False
+            },
+            is_error=True
+        )
+
     try:
         logger.info(f"Terminating process '{process_name}' on endpoint {endpoint_id}")
 

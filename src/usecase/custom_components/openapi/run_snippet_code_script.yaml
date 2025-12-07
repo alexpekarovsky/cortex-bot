@@ -4,6 +4,9 @@ paths:
     post:
       summary: Run Ad-Hoc Code Snippets on Endpoints
       description: |-
+        DESTRUCTIVE ACTION - Risk Level: HIGH
+        Scripts can make irreversible changes depending on their content.
+
         Executes AD-HOC code snippets on endpoints without pre-registering them.
         For running pre-registered, tested scripts, use run_script instead.
 

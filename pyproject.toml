@@ -1,9 +1,25 @@
 [tool.poetry]
-name = "CortexMCP"
+name = "cortex-mcp"
 version = "1.0.0"
-description = ""
-authors = []
+description = "MCP server providing AI assistants with Cortex XSIAM security operations capabilities"
+authors = ["Palo Alto Networks <devrel@paloaltonetworks.com>"]
+license = "Apache-2.0"
 readme = "README.md"
+homepage = "https://github.com/PaloAltoNetworks/cortex-mcp"
+repository = "https://github.com/PaloAltoNetworks/cortex-mcp"
+documentation = "https://github.com/PaloAltoNetworks/cortex-mcp/blob/master/docs/CORTEX_XSIAM_MCP_INSTALLATION_GUIDE.md"
+keywords = ["mcp", "cortex", "xsiam", "security", "soc", "xdr", "ai", "llm"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 packages = [
     { include = "src" }
 ]

@@ -47,6 +47,10 @@ async def run_xql_query(
     - Incident details - use get_incident_extra_data instead
     - Running XSOAR commands - use run_xsoar_automation instead
 
+    WARNING: XQL queries can return LARGE result sets. Always use LIMIT in your
+    queries (e.g., "| limit 100") to control output size. Unbounded queries may
+    return thousands of records.
+
     Example XQL queries:
     - Find all processes: "dataset = xdr_data | filter event_type = ENUM.PROCESS"
     - Hunt for specific IP: "dataset = xdr_data | filter action_remote_ip = '192.168.1.100'"

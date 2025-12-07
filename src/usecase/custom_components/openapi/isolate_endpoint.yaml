@@ -4,10 +4,16 @@ paths:
     post:
       summary: Isolate Endpoint from Network
       description: |-
+        DESTRUCTIVE ACTION - Risk Level: HIGH
+        Reversal: Use unisolate_endpoint to restore network access.
+
         Isolates an endpoint from the network to contain threats and prevent lateral movement.
         When an endpoint is isolated, it can only communicate with the Cortex agent and cannot
         access other network resources. This is critical for incident response to contain
         compromised systems.
+
+        WARNING: Isolation blocks ALL network access except Cortex agent communication.
+        Users on the endpoint will lose access to network resources, file shares, and internet.
 
         Use this when:
         - A system is confirmed compromised and needs immediate containment
@@ -15,7 +21,7 @@ paths:
         - An endpoint is exhibiting malicious behavior
         - As part of incident response to isolate affected systems
 
-        The endpoint can be un-isolated later once the threat is remediated.
+        The endpoint can be un-isolated later once the threat is remediated using unisolate_endpoint.
       operationId: isolate_endpoint
       tags:
         - Endpoint Response

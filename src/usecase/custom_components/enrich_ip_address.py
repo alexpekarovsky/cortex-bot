@@ -154,8 +154,11 @@ async def enrich_ip_address(
     This is a convenience wrapper around the XSOAR !ip command. For advanced options
     or integration-specific commands, use run_xsoar_automation instead.
 
-    IMPORTANT: Requires alert_id OR case_id to specify which investigation War Room
-    to run the enrichment in. Prefer using alert_id for alert-specific enrichment.
+    IMPORTANT: Requires alert_id from an alert that is PART OF A CASE. The alert must have
+    an associated investigation (War Room). To find valid alert IDs:
+    1. Use get_incident_extra_data to get alerts from a case, OR
+    2. Use get_issues to find alerts, then check if they have a case_id field, OR
+    3. Ask the user for an alert ID from a case they are investigating.
 
     The enrichment will:
     - Check IP reputation across threat feeds

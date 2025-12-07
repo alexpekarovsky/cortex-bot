@@ -4,6 +4,9 @@ paths:
     post:
       summary: Terminate Process and Entire Causality Chain (RECOMMENDED for Malware)
       description: |-
+        DESTRUCTIVE ACTION - Risk Level: HIGH
+        This action CANNOT be reversed. All terminated processes are gone permanently.
+
         Terminates a process and its entire causality chain (all parent and child processes).
         This is more aggressive than terminate_process and ensures complete eradication
         of malicious process trees.
