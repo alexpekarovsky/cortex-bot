@@ -17,8 +17,9 @@ import requests
 from config.config import get_config, reload_config
 from main import async_main
 from pkg.setup_logging import setup_logging
-from pkg.util import REMOTE_DIR, SCRIPT_DIR
+from pkg.util import MAIN_DIR, REMOTE_DIR
 from usecase.fetcher import Fetcher, get_papi_url
+from version import __version__
 
 config = get_config()
 logger = logging.getLogger("CORTEX MCP CLI")
@@ -85,6 +86,10 @@ def setup_commands(subparsers: argparse._SubParsersAction):
     )
     update_parser.set_defaults(func=update_tools)
 
+    # --- 'version' command ---
+    version_parser: argparse.ArgumentParser = subparsers.add_parser('version',
+                                                                   help='display version information.')
+    version_parser.set_defaults(func=display_version)
 
 def setup_env(args: argparse.Namespace):
     """
@@ -238,7 +243,7 @@ def extract_remote_tools(zip_path: str) -> tuple[str, str]:
         safe_extract(zip_ref, temp_extract_dir)
 
     # Define the known path to remote tools in the extracted content
-    extracted_remote_tools_path: str = os.path.join(temp_extract_dir, REMOTE_DIR.relative_to(SCRIPT_DIR.parent).as_posix())
+    extracted_remote_tools_path: str = os.path.join(temp_extract_dir, REMOTE_DIR.relative_to(MAIN_DIR.parent).as_posix())
 
     if not os.path.exists(extracted_remote_tools_path):
         raise FileNotFoundError(
@@ -402,6 +407,8 @@ async def update_tools(args: argparse.Namespace):
         # Always clean up temporary files
         cleanup_temp_files(temp_zip_path, temp_extract_dir)
 
+async def display_version(_: argparse.Namespace):
+    logger.info(f"[Python] Cortex MCP Server Version: {__version__}")
 
 def main_cli():
     """

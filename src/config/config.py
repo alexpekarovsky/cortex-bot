@@ -17,14 +17,7 @@ class Settings(BaseSettings):
     mcp_path: str = Field("/api/v1/stream/mcp", validation_alias="MCP_PATH")
     elicitation_enabled: bool = Field(False, validation_alias="MCP_ELICITATION_ENABLED")
     write_tools_enabled: bool = Field(False, validation_alias="MCP_WRITE_TOOLS_ENABLED")
-
-    # Safety controls for destructive tools
-    enable_destructive_tools: bool = Field(
-        False,
-        validation_alias="ENABLE_DESTRUCTIVE_TOOLS",
-        description="Enable HIGH risk tools (isolate, terminate, quarantine, run_script). "
-                    "When False, these tools are not loaded at all."
-    )
+    isolate_endpoint_tool_enabled: bool = Field(False, validation_alias="MCP_ISOLATE_ENDPOINT_TOOL_ENABLED")
     http_response_error_message_max_size: int = Field(1000, validation_alias="CORTEX_MCP_RESPONSE_ERROR_MAX_SIZE")
 
     # --- PAPI Settings ---

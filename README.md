@@ -6,6 +6,10 @@
 
 A Model Context Protocol (MCP) server that provides AI assistants with comprehensive security operations capabilities for [Cortex XSIAM](https://www.paloaltonetworks.com/cortex/cortex-xsiam). This server enables natural language security investigations, threat hunting, and incident response through 50+ specialized tools.
 
+> **📖 Official Documentation:** For the base Cortex MCP server installation and setup, see the [Official Palo Alto Networks Cortex MCP Server Documentation](https://docs-cortex.paloaltonetworks.com/r/Cortex-XSIAM/Cortex-XSIAM-Enterprise-Documentation/Cortex-MCP-server). This repository extends the official server with additional custom tools, XSOAR SDK integration, and development guides.
+
+> **Important:** Install the **base Cortex MCP server first** following the [official PANW documentation](https://docs-cortex.paloaltonetworks.com/r/Cortex-XSIAM/Cortex-XSIAM-Enterprise-Documentation/Cortex-MCP-server), then follow the instructions below to add our custom components and enhancements.
+
 > **Note:** This documentation is designed for both **humans** and **AI assistants**. AI agents can parse this README to understand installation steps, tool capabilities, and configuration requirements for automated setup and operation.
 
 ---
@@ -34,6 +38,7 @@ A Model Context Protocol (MCP) server that provides AI assistants with comprehen
 - **Case Management** - List, investigate, and update security incidents
 - **Issue Triage** - View and manage security issues (formerly called alerts) with full forensic context
 - **Threat Hunting** - Execute XQL queries for proactive threat detection
+- **Detection Rules** - Create and manage custom XQL-based correlation rules for automated threat detection
 - **Response Actions** - Isolate endpoints, terminate processes, quarantine files
 - **Threat Intelligence** - Enrich IOCs with reputation data from multiple sources
 - **XSOAR Automation** - Execute any XSOAR command through the War Room
@@ -131,28 +136,55 @@ poetry install
 
 > ⚠️ **IMPORTANT:** Do NOT install `demisto-sdk` in this virtual environment! It requires pydantic 1.x which conflicts with the MCP server's pydantic 2.x requirement. See [XSOAR Development Tools](#xsoar-development-tools) for the correct way to use demisto-sdk.
 
-### Step 5: Configure Environment Variables
+### Step 5: Configure Credentials (Claude Code Centralized Method)
+
+**Recommended**: Use Claude Code's centralized credential management (team-safe, secure)
+
+**Create `.claude/settings.local.json`** (personal, git-ignored):
+
+```json
+{
+  "env": {
+    "DEMISTO_BASE_URL": "https://api-{tenant}.xdr.{region}.paloaltonetworks.com",
+    "DEMISTO_API_KEY": "your_secret_api_key_here",
+    "XSIAM_AUTH_ID": "your_api_key_id_here"
+  }
+}
+```
+
+**Why This Approach:**
+- ✅ Secrets in `.claude/settings.local.json` (git-ignored, secure)
+- ✅ Team config in `.claude/settings.json` (committed, no secrets)
+- ✅ Works with demisto-sdk automatically (same variable names)
+- ✅ MCP server maps these to internal variables
+- ✅ Best practice for Claude Code projects
+
+**Alternative**: Use `.env` file (legacy method)
 
 ```bash
 cp .env.example .env
+# Edit .env with CORTEX_MCP_PAPI_* variables
 ```
 
-Edit `.env` with your Cortex XSIAM credentials:
+**Note**: MCP server automatically maps credentials:
+- `DEMISTO_BASE_URL` → `CORTEX_MCP_PAPI_URL` (for MCP compatibility)
+- `DEMISTO_API_KEY` → `CORTEX_MCP_PAPI_AUTH_HEADER`
+- `XSIAM_AUTH_ID` → `CORTEX_MCP_PAPI_AUTH_ID`
 
-```ini
-# REQUIRED - Your Cortex XSIAM API credentials
-CORTEX_MCP_PAPI_URL=https://api-{tenant}.xdr.{region}.paloaltonetworks.com
-CORTEX_MCP_PAPI_AUTH_HEADER=your_api_key_here
-CORTEX_MCP_PAPI_AUTH_ID=your_api_key_id_here
+**Variable Mapping Reference:**
+
+| You Set (Standard SDK Names) | MCP Uses Internally | Description |
+|------------------------------|---------------------|-------------|
+| `DEMISTO_BASE_URL` | `CORTEX_MCP_PAPI_URL` | XSIAM API endpoint URL |
+| `DEMISTO_API_KEY` | `CORTEX_MCP_PAPI_AUTH_HEADER` | API key value |
+| `XSIAM_AUTH_ID` | `CORTEX_MCP_PAPI_AUTH_ID` | API key ID |
+
+**Example Value:**
 ```
-
-**Variable Definitions:**
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `CORTEX_MCP_PAPI_URL` | Your XSIAM API endpoint URL | `https://api-acme.xdr.us.paloaltonetworks.com` |
-| `CORTEX_MCP_PAPI_AUTH_HEADER` | The API key value (not the ID) | `xxxxxxxxxxxxxxxxxxx` |
-| `CORTEX_MCP_PAPI_AUTH_ID` | The numeric API key ID | `12` |
+DEMISTO_BASE_URL=https://api-acme.xdr.us.paloaltonetworks.com
+DEMISTO_API_KEY=xxxxxxxxxxxxxxxxxxx
+XSIAM_AUTH_ID=12
+```
 
 **Available Regions:**
 | Region Code | Location |
@@ -257,6 +289,88 @@ docker run --env-file .env -it cortex-mcp
 | `update_case_ai_summary` | Generate AI investigation summary | `case_id` |
 | `update_case_timeline` | Generate visual HTML timeline | `case_id` |
 
+#### AI Summary & Timeline Tools - Detailed Guide
+
+**Custom Fields Used:**
+
+These tools update XSIAM case custom fields that must be configured in your XSIAM instance:
+
+| Field Name | Format | Purpose | Updated By |
+|------------|--------|---------|------------|
+| `aisummary` | **Markdown** | AI-generated investigation report | `update_case_ai_summary` |
+| `timeline` | **HTML** | Visual chronological timeline | `update_case_timeline` |
+
+**Note:** These are custom fields in XSIAM. To verify they exist:
+```bash
+# Get a case and check custom_fields
+get_cases → check response → custom_fields.aisummary and custom_fields.timeline
+```
+
+**What `update_case_ai_summary` Generates:**
+
+Creates a comprehensive Markdown investigation report including:
+- Executive briefing with threat level and attack progression
+- Attack narrative with timeline (first seen → most recent activity)
+- Affected systems (hosts, users, alert counts by severity)
+- MITRE ATT&CK tactics and techniques mapping
+- Threat intelligence and risk assessment
+- Impact assessment (technical and business)
+- Immediate response actions (4 hours, 24-72 hours)
+- Long-term remediation roadmap (weeks 1-4)
+- Indicators of Compromise (file, process, network, behavioral)
+- Success criteria checklist
+- Stakeholder communication plan
+
+**What `update_case_timeline` Generates:**
+
+Creates a visual HTML timeline showing:
+- All alerts in chronological order
+- Severity-based color coding (critical=dark red, high=red, medium=orange, low=blue)
+- Alert statistics summary (counts by severity, hosts, users)
+- MITRE ATT&CK technique per alert
+- Alert details (host, user, category, description)
+- Interactive visual design optimized for XSIAM UI
+
+**Prerequisites:**
+
+- Case must exist with at least 1 alert
+- Case must have basic metadata (hosts, users, severity)
+- For AI summary: More alerts = better analysis (works best with 2+ alerts)
+- For timeline: Works with any number of alerts
+
+**Example Usage:**
+
+```python
+# Generate AI investigation summary
+update_case_ai_summary(case_id="350")
+# → Updates custom_fields.aisummary with comprehensive Markdown report
+
+# Generate visual timeline
+update_case_timeline(case_id="350")
+# → Updates custom_fields.timeline with HTML visualization
+
+# View results - fetch the case
+get_cases(filters=[{"field": "case_id", "operator": "in", "value": [350]}])
+# → Check custom_fields.aisummary (Markdown) and custom_fields.timeline (HTML)
+```
+
+**Viewing in XSIAM UI:**
+
+1. Navigate to case in XSIAM web interface
+2. Custom fields appear in case details panel
+3. `aisummary` renders as formatted Markdown
+4. `timeline` renders as interactive HTML visualization
+
+**Field Configuration:**
+
+If these custom fields don't exist in your XSIAM instance, create them:
+
+1. XSIAM UI → Settings → Objects → Incident Types
+2. Add custom field: `aisummary` (type: Long Text, format: Markdown)
+3. Add custom field: `timeline` (type: Long Text, format: HTML)
+
+Or check if they're already configured (most XSIAM instances have them pre-configured).
+
 ### Issue Management (4 tools)
 
 > **Terminology Note:** In XSIAM APIs, security alerts are called "issues". These tools manage individual security events.
@@ -289,6 +403,37 @@ docker run --env-file .env -it cortex-mcp
 | `enrich_file_hash` | File hash reputation | `file_hash`, `alert_id` |
 | `enrich_url` | URL reputation lookup | `url`, `alert_id` |
 | `run_xsoar_automation` | Execute XSOAR commands | `command`, `alert_id` |
+
+### Detection & Rules (1 tool)
+
+| Tool | Description | Key Parameters |
+|------|-------------|----------------|
+| `insert_correlation_rule` | Create/update XQL-based detection rules | `rule_id`, `name`, `xql_query`, `severity`, `alert_category` |
+
+**Correlation Rules** are XQL-based detection rules that continuously analyze incoming data and generate alerts when suspicious patterns are detected. Use this tool to:
+- Create custom threat detection logic
+- Implement organization-specific security policies
+- Deploy detection rules based on threat intelligence
+- Monitor for specific attack patterns and IOCs
+
+**Example - Create SSH Brute Force Detection:**
+```python
+insert_correlation_rule(
+    rule_id=10001,
+    name="SSH Brute Force Detection",
+    xql_query="dataset = xdr_data | filter event_type = ENUM.AUTHENTICATION and action_service_name = 'SSH' and outcome = ENUM.FAILED | comp count() by source_ip, user | filter count > 5",
+    severity="SEV_040_HIGH",
+    alert_name="SSH Brute Force Attempt Detected",
+    alert_category="CREDENTIAL_ACCESS",
+    is_enabled=True,
+    description="Detects multiple failed SSH authentication attempts indicating brute force attack",
+    search_window="5 minutes"
+)
+```
+
+**Severity Levels:** `SEV_010_INFORMATIONAL`, `SEV_020_LOW`, `SEV_030_MEDIUM`, `SEV_040_HIGH`, `SEV_050_CRITICAL`
+
+**Alert Categories (MITRE ATT&CK):** `RECONNAISSANCE`, `INITIAL_ACCESS`, `EXECUTION`, `PERSISTENCE`, `PRIVILEGE_ESCALATION`, `DEFENSE_EVASION`, `CREDENTIAL_ACCESS`, `DISCOVERY`, `LATERAL_MOVEMENT`, `COLLECTION`, `COMMAND_AND_CONTROL`, `EXFILTRATION`, `IMPACT`
 
 ### Additional Tools
 
@@ -355,16 +500,45 @@ export DEMISTO_API_KEY=$CORTEX_MCP_PAPI_AUTH_HEADER
 export XSIAM_AUTH_ID=$CORTEX_MCP_PAPI_AUTH_ID
 ```
 
-### Development Guide Tools (4 tools)
+### Shared Content Repository
 
-> **For AI Assistants:** Call these tools BEFORE creating integrations to learn the correct patterns!
+**Location**: `/Users/apekarovsky/projects/content/` (or `~/projects/content`)
+
+This directory contains XSOAR content packs that can be:
+- Shared across multiple AI agent sessions
+- Collaboratively developed
+- Version controlled separately
+- Used by demisto-sdk tools
+
+**Structure**:
+```
+~/projects/content/
+├── Packs/
+│   ├── NetworkTools/
+│   │   ├── Scripts/SSHScan/
+│   │   └── Playbooks/CloseNoisyIssues.yml
+│   ├── PingTools/
+│   └── ThreatHunting/
+```
+
+SDK tools automatically use this shared location when creating, validating, or uploading content.
+
+### Development Guide Tools (9 tools)
+
+> **For AI Assistants:** Call these tools BEFORE creating integrations or playbooks!
+> **New:** create_playbook tool now available for programmatic playbook generation!
 
 | Tool | When to Use | Returns |
 |------|-------------|---------|
 | `get_xsoar_pattern_guide` | **Call FIRST** before any integration | Pattern recognition guide (monitor→long-running, fetch→event collector) |
 | `get_xsoar_long_running_guide` | User wants continuous monitoring/webhooks | Complete guide with while True pattern, no threading, examples |
 | `get_xsoar_event_collector_guide` | User wants to fetch/pull/import data | Complete guide with fetch-incidents, send_events_to_xsiam |
+| `get_xsoar_scheduled_commands_guide` | User needs polling/async operations | Polling pattern for sandbox analysis, long searches |
+| `get_xsoar_mirroring_guide` | User needs bidirectional sync | ServiceNow, Jira incident mirroring |
+| `get_xsoar_feed_guide` | User building threat intel feed | TAXII, STIX, custom IOC feeds |
 | `get_xsoar_best_practices` | Need specific topic guidance | Best practices for threading, state management, errors |
+| `get_playbook_building_blocks` | **Building playbooks** | 60+ sub-playbooks, 30+ scripts, 10+ transformers from production analysis |
+| `create_playbook` | **Generate playbooks** | Creates valid XSOAR playbooks from simplified task definitions |
 
 **How AI uses these:**
 1. User: "Monitor Redis health"
@@ -578,6 +752,7 @@ poetry run mypy src/
 | `401 Unauthorized` | Invalid API key | Verify `CORTEX_MCP_PAPI_AUTH_HEADER` and `CORTEX_MCP_PAPI_AUTH_ID` values |
 | `403 Forbidden` | Insufficient permissions | Ensure API key has Instance Administrator role |
 | `Connection refused` | Wrong URL format | Check URL matches `https://api-{tenant}.xdr.{region}.paloaltonetworks.com` |
+| `pyenv: version '3.12' is not installed` | `.python-version` file constraint | Remove `.python-version` file: `rm .python-version` then recreate venv |
 | `Could not find investigations` | Issue not in a case | War Room tools require issues (formerly alerts) that are part of a case. Use `get_issues` to find an issue, then check if it has a `case_id` field. |
 | `ImportError: cannot import name 'ModelMetaclass' from 'pydantic.main'` | Pydantic version conflict | MCP server needs pydantic 2.x, demisto-sdk needs 1.x. Use `uvx demisto-sdk` instead of installing directly. See [XSOAR Development Tools](#xsoar-development-tools) |
 | `demisto-sdk not found` | SDK not in PATH | The MCP SDK tools use `uvx demisto-sdk` automatically. For manual use: `uvx demisto-sdk <command>` |

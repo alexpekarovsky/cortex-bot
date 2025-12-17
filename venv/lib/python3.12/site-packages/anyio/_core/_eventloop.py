@@ -142,12 +142,12 @@ def get_cancelled_exc_class() -> type[BaseException]:
 def claim_worker_thread(
     backend_class: type[AsyncBackend], token: object
 ) -> Generator[Any, None, None]:
-    from ..lowlevel import EventLoopToken
-
-    threadlocals.current_token = EventLoopToken(backend_class, token)
+    threadlocals.current_async_backend = backend_class
+    threadlocals.current_token = token
     try:
         yield
     finally:
+        del threadlocals.current_async_backend
         del threadlocals.current_token
 
 

@@ -16,7 +16,7 @@ from typing import (
 
 import mcp.types
 import pydantic_core
-from mcp.types import ContentBlock, Icon, TextContent, ToolAnnotations
+from mcp.types import CallToolResult, ContentBlock, Icon, TextContent, ToolAnnotations
 from mcp.types import Tool as MCPTool
 from pydantic import Field, PydanticSchemaGenerationError
 from typing_extensions import TypeVar
@@ -68,6 +68,7 @@ class ToolResult:
         self,
         content: list[ContentBlock] | Any | None = None,
         structured_content: dict[str, Any] | Any | None = None,
+        meta: dict[str, Any] | None = None,
     ):
         if content is None and structured_content is None:
             raise ValueError("Either content or structured_content must be provided")
@@ -75,6 +76,7 @@ class ToolResult:
             content = structured_content
 
         self.content: list[ContentBlock] = _convert_to_content(result=content)
+        self.meta: dict[str, Any] | None = meta
 
         if structured_content is not None:
             try:
@@ -96,7 +98,15 @@ class ToolResult:
 
     def to_mcp_result(
         self,
-    ) -> list[ContentBlock] | tuple[list[ContentBlock], dict[str, Any]]:
+    ) -> (
+        list[ContentBlock] | tuple[list[ContentBlock], dict[str, Any]] | CallToolResult
+    ):
+        if self.meta is not None:
+            return CallToolResult(
+                structuredContent=self.structured_content,
+                content=self.content,
+                _meta=self.meta,
+            )
         if self.structured_content is None:
             return self.content
         return self.content, self.structured_content
@@ -284,10 +294,11 @@ class FunctionTool(Tool):
         # Note: explicit schemas (dict) are used as-is without auto-wrapping
 
         # Validate that explicit schemas are object type for structured content
+        # (resolving $ref references for self-referencing types)
         if final_output_schema is not None and isinstance(final_output_schema, dict):
-            if final_output_schema.get("type") != "object":
+            if not _is_object_schema(final_output_schema):
                 raise ValueError(
-                    f'Output schemas must have "type" set to "object" due to MCP spec limitations. Received: {final_output_schema!r}'
+                    f"Output schemas must represent object types due to MCP spec limitations. Received: {final_output_schema!r}"
                 )
 
         return cls(
@@ -354,6 +365,21 @@ class FunctionTool(Tool):
             content=unstructured_result,
             structured_content={"result": result} if wrap_result else result,
         )
+
+
+def _is_object_schema(schema: dict[str, Any]) -> bool:
+    """Check if a JSON schema represents an object type."""
+    # Direct object type
+    if schema.get("type") == "object":
+        return True
+
+    # Schema with properties but no explicit type is treated as object
+    if "properties" in schema:
+        return True
+
+    # Self-referencing types use $ref pointing to $defs
+    # The referenced type is always an object in our use case
+    return "$ref" in schema and "$defs" in schema
 
 
 @dataclass
@@ -468,10 +494,9 @@ class ParsedFunction:
 
                 # Generate schema for wrapped type if it's non-object
                 # because MCP requires that output schemas are objects
-                if (
-                    wrap_non_object_output_schema
-                    and base_schema.get("type") != "object"
-                ):
+                # Check if schema is an object type, resolving $ref references
+                # (self-referencing types use $ref at root level)
+                if wrap_non_object_output_schema and not _is_object_schema(base_schema):
                     # Use the wrapped result schema directly
                     wrapped_type = _WrappedResult[clean_output_type]
                     wrapped_adapter = get_cached_typeadapter(wrapped_type)

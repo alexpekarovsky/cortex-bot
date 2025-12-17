@@ -15,6 +15,12 @@ paths:
         WARNING: Quarantined files may break applications that depend on them.
         Ensure you understand what the file is used for before quarantining.
 
+        IMPORTANT: file_hash parameter MUST be SHA256 (64 hexadecimal characters).
+        Examples:
+        - ✅ Valid SHA256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        - ❌ Invalid MD5: "d41d8cd98f00b204e9800998ecf8427e" (only 32 chars - too short)
+        - ❌ Invalid: "abc123" (not a valid hash format)
+
         Use this when:
         - You've identified malicious files that need to be neutralized
         - You want to prevent file execution without permanently deleting evidence

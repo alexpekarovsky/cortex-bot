@@ -44,6 +44,7 @@ from mcp.server.auth.provider import (
     AccessToken,
     AuthorizationCode,
     AuthorizationParams,
+    AuthorizeError,
     RefreshToken,
     TokenError,
 )
@@ -309,10 +310,13 @@ def create_consent_html(
     """
 
     # Build form with buttons
+    # Use empty action to submit to current URL (/consent or /mcp/consent)
+    # The POST handler is registered at the same path as GET
     form = f"""
-        <form id="consentForm" method="POST" action="/consent/submit">
+        <form id="consentForm" method="POST" action="">
             <input type="hidden" name="txn_id" value="{txn_id}" />
             <input type="hidden" name="csrf_token" value="{csrf_token}" />
+            <input type="hidden" name="submit" value="true" />
             <div class="button-group">
                 <button type="submit" name="action" value="approve" class="btn-approve">Allow Access</button>
                 <button type="submit" name="action" value="deny" class="btn-deny">Deny</button>
@@ -365,11 +369,111 @@ def create_consent_html(
     )
 
     # Need to allow form-action for form submission
-    csp_policy = "default-src 'none'; style-src 'unsafe-inline'; img-src https:; base-uri 'none'; form-action *"
+    # Chrome requires explicit scheme declarations in CSP form-action when redirect chains
+    # end in custom protocol schemes (e.g., cursor://). Parse redirect_uri to include its scheme.
+    parsed_redirect = urlparse(redirect_uri)
+    redirect_scheme = parsed_redirect.scheme.lower()
+
+    # Build form-action directive with standard schemes plus custom protocol if present
+    form_action_schemes = ["https:", "http:"]
+    if redirect_scheme and redirect_scheme not in ("http", "https"):
+        # Custom protocol scheme (e.g., cursor:, vscode:, etc.)
+        form_action_schemes.append(f"{redirect_scheme}:")
+
+    form_action_directive = " ".join(form_action_schemes)
+    csp_policy = f"default-src 'none'; style-src 'unsafe-inline'; img-src https: data:; base-uri 'none'; form-action {form_action_directive}"
 
     return create_page(
         content=content,
         title=title,
+        additional_styles=additional_styles,
+        csp_policy=csp_policy,
+    )
+
+
+def create_error_html(
+    error_title: str,
+    error_message: str,
+    error_details: dict[str, str] | None = None,
+    server_name: str | None = None,
+    server_icon_url: str | None = None,
+) -> str:
+    """Create a styled HTML error page for OAuth errors.
+
+    Args:
+        error_title: The error title (e.g., "OAuth Error", "Authorization Failed")
+        error_message: The main error message to display
+        error_details: Optional dictionary of error details to show (e.g., {"Error Code": "invalid_client"})
+        server_name: Optional server name to display
+        server_icon_url: Optional URL to server icon/logo
+
+    Returns:
+        Complete HTML page as a string
+    """
+    import html as html_module
+
+    error_message_escaped = html_module.escape(error_message)
+
+    # Build error message box
+    error_box = f"""
+        <div class="info-box error">
+            <p>{error_message_escaped}</p>
+        </div>
+    """
+
+    # Build error details section if provided
+    details_section = ""
+    if error_details:
+        detail_rows_html = "\n".join(
+            [
+                f"""
+            <div class="detail-row">
+                <div class="detail-label">{html_module.escape(label)}:</div>
+                <div class="detail-value">{html_module.escape(value)}</div>
+            </div>
+            """
+                for label, value in error_details.items()
+            ]
+        )
+
+        details_section = f"""
+            <details>
+                <summary>Error Details</summary>
+                <div class="detail-box">
+                    {detail_rows_html}
+                </div>
+            </details>
+        """
+
+    # Build the page content
+    content = f"""
+        <div class="container">
+            {create_logo(icon_url=server_icon_url, alt_text=server_name or "FastMCP")}
+            <h1>{html_module.escape(error_title)}</h1>
+            {error_box}
+            {details_section}
+        </div>
+    """
+
+    # Additional styles needed for this page
+    # Override .info-box.error to use normal text color instead of red
+    additional_styles = (
+        INFO_BOX_STYLES
+        + DETAILS_STYLES
+        + DETAIL_BOX_STYLES
+        + """
+        .info-box.error {
+            color: #111827;
+        }
+        """
+    )
+
+    # Simple CSP policy for error pages (no forms needed)
+    csp_policy = "default-src 'none'; style-src 'unsafe-inline'; img-src https: data:; base-uri 'none'"
+
+    return create_page(
+        content=content,
+        title=error_title,
         additional_styles=additional_styles,
         csp_policy=csp_policy,
     )
@@ -836,6 +940,8 @@ class OAuthProxy(OAuthProvider):
         """
 
         # Create a ProxyDCRClient with configured redirect URI validation
+        if client_info.client_id is None:
+            raise ValueError("client_id is required for client registration")
         proxy_client: ProxyDCRClient = ProxyDCRClient(
             client_id=client_info.client_id,
             client_secret=client_info.client_secret,
@@ -865,7 +971,7 @@ class OAuthProxy(OAuthProvider):
         logger.debug(
             "Registered client %s with %d redirect URIs",
             client_info.client_id,
-            len(proxy_client.redirect_uris),
+            len(proxy_client.redirect_uris) if proxy_client.redirect_uris else 0,
         )
 
     # -------------------------------------------------------------------------
@@ -902,6 +1008,10 @@ class OAuthProxy(OAuthProvider):
             )
 
         # Store transaction data for IdP callback processing
+        if client.client_id is None:
+            raise AuthorizeError(
+                error="invalid_client", error_description="Client ID is required"
+            )
         transaction = OAuthTransaction(
             txn_id=txn_id,
             client_id=client.client_id,
@@ -980,6 +1090,10 @@ class OAuthProxy(OAuthProvider):
             return None
 
         # Create authorization code object with PKCE challenge
+        if client.client_id is None:
+            raise AuthorizeError(
+                error="invalid_client", error_description="Client ID is required"
+            )
         return AuthorizationCode(
             code=authorization_code,
             client_id=client.client_id,
@@ -1065,18 +1179,21 @@ class OAuthProxy(OAuthProvider):
             expires_at=time.time() + expires_in,
             token_type=idp_tokens.get("token_type", "Bearer"),
             scope=" ".join(authorization_code.scopes),
-            client_id=client.client_id,
+            client_id=client.client_id or "",
             created_at=time.time(),
             raw_token_data=idp_tokens,
         )
         await self._upstream_token_store.put(
             key=upstream_token_id,
             value=upstream_token_set,
-            ttl=expires_in,  # Auto-expire when access token expires
+            ttl=refresh_expires_in
+            or expires_in,  # Auto-expire when refresh token, or access token expires
         )
         logger.debug("Stored encrypted upstream tokens (jti=%s)", access_jti[:8])
 
         # Issue minimal FastMCP access token (just a reference via JTI)
+        if client.client_id is None:
+            raise TokenError("invalid_client", "Client ID is required")
         fastmcp_access_token = self._jwt_issuer.issue_access_token(
             client_id=client.client_id,
             scopes=authorization_code.scopes,
@@ -1222,6 +1339,7 @@ class OAuthProxy(OAuthProvider):
                 url=self._upstream_token_endpoint,
                 refresh_token=upstream_token_set.refresh_token,
                 scope=" ".join(scopes) if scopes else None,
+                **self._extra_token_params,
             )
             logger.debug("Successfully refreshed upstream token")
         except Exception as e:
@@ -1268,10 +1386,17 @@ class OAuthProxy(OAuthProvider):
         await self._upstream_token_store.put(
             key=upstream_token_set.upstream_token_id,
             value=upstream_token_set,
-            ttl=new_expires_in,  # Auto-expire when refreshed access token expires
+            ttl=new_refresh_expires_in
+            or (
+                int(upstream_token_set.refresh_token_expires_at - time.time())
+                if upstream_token_set.refresh_token_expires_at
+                else 60 * 60 * 24 * 30  # Default to 30 days if unknown
+            ),  # Auto-expire when refresh token expires
         )
 
         # Issue new minimal FastMCP access token (just a reference via JTI)
+        if client.client_id is None:
+            raise TokenError("invalid_client", "Client ID is required")
         new_access_jti = secrets.token_urlsafe(32)
         new_fastmcp_access = self._jwt_issuer.issue_access_token(
             client_id=client.client_id,
@@ -1503,9 +1628,10 @@ class OAuthProxy(OAuthProvider):
             ):
                 authorize_route_found = True
                 # Replace with our enhanced authorization handler
+                # Note: self.base_url is guaranteed to be set in parent __init__
                 authorize_handler = AuthorizationHandler(
                     provider=self,
-                    base_url=self.base_url,
+                    base_url=self.base_url,  # ty: ignore[invalid-argument-type]
                     server_name=None,  # Could be extended to pass server metadata
                     server_icon_url=None,
                 )
@@ -1551,12 +1677,10 @@ class OAuthProxy(OAuthProvider):
         )
 
         # Add consent endpoints
-        custom_routes.append(
-            Route(path="/consent", endpoint=self._show_consent_page, methods=["GET"])
-        )
+        # Handle both GET (show page) and POST (submit) at /consent
         custom_routes.append(
             Route(
-                path="/consent/submit", endpoint=self._submit_consent, methods=["POST"]
+                path="/consent", endpoint=self._handle_consent, methods=["GET", "POST"]
             )
         )
 
@@ -1569,7 +1693,9 @@ class OAuthProxy(OAuthProvider):
     # IdP Callback Forwarding
     # -------------------------------------------------------------------------
 
-    async def _handle_idp_callback(self, request: Request) -> RedirectResponse:
+    async def _handle_idp_callback(
+        self, request: Request
+    ) -> HTMLResponse | RedirectResponse:
         """Handle callback from upstream IdP and forward to client.
 
         This implements the DCR-compliant callback forwarding:
@@ -1584,32 +1710,37 @@ class OAuthProxy(OAuthProvider):
             error = request.query_params.get("error")
 
             if error:
+                error_description = request.query_params.get("error_description")
                 logger.error(
                     "IdP callback error: %s - %s",
                     error,
-                    request.query_params.get("error_description"),
+                    error_description,
                 )
-                # TODO: Forward error to client callback
-                return RedirectResponse(
-                    url=f"data:text/html,<h1>OAuth Error</h1><p>{error}: {request.query_params.get('error_description', 'Unknown error')}</p>",
-                    status_code=302,
+                # Show error page to user
+                html_content = create_error_html(
+                    error_title="OAuth Error",
+                    error_message=f"Authentication failed: {error_description or 'Unknown error'}",
+                    error_details={"Error Code": error} if error else None,
                 )
+                return HTMLResponse(content=html_content, status_code=400)
 
             if not idp_code or not txn_id:
                 logger.error("IdP callback missing code or transaction ID")
-                return RedirectResponse(
-                    url="data:text/html,<h1>OAuth Error</h1><p>Missing authorization code or transaction ID</p>",
-                    status_code=302,
+                html_content = create_error_html(
+                    error_title="OAuth Error",
+                    error_message="Missing authorization code or transaction ID from the identity provider.",
                 )
+                return HTMLResponse(content=html_content, status_code=400)
 
             # Look up transaction data
             transaction_model = await self._transaction_store.get(key=txn_id)
             if not transaction_model:
                 logger.error("IdP callback with invalid transaction ID: %s", txn_id)
-                return RedirectResponse(
-                    url="data:text/html,<h1>OAuth Error</h1><p>Invalid or expired transaction</p>",
-                    status_code=302,
+                html_content = create_error_html(
+                    error_title="OAuth Error",
+                    error_message="Invalid or expired authorization transaction. Please try authenticating again.",
                 )
+                return HTMLResponse(content=html_content, status_code=400)
             transaction = transaction_model.model_dump()
 
             # Exchange IdP code for tokens (server-side)
@@ -1663,11 +1794,11 @@ class OAuthProxy(OAuthProvider):
 
             except Exception as e:
                 logger.error("IdP token exchange failed: %s", e)
-                # TODO: Forward error to client callback
-                return RedirectResponse(
-                    url=f"data:text/html,<h1>OAuth Error</h1><p>Token exchange failed: {e}</p>",
-                    status_code=302,
+                html_content = create_error_html(
+                    error_title="OAuth Error",
+                    error_message=f"Token exchange with identity provider failed: {e}",
                 )
+                return HTMLResponse(content=html_content, status_code=500)
 
             # Generate our own authorization code for the client
             client_code = secrets.token_urlsafe(32)
@@ -1714,10 +1845,11 @@ class OAuthProxy(OAuthProvider):
 
         except Exception as e:
             logger.error("Error in IdP callback handler: %s", e, exc_info=True)
-            return RedirectResponse(
-                url="data:text/html,<h1>OAuth Error</h1><p>Internal server error during IdP callback</p>",
-                status_code=302,
+            html_content = create_error_html(
+                error_title="OAuth Error",
+                error_message="Internal server error during OAuth callback processing. Please try again.",
             )
+            return HTMLResponse(content=html_content, status_code=500)
 
     # -------------------------------------------------------------------------
     # Consent Interstitial
@@ -1862,6 +1994,14 @@ class OAuthProxy(OAuthProvider):
 
         separator = "&" if "?" in self._upstream_authorization_endpoint else "?"
         return f"{self._upstream_authorization_endpoint}{separator}{urlencode(query_params)}"
+
+    async def _handle_consent(
+        self, request: Request
+    ) -> HTMLResponse | RedirectResponse:
+        """Handle consent page - dispatch to GET or POST handler based on method."""
+        if request.method == "POST":
+            return await self._submit_consent(request)
+        return await self._show_consent_page(request)
 
     async def _show_consent_page(
         self, request: Request

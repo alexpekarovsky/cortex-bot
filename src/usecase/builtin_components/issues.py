@@ -35,51 +35,41 @@ async def get_issues_response() -> str:
         return create_response(data={"error": str(e)}, is_error=True)
 
 async def get_issues(ctx: Context,
-                    filters: Annotated[list, Field(description="Filters list to get the issues by. Leave empty go get all issues")],
+                    filters: Annotated[list[dict], Field(description="Filters list to get the issues by. Leave empty go get all issues")],
                     search_from: Annotated[int, Field(description="Marker for pagination starting point", default=0)] = 0,
                     search_to: Annotated[int, Field(description="Marker for pagination ending point", default=30)] = 30,
-                    sort: Annotated[Optional[dict], Field(description="Dictionary of field and keyword to sort by. By default the sort is defined as creation_time, desc")] = None,
-                    include_fields: Annotated[Optional[list], Field(description="Fields to include in response. Allowed values: normalized_fields, custom_fields")] = None,
+                    sort: Annotated[Optional[dict], Field(description="Dictionary of field and keyword to sort by. By default the sort is defined as observation time, desc")] = None,
                     ) -> str:
     """
-    Retrieves a list of issues (alerts) from the Cortex XSIAM platform.
-
-    This tool provides access to security alerts detected by XSIAM. Issues represent individual security
-    events that may require investigation, ranging from malware detections to suspicious behavior patterns.
-    Use this for basic alert listing and filtering.
-
-    Use this tool when:
-    - Listing recent security alerts
-    - Filtering alerts by severity, status, or time range
-    - Getting a specific alert by ID
-    - Monitoring new security events
-    - Generating alert reports
-
-    Do NOT use this for:
-    - Detailed alert forensics - use get_alert_multi_events instead
-    - Case/incident management - use get_cases instead
+    Retrieves a list of issues or alerts from the Cortex platform.
+    Use this tool to fetch all issues, or a filtered subset of issues, or one issue, based on various criteria such as time range, severity, status, or specific alert IDs.
+    This is highly valuable for security monitoring, threat hunting, and reporting on detected security events.
 
     Args:
         ctx: The FastMCP context.
         filters: Filters list to get the issues by. Examples -
-            [{"field": "id", "operator": "in", "value": [123]}]
-            [{"field": "status.progress", "operator": "in", "value": ["New", "In Progress"]}]
-            [{"field": "severity", "operator": "in", "value": ["HIGH", "CRITICAL"]}]
-            Leave empty to get all issues.
-            Allowed fields: "id", "external_id", "severity", "status.progress", "detection.method",
-            "observation_time", "_insert_time", "last_modified", "issue_domain", "category",
-            "detection.rule_id", "assigned_to", "assigned_to_pretty", "asset_ids", "asset_names",
-            "asset_accounts", "asset_regions", "asset_classes", "asset_group_ids", "asset_providers",
-            "asset_types", "asset_categories"
-        search_from: Marker for pagination starting point (default: 0).
-        search_to: Marker for pagination ending point (default: 30).
+            [{
+                        "field": "id",
+                        "operator": "in",
+                        "value": [123]
+            }],
+            [{
+                        "field": "status",
+                        "operator": "in",
+                        "value": ["new", "under_investigation"]
+            }]
+            Leave empty go get all issues.
+            Allowed values:"id","external_id","detection_method","issue_domain","severity","_insert_time","status"
+        search_from: Marker for pagination starting point.
+        search_to: Marker for pagination ending point.
         sort: Field to sort by. Example -
-            {"field": "severity", "keyword": "desc"}
-            Allowed sort fields: "severity", "id", "observation_time"
-        include_fields: Fields to include in response (optional). Values: "normalized_fields", "custom_fields"
-
+            {
+                    "field": "observation_time",
+                    "keyword": "desc"
+            }
+            Allowed fields are "id","observation_time","severity".
     Returns:
-        JSON response containing issue data with metadata.
+        JSON response containing issue data.
       """
 
     payload = {
@@ -89,15 +79,16 @@ async def get_issues(ctx: Context,
         }
     }
     if filters:
+        for f in filters:
+            if f.get("field") == "id":
+                f["value"] = [int(v) for v in f["value"]]  # Ensure id values are integers
         payload["request_data"]["filters"] = filters
     if sort:
         payload["request_data"]["sort"] = sort
-    if include_fields:
-        payload["request_data"]["include_fields"] = include_fields
 
     try:
         fetcher = await get_fetcher(ctx)
-        response_data = await fetcher.send_request("/issue/search", data=payload)
+        response_data = await fetcher.send_request("/issue/search/", data=payload)
         response_data["_metadata"] = {
             "formatting_instructions": LLM_FORMATTING_BASE_INSTRUCTIONS,
         }

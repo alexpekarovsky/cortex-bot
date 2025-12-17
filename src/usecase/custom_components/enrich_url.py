@@ -113,6 +113,11 @@ async def enrich_url(
     """
     Enriches a URL using XSOAR threat intelligence integrations.
 
+    PREREQUISITES:
+    - Requires a URL reputation integration configured in XSOAR (VirusTotal, URLhaus, etc.)
+    - If no integration configured, returns error: "!url command not available"
+    - To check available integrations: run_xsoar_automation(command="!GetInstances")
+
     Runs the !url command in the War Room and automatically retrieves URL reputation,
     categorization, malware associations, and scanner detection results from configured
     threat intelligence sources.

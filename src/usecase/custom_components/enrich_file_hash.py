@@ -109,6 +109,11 @@ async def enrich_file_hash(
     """
     Enriches a file hash using XSOAR threat intelligence integrations.
 
+    PREREQUISITES:
+    - Requires a file reputation integration configured in XSOAR (VirusTotal, WildFire, etc.)
+    - If no integration configured, returns error: "!file command not available"
+    - To check available integrations: run_xsoar_automation(command="!GetInstances")
+
     Runs the !file command in the War Room and automatically retrieves results from
     VirusTotal, Google Threat Intelligence, and other configured integrations.
 

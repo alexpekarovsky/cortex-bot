@@ -144,6 +144,18 @@ User request contains:
 │  └─> EVENT COLLECTOR INTEGRATION
 │      Call: get_xsoar_event_collector_guide()
 │
+├─ "poll", "sandbox", "async", "wait for results", "submit and check", "scan file"
+│  └─> SCHEDULED COMMANDS (Polling Pattern)
+│      Call: get_xsoar_scheduled_commands_guide()
+│
+├─ "sync", "mirror", "bidirectional", "two-way", "chat integration"
+│  └─> MIRRORING INTEGRATION
+│      Call: get_xsoar_mirroring_guide()
+│
+├─ "threat feed", "indicators", "IOC", "TAXII", "STIX", "feed"
+│  └─> FEED INTEGRATION
+│      Call: get_xsoar_feed_guide()
+│
 └─ "query", "get", "lookup", "search" (one-time)
    └─> REGULAR INTEGRATION
        Use standard integration pattern (no special guide needed)
@@ -1020,6 +1032,577 @@ while True:
 """
 
 # ============================================================================
+# SCHEDULED COMMANDS GUIDE (Polling Pattern)
+# ============================================================================
+
+SCHEDULED_COMMANDS_GUIDE = """
+# XSOAR Scheduled Commands (Polling Pattern)
+
+## Pattern Overview
+
+Scheduled commands enable **asynchronous polling** for operations that cannot return results immediately.
+
+**Use cases:**
+- Sandbox file analysis (submit file → poll for results)
+- Long-running searches (start search → check status → get results)
+- External async operations requiring status checks
+
+**Official PANW Term:** "Scheduled Commands"
+**YAML Config:** `polling: true`
+
+---
+
+## Architecture Pattern
+
+### Simple Implementation (polling_function decorator)
+
+```python
+from CommonServerPython import ScheduledCommand
+
+@polling_function(
+    name='file-scan',
+    interval=30,  # Poll every 30 seconds
+    timeout=600   # Give up after 10 minutes
+)
+def scan_file_command(args):
+    '''Submit file for scanning and poll for results.'''
+
+    file_hash = args.get('file_hash')
+
+    # First call: Submit for analysis
+    if not args.get('_hide_polling_output'):
+        result = submit_file_to_sandbox(file_hash)
+        return PollResult(
+            response=None,  # No results yet
+            continue_to_poll=True,
+            args_for_next_run={'scan_id': result['scan_id']}
+        )
+
+    # Subsequent calls: Poll for results
+    scan_id = args.get('scan_id')
+    status = check_scan_status(scan_id)
+
+    if status['completed']:
+        # Analysis complete - return results
+        return PollResult(
+            response=CommandResults(
+                outputs_prefix='FileScan',
+                outputs=status['results']
+            ),
+            continue_to_poll=False
+        )
+    else:
+        # Still processing - keep polling
+        return PollResult(
+            response=None,
+            continue_to_poll=True
+        )
+```
+
+### YAML Configuration
+
+```yaml
+script:
+  polling: true  # Enable scheduled commands
+
+commands:
+  - name: file-scan
+    description: Scan file in sandbox (async with polling)
+    polling: true  # This specific command uses polling
+    arguments:
+      - name: file_hash
+        description: File hash to scan
+        required: true
+```
+
+---
+
+## Key Components
+
+### PollResult Object
+
+```python
+from CommonServerPython import PollResult
+
+PollResult(
+    response=CommandResults(...),  # Results to return (or None if not ready)
+    continue_to_poll=True/False,   # Keep polling or stop?
+    args_for_next_run={'key': 'value'}  # Args to pass to next poll
+)
+```
+
+### Polling Behavior
+
+1. **First execution:** Command submitted via War Room
+2. **Polling starts:** XSOAR calls command repeatedly at `interval`
+3. **Continue polling:** Until `continue_to_poll=False` or `timeout` reached
+4. **Results returned:** When operation completes
+
+---
+
+## Complete Example: VirusTotal File Scan
+
+```python
+from CommonServerPython import *
+
+@polling_function(
+    name='vt-scan-file',
+    interval=30,
+    timeout=600,
+    requires_polling_arg=False
+)
+def scan_file_command(args, client):
+    file_hash = args.get('file_hash')
+
+    # First call - submit file
+    if not args.get('scan_id'):
+        demisto.info(f'Submitting {file_hash} for analysis')
+        result = client.submit_file(file_hash)
+
+        return PollResult(
+            response=CommandResults(
+                readable_output=f'File submitted for analysis. Scan ID: {result["scan_id"]}'
+            ),
+            continue_to_poll=True,
+            args_for_next_run={'scan_id': result['scan_id']}
+        )
+
+    # Polling - check status
+    scan_id = args.get('scan_id')
+    status = client.get_scan_status(scan_id)
+
+    if status['status'] == 'completed':
+        demisto.info(f'Scan {scan_id} completed')
+        return PollResult(
+            response=CommandResults(
+                outputs_prefix='VirusTotal.Scan',
+                outputs=status['results'],
+                readable_output=f"Scan complete. Verdict: {status['results']['verdict']}"
+            ),
+            continue_to_poll=False
+        )
+
+    elif status['status'] == 'error':
+        raise DemistoException(f"Scan failed: {status['error']}")
+
+    else:
+        # Still in progress
+        demisto.debug(f'Scan {scan_id} still in progress')
+        return PollResult(
+            response=None,
+            continue_to_poll=True
+        )
+```
+
+---
+
+## Summary: Scheduled Commands Checklist
+
+✅ **Required:**
+- `polling: true` in YAML
+- `@polling_function` decorator or manual ScheduledCommand implementation
+- Return `PollResult` objects
+- Handle first call vs subsequent polls differently
+
+✅ **Best Practices:**
+- Set reasonable `interval` (minimum 10 seconds)
+- Set appropriate `timeout` based on operation
+- Pass operation ID via `args_for_next_run`
+- Log polling status with `demisto.debug()`
+
+**When to use:** Operations that can't complete immediately (sandbox analysis, long searches, async external operations)
+"""
+
+# ============================================================================
+# MIRRORING INTEGRATION GUIDE
+# ============================================================================
+
+MIRRORING_GUIDE = """
+# XSOAR Mirroring Integration Pattern
+
+## Pattern Overview
+
+Mirroring integrations enable **bidirectional synchronization** between XSOAR incidents and external systems (ServiceNow, Jira, ticketing systems, chat platforms).
+
+**Official PANW Term:** "Mirroring Integration"
+**YAML Config:** `ismappable: true`
+
+**Use cases:**
+- ServiceNow incident sync
+- Jira issue sync
+- Slack/Teams chat-based incident management
+- Any bidirectional incident sync requirement
+
+---
+
+## Required Commands
+
+### 1. get-remote-data
+**Purpose:** Pull updates from external system to XSOAR
+
+**Called:** Every 1 minute per mirrored incident
+
+```python
+def get_remote_data_command(client, args):
+    '''
+    Pulls updates from remote system for a specific incident.
+
+    Args:
+        id: Remote incident ID (from dbotMirrorId)
+        lastUpdate: Last update timestamp
+    '''
+    remote_id = args.get('id')
+    last_update = args.get('lastUpdate')
+
+    # Fetch updates from external system
+    remote_incident = client.get_incident(remote_id, since=last_update)
+
+    # Transform to XSOAR format
+    entries = []
+    for comment in remote_incident.get('comments', []):
+        entries.append({
+            'Type': EntryType.NOTE,
+            'Contents': comment['text'],
+            'Note': True
+        })
+
+    return GetRemoteDataResponse(
+        mirrored_object=remote_incident,  # Full incident data
+        entries=entries  # New comments/notes to add
+    )
+```
+
+### 2. update-remote-system
+**Purpose:** Push XSOAR changes to external system
+
+**Called:** When XSOAR incident is modified
+
+```python
+def update_remote_system_command(client, args):
+    '''
+    Pushes XSOAR incident changes to remote system.
+
+    Args:
+        data: Modified incident data
+        entries: New entries (comments, notes)
+        incidentChanged: True if incident fields changed
+        remoteId: External system incident ID
+    '''
+    remote_id = args.get('remoteId')
+    data = args.get('data')
+    entries = args.get('entries', [])
+
+    # Update incident fields if changed
+    if args.get('incidentChanged'):
+        client.update_incident(remote_id, {
+            'status': data.get('status'),
+            'severity': data.get('severity')
+        })
+
+    # Add new comments
+    for entry in entries:
+        if entry['Type'] == EntryType.NOTE:
+            client.add_comment(remote_id, entry['Contents'])
+
+    return remote_id
+```
+
+### 3. get-modified-remote-data
+**Purpose:** Optimization - only check incidents modified since last check
+
+```python
+def get_modified_remote_data_command(client, args):
+    '''
+    Returns IDs of incidents modified since last check.
+    Reduces API calls by only polling changed incidents.
+    '''
+    last_update = args.get('lastUpdate')
+
+    # Query only modified incidents
+    modified_ids = client.get_modified_incident_ids(since=last_update)
+
+    return GetModifiedRemoteDataResponse(modified_incident_ids=modified_ids)
+```
+
+### 4. get-mapping-fields
+**Purpose:** Retrieve remote system schema for field mapping
+
+```python
+def get_mapping_fields_command(client):
+    '''
+    Returns schema of remote system for field mapping in XSOAR.
+    '''
+    # Get schema from remote system
+    schema = client.get_schema()
+
+    return GetMappingFieldsResponse(schema)
+```
+
+---
+
+## Required Incident Fields
+
+Mirrored incidents must have these fields:
+
+```python
+# In incident data
+{
+    'dbotMirrorDirection': 'Both',  # 'In', 'Out', or 'Both'
+    'dbotMirrorId': 'INC0012345',   # Remote system ID
+    'dbotMirrorInstance': 'ServiceNow_Instance_1',  # Integration instance name
+    'dbotMirrorTags': ['tag1', 'tag2']  # Tags to mirror
+}
+```
+
+---
+
+## YAML Configuration
+
+```yaml
+commonfields:
+  id: ServiceNowMirror
+  version: -1
+name: ServiceNow Mirroring
+category: Case Management
+description: Bidirectional sync with ServiceNow
+
+script:
+  ismappable: true  # Enable mirroring
+  isfetch: true     # Also fetch incidents
+
+commands:
+  - name: get-remote-data
+    description: Get updates from ServiceNow
+  - name: update-remote-system
+    description: Push changes to ServiceNow
+  - name: get-modified-remote-data
+    description: Get list of modified incidents
+  - name: get-mapping-fields
+    description: Get ServiceNow schema
+```
+
+---
+
+## Summary: Mirroring Checklist
+
+✅ **Required:**
+- `ismappable: true` in YAML
+- Implement all 4 commands (get-remote-data, update-remote-system, get-modified-remote-data, get-mapping-fields)
+- Set dbotMirrorId, dbotMirrorDirection, dbotMirrorInstance in incidents
+- Handle incremental updates (only sync what changed)
+
+**When to use:** Bidirectional sync with ServiceNow, Jira, chat platforms, any external incident tracking system
+"""
+
+# ============================================================================
+# FEED INTEGRATION GUIDE
+# ============================================================================
+
+FEED_GUIDE = """
+# XSOAR Feed Integration Pattern
+
+## Pattern Overview
+
+Feed integrations ingest **threat intelligence indicators** (IOCs) from external sources and make them available in XSOAR/XSIAM for threat detection.
+
+**Official PANW Term:** "Feed Integration"
+**YAML Config:** `isFeed: true`
+
+**Use cases:**
+- TAXII threat feeds
+- STIX indicator feeds
+- Custom IOC sources (APIs, RSS, CSV files)
+- Threat intelligence vendor feeds
+
+---
+
+## Naming Convention
+
+**CRITICAL:** Integration name MUST end with "Feed"
+
+✅ **Correct:** ThreatStreamFeed, AlienVaultFeed, CustomIOCFeed
+❌ **Wrong:** ThreatStream, AlienVault, CustomIOC
+
+---
+
+## Required Parameters (6 core + 1 optional)
+
+```yaml
+configuration:
+  - display: Fetch indicators
+    name: feed
+    type: 8
+    required: false
+
+  - display: Indicator Reputation
+    name: feedReputation
+    type: 18
+    required: false
+    defaultvalue: 'None'
+    options: ['None', 'Good', 'Suspicious', 'Bad']
+
+  - display: Source Reliability
+    name: feedReliability
+    type: 15
+    required: true
+    defaultvalue: 'F - Reliability cannot be judged'
+    options: ['A+ - Completely reliable', 'A - Reliable', 'B - Usually reliable', ...]
+
+  - display: Expiration Policy
+    name: feedExpirationPolicy
+    type: 17
+    required: false
+
+  - display: Expiration Interval (minutes)
+    name: feedExpirationInterval
+    type: 1
+    required: false
+    defaultvalue: '20160'  # 14 days
+
+  - display: Feed Fetch Interval (minutes)
+    name: feedFetchInterval
+    type: 19
+    required: false
+    defaultvalue: '240'  # 4 hours
+
+  - display: Bypass exclusion list
+    name: feedBypassExclusionList
+    type: 8
+    required: false
+```
+
+---
+
+## Architecture Pattern
+
+```python
+def fetch_indicators_command(client, params):
+    '''
+    Main fetch function for feed integrations.
+    Called by XSOAR scheduler based on feedFetchInterval.
+    '''
+    # Get feed configuration
+    feed_tags = ['MyFeed', 'ThreatIntel']
+    tlp_color = params.get('tlp_color')
+
+    # Fetch indicators from external source
+    indicators = client.get_indicators()
+
+    # Transform to XSOAR indicator format
+    formatted_indicators = []
+    for ioc in indicators:
+        formatted_indicators.append({
+            'value': ioc['indicator'],
+            'type': ioc['type'],  # ip, domain, file, url, etc.
+            'rawJSON': ioc,
+            'fields': {
+                'tags': feed_tags,
+                'trafficlightprotocol': tlp_color,
+                'threattypes': ioc.get('threat_types', [])
+            }
+        })
+
+    # Create indicators in batches (~2000 per batch)
+    for i in range(0, len(formatted_indicators), 2000):
+        batch = formatted_indicators[i:i+2000]
+        demisto.createIndicators(batch)
+
+    demisto.info(f'Created {len(formatted_indicators)} indicators')
+```
+
+### Manual Fetch Command
+
+Provide a manual fetch command for testing:
+
+```python
+def get_indicators_command(client, args):
+    '''
+    Manual command to fetch and return indicators.
+    For testing and ad-hoc fetching.
+    '''
+    limit = int(args.get('limit', 10))
+
+    indicators = client.get_indicators(limit=limit)
+
+    return CommandResults(
+        outputs_prefix='ThreatFeed.Indicator',
+        outputs=indicators,
+        readable_output=tableToMarkdown('Indicators', indicators)
+    )
+```
+
+---
+
+## YAML Configuration
+
+```yaml
+commonfields:
+  id: ThreatStreamFeed
+  version: -1
+name: ThreatStream Feed
+category: Data Enrichment & Threat Intelligence
+description: Threat intelligence indicator feed
+
+script:
+  type: python
+  subtype: python3
+  dockerimage: demisto/python3:3.10.14.100715
+  feed: true       # ← Enable feed
+  isFeed: true     # ← Enable feed (alternative)
+
+commands:
+  - name: threatstream-get-indicators
+    description: Fetch indicators manually (for testing)
+```
+
+---
+
+## Incremental Feeds
+
+For feeds that support incremental updates:
+
+```yaml
+configuration:
+  - display: Incremental Feed
+    name: feedIncremental
+    type: 8
+    defaultvalue: 'true'
+```
+
+```python
+def fetch_indicators_command(client, params):
+    last_run = demisto.getLastRun()
+    last_fetch = last_run.get('last_fetch')
+
+    # Fetch only new indicators since last fetch
+    indicators = client.get_indicators(since=last_fetch)
+
+    # Update last run
+    demisto.setLastRun({'last_fetch': datetime.now().isoformat()})
+```
+
+---
+
+## Summary: Feed Integration Checklist
+
+✅ **Required:**
+- Name ends with "Feed"
+- `isFeed: true` in YAML
+- 6 required parameters (reputation, reliability, expiration, etc.)
+- Implement `fetch-indicators` command
+- Use `demisto.createIndicators()` with batching (~2000 per batch)
+- Provide manual `[vendor]-get-indicators` command
+
+✅ **Best Practices:**
+- Batch indicators to avoid memory issues
+- Support incremental feeds when possible
+- Set appropriate fetch interval (default: 240 min)
+- Use standard reliability ratings (A-F)
+
+**When to use:** Ingesting threat intelligence indicators from TAXII, STIX, or custom feeds
+"""
+
+# ============================================================================
 # MCP TOOL FUNCTIONS
 # ============================================================================
 
@@ -1130,6 +1713,73 @@ async def get_xsoar_best_practices(
     return f"Unknown topic '{topic}'. Available: {', '.join(practices.keys())}, all"
 
 
+async def get_xsoar_scheduled_commands_guide(ctx: Context) -> str:
+    """
+    Get comprehensive guide for implementing XSOAR scheduled commands (polling pattern).
+
+    Use this tool when user requests:
+    - Sandbox file analysis (submit → poll → get results)
+    - Long-running searches that require status checking
+    - Async external operations (detonation, scanning, analysis)
+    - Any operation that can't return results immediately
+
+    Covers:
+    - polling: true configuration
+    - @polling_function decorator usage
+    - PollResult object and args_for_next_run
+    - Complete working example (VirusTotal file scan)
+    - Polling intervals and timeouts
+
+    Returns: Complete markdown guide with working code examples
+    """
+    return SCHEDULED_COMMANDS_GUIDE
+
+
+async def get_xsoar_mirroring_guide(ctx: Context) -> str:
+    """
+    Get comprehensive guide for implementing XSOAR mirroring integrations.
+
+    Use this tool when user requests:
+    - Bidirectional sync with ServiceNow, Jira, ticketing systems
+    - Chat-based incident management (Slack, Teams)
+    - Two-way incident synchronization
+    - Mirror incidents between XSOAR and external systems
+
+    Covers:
+    - ismappable: true configuration
+    - Required commands: get-remote-data, update-remote-system, get-modified-remote-data, get-mapping-fields
+    - dbotMirror fields (direction, id, instance, tags)
+    - Complete implementation patterns
+    - Optimization with get-modified-remote-data
+
+    Returns: Complete markdown guide with working code examples
+    """
+    return MIRRORING_GUIDE
+
+
+async def get_xsoar_feed_guide(ctx: Context) -> str:
+    """
+    Get comprehensive guide for implementing XSOAR feed integrations.
+
+    Use this tool when user requests:
+    - Threat intelligence feed ingestion
+    - TAXII or STIX feed integration
+    - Custom IOC sources (APIs, RSS, CSV files)
+    - Indicator collection from threat intelligence vendors
+
+    Covers:
+    - isFeed: true configuration
+    - Naming convention (must end with "Feed")
+    - 6 required feed parameters (reputation, reliability, expiration, etc.)
+    - fetch-indicators command pattern
+    - demisto.createIndicators() with batching (~2000 per batch)
+    - Incremental feed support
+
+    Returns: Complete markdown guide with working code examples
+    """
+    return FEED_GUIDE
+
+
 # ============================================================================
 # MODULE REGISTRATION
 # ============================================================================
@@ -1146,6 +1796,9 @@ class XSOARDevGuidesModule(BaseModule):
         - get_xsoar_pattern_guide: Pattern recognition (call first!)
         - get_xsoar_long_running_guide: Long-running integrations guide
         - get_xsoar_event_collector_guide: Event collector integrations guide
+        - get_xsoar_scheduled_commands_guide: Polling pattern for async operations
+        - get_xsoar_mirroring_guide: Bidirectional sync pattern
+        - get_xsoar_feed_guide: Threat intelligence feed pattern
         - get_xsoar_best_practices: Topic-specific best practices
     """
 
@@ -1153,6 +1806,9 @@ class XSOARDevGuidesModule(BaseModule):
         self._add_tool(get_xsoar_pattern_guide)
         self._add_tool(get_xsoar_long_running_guide)
         self._add_tool(get_xsoar_event_collector_guide)
+        self._add_tool(get_xsoar_scheduled_commands_guide)
+        self._add_tool(get_xsoar_mirroring_guide)
+        self._add_tool(get_xsoar_feed_guide)
         self._add_tool(get_xsoar_best_practices)
 
     def register_resources(self):

@@ -1,0 +1,501 @@
+id: 58f3f9b3-0e11-4381-8a1e-6001aede20ce
+version: 11
+contentitemexportablefields:
+  contentitemfields:
+    packID: ""
+    packName: AWS Feed
+    itemVersion: 1.1.47
+    fromServerVersion: 5.5.0
+    toServerVersion: ""
+    definitionid: ""
+    prevname: ""
+    isoverridable: false
+    supportedModules: []
+vcShouldKeepItemLegacyProdMachine: false
+name: TIM - Process For EDL
+description: This playbook handles the tagging of "To Block" indicators. Specify the
+  tag to apply to these indicators in the playbook inputs. An example tag will be
+  to_block. If no inputs are specified, the indicators will be tagged for manual review.
+  The user can specify whether a manual review alert is required.
+starttaskid: "0"
+tasks:
+  "0":
+    id: "0"
+    taskid: 2d8511f2-b8bc-4842-8874-6ef271963509
+    type: start
+    task:
+      id: 2d8511f2-b8bc-4842-8874-6ef271963509
+      version: -1
+      name: ""
+      iscommand: false
+      brand: ""
+      playbooktaskmissingcomponent: null
+      istaskmissingcomponenterrordismissed: false
+    nexttasks:
+      '#none#':
+      - "24"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 510,
+          "y": -260
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "3":
+    id: "3"
+    taskid: 0043f524-d264-46d4-8f57-11d43e9a901c
+    type: condition
+    task:
+      id: 0043f524-d264-46d4-8f57-11d43e9a901c
+      version: -1
+      name: Is there a TagName input?
+      type: condition
+      iscommand: false
+      brand: ""
+      playbooktaskmissingcomponent: null
+      istaskmissingcomponenterrordismissed: false
+    nexttasks:
+      '#default#':
+      - "29"
+      "yes":
+      - "28"
+    separatecontext: false
+    conditions:
+    - label: "yes"
+      condition:
+      - - operator: isNotEmpty
+          left:
+            value:
+              simple: inputs.IndicatorTagName
+            iscontext: true
+          right:
+            value: {}
+      - - operator: isNotEqualString
+          left:
+            value:
+              simple: inputs.IndicatorTagName
+            iscontext: true
+          right:
+            value:
+              simple: whitelist_review
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 220,
+          "y": 100
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "23":
+    id: "23"
+    taskid: 8efa5aed-6638-4492-8dc5-0140eb967eb2
+    type: regular
+    task:
+      id: 8efa5aed-6638-4492-8dc5-0140eb967eb2
+      version: -1
+      name: Tag indicators with tag from inputs
+      description: Adds the tag provided in the input to the indicator.
+      script: Builtin|||appendIndicatorField
+      type: regular
+      iscommand: true
+      brand: Builtin
+      playbooktaskmissingcomponent: null
+      istaskmissingcomponenterrordismissed: false
+    nexttasks:
+      '#none#':
+      - "30"
+    scriptarguments:
+      field:
+        simple: tags
+      fieldValue:
+        simple: ${inputs.IndicatorTagName}
+      indicatorsValues:
+        complex:
+          root: ${playbookQuery
+          accessor: value}
+          transformers:
+          - operator: uniq
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 220,
+          "y": 770
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "24":
+    id: "24"
+    taskid: 9f537709-1687-4fb1-8733-b9747bb1d089
+    type: condition
+    task:
+      id: 9f537709-1687-4fb1-8733-b9747bb1d089
+      version: -1
+      name: Are there filtered results?
+      type: condition
+      iscommand: false
+      brand: ""
+      playbooktaskmissingcomponent: null
+      istaskmissingcomponenterrordismissed: false
+    nexttasks:
+      "yes":
+      - "3"
+    separatecontext: false
+    conditions:
+    - label: "yes"
+      condition:
+      - - operator: isNotEmpty
+          left:
+            value:
+              simple: playbookQuery.value
+            iscontext: true
+          right:
+            value: {}
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 510,
+          "y": -80
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "25":
+    id: "25"
+    taskid: dd660198-e9b7-4bdc-80ea-cf06179fb593
+    type: regular
+    task:
+      id: dd660198-e9b7-4bdc-80ea-cf06179fb593
+      version: -1
+      name: Tag indicators with tag whitelist review
+      description: Adds the whitelist_review tag to the indicator.
+      script: Builtin|||appendIndicatorField
+      type: regular
+      iscommand: true
+      brand: Builtin
+      playbooktaskmissingcomponent: null
+      istaskmissingcomponenterrordismissed: false
+    nexttasks:
+      '#none#':
+      - "26"
+    scriptarguments:
+      field:
+        simple: tags
+      fieldValue:
+        simple: whitelist_review
+      indicatorsValues:
+        complex:
+          root: ${playbookQuery
+          accessor: value}
+          transformers:
+          - operator: uniq
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": -230,
+          "y": 440
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "26":
+    id: "26"
+    taskid: 7208f4e3-f529-406a-825a-1636af31cb38
+    type: condition
+    task:
+      id: 7208f4e3-f529-406a-825a-1636af31cb38
+      version: -1
+      name: Open manual review alert?
+      type: condition
+      iscommand: false
+      brand: ""
+      playbooktaskmissingcomponent: null
+      istaskmissingcomponenterrordismissed: false
+    nexttasks:
+      '#default#':
+      - "30"
+      "yes":
+      - "27"
+    separatecontext: false
+    conditions:
+    - label: "yes"
+      condition:
+      - - operator: isNotEqualString
+          left:
+            value:
+              simple: inputs.OpenIncidentToReviewIndicatorsManually
+            iscontext: true
+          right:
+            value:
+              simple: "No"
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": -230,
+          "y": 595
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "27":
+    id: "27"
+    taskid: ea739439-488d-414c-82c8-8937cd70fcd0
+    type: regular
+    task:
+      id: ea739439-488d-414c-82c8-8937cd70fcd0
+      version: -1
+      name: Create Process Indicators Manually alert
+      description: Open new manual review alert
+      script: Builtin|||createNewIncident
+      type: regular
+      iscommand: true
+      brand: Builtin
+      playbooktaskmissingcomponent: null
+      istaskmissingcomponenterrordismissed: false
+    nexttasks:
+      '#none#':
+      - "30"
+    scriptarguments:
+      name:
+        simple: Review Indicators Manually For Whitelisting
+      type:
+        simple: Review Indicators Manually For Whitelisting
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": -610,
+          "y": 770
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 2
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "28":
+    id: "28"
+    taskid: e0052a1f-be16-4515-8672-9a0d09287238
+    type: title
+    task:
+      id: e0052a1f-be16-4515-8672-9a0d09287238
+      version: -1
+      name: Auto Tag
+      type: title
+      iscommand: false
+      brand: ""
+      playbooktaskmissingcomponent: null
+      istaskmissingcomponenterrordismissed: false
+    nexttasks:
+      '#none#':
+      - "23"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 220,
+          "y": 535
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "29":
+    id: "29"
+    taskid: 67bff4f9-3905-418e-853d-523fb4c8d253
+    type: title
+    task:
+      id: 67bff4f9-3905-418e-853d-523fb4c8d253
+      version: -1
+      name: Manually review
+      type: title
+      iscommand: false
+      brand: ""
+      playbooktaskmissingcomponent: null
+      istaskmissingcomponenterrordismissed: false
+    nexttasks:
+      '#none#':
+      - "25"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": -230,
+          "y": 300
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "30":
+    id: "30"
+    taskid: 91aa52a4-9e82-4c6b-8b89-9c7b9bf77e4e
+    type: regular
+    task:
+      id: 91aa52a4-9e82-4c6b-8b89-9c7b9bf77e4e
+      version: -1
+      name: Close Job
+      description: commands.local.cmd.close.inv
+      script: Builtin|||closeInvestigation
+      type: regular
+      iscommand: true
+      brand: Builtin
+      playbooktaskmissingcomponent: null
+      istaskmissingcomponenterrordismissed: false
+    nexttasks:
+      '#none#':
+      - "31"
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 130,
+          "y": 1050
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  "31":
+    id: "31"
+    taskid: a552b4c5-b62d-4016-8b61-1dc8c91bdbc7
+    type: title
+    task:
+      id: a552b4c5-b62d-4016-8b61-1dc8c91bdbc7
+      version: -1
+      name: End
+      type: title
+      iscommand: false
+      brand: ""
+      playbooktaskmissingcomponent: null
+      istaskmissingcomponenterrordismissed: false
+    separatecontext: false
+    continueonerrortype: ""
+    view: |-
+      {
+        "position": {
+          "x": 130,
+          "y": 1200
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+view: |-
+  {
+    "linkLabelsPosition": {},
+    "paper": {
+      "dimensions": {
+        "height": 1525,
+        "width": 1500,
+        "x": -610,
+        "y": -260
+      }
+    }
+  }
+inputs:
+- key: IndicatorTagName
+  value:
+    simple: to_block
+  required: false
+  description: 'Use this input to define which tag to apply to AWS indicators. An
+    example tag can be whitelist_review. If no tags are specified in the input, the
+    tag whitelist_review will be used. '
+  playbookInputQuery: null
+- key: ""
+  value: {}
+  required: false
+  description: ""
+  playbookInputQuery:
+    query: (verdict:Malicious) and (expirationStatus:active)
+    queryEntity: indicators
+    results: null
+    daterange:
+      fromdate: 0001-01-01T00:00:00Z
+      todate: 0001-01-01T00:00:00Z
+      period:
+        by: ""
+        byto: ""
+        byfrom: ""
+        tovalue: null
+        fromvalue: null
+        field: ""
+      fromdatelicenseval: 0001-01-01T00:00:00Z
+    runFromLastJobTime: false
+- key: OpenIncidentToReviewIndicatorsManually
+  value:
+    simple: "No"
+  required: false
+  description: This input determines if processed indicators that have the whitelist_review
+    tag are reviewed in a new incident. To create an incident, enter any value other
+    than 'No'.
+  playbookInputQuery: null
+outputs: []
+sourceplaybookid: TIM - Process AWS indicators
+quiet: true
+dirtyInputs: true
+adopted: true

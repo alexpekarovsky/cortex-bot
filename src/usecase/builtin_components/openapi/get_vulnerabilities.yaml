@@ -1,0 +1,492 @@
+openapi: 3.0.0
+paths:
+  /public_api/uvem/v1/get_vulnerabilities:
+    post:
+      summary: Get list of vulnerabilities
+      description: |-
+        Get a list of vulnerabilities that match the filter fields. The list includes key information about each vulnerability.
+        Required license: Requires the Cortex Cloud Posture Management add-on.
+        This tool retrieves a list of JSON assets (vulnerabilities) using a cursor-based pagination API.
+
+        Pagination rules:
+        - Every request MUST include "use_page_token": true.
+        - Each response includes a "next_page_token".
+        - The "next_page_token" from the previous response MUST be passed as the value of
+          the "next_page_token" field in the next request body.
+        - If the user changes the filters between requests, the assistant MUST discard any
+          previously obtained page token and begin pagination from the first page.
+        
+        Automatic pagination behavior:
+        The assistant MUST automatically continue sending requests without asking the user
+        for confirmation until one of the following stopping conditions is met:
+        
+        1. The number of assets (vulnerabilities) requested by the user has been reached.
+           - If the user does not specify a limit, the assistant MUST continue until it
+             retrieves the first non-empty page, then stop.
+        
+        2. The "next_page_token" is empty or identical to the previous request’s token
+           (i.e., the token repeats between two consecutive pages), indicating the end
+           of pagination.
+        
+        Additional rules:
+        - The assistant MUST NOT ask the user whether to continue pagination.
+        - Each automatic request MUST reuse the same filters provided by the user.
+        - The assistant MUST aggregate all retrieved assets across pages and return them
+          to the user only after a stopping condition is met.
+        - The assistant SHOULD NOT expose intermediate pages unless explicitly asked.
+
+      operationId: get_vulnerabilities
+      tags:
+        - Vulnerabilities
+      requestBody:
+        description: JSON object containing filters, sorting, and pagination settings. An empty request_data object returns all results.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VulnerabilitiesRequest'
+            examples:
+              filtered_request:
+                summary: Example request with filters and pagination
+                value:
+                  request_data:
+                    filters:
+                      - field: "cvss_severity"
+                        operator: "eq"
+                        value: "CRITICAL"
+                      - field: "cisa_kev"
+                        operator: "eq"
+                        value: true
+                      - field: "cvss_score"
+                        operator: "gte"
+                        value: 7.0
+                    sort:
+                      field: "cvss_score"
+                      keyword: "desc"
+                    search_from: 0
+                    search_to: 100
+                    use_page_token: true
+              simple_request:
+                summary: Simple request with basic filter
+                value:
+                  request_data:
+                    filters:
+                      - field: "vulnerability_id"
+                        operator: "contains"
+                        value: "CVE-2024"
+                    search_from: 0
+                    search_to: 50
+      responses:
+        '200':
+          description: Successful response containing a list of vulnerabilities that match the given filters.
+          content:
+            application/json:
+              schema:
+                type: object
+
+        '400':
+          description: Bad request - invalid input parameters.
+          content:
+            application/json:
+              schema:
+                type: object
+
+        '401':
+          description: Unauthorized. The API key is missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+
+        '500':
+          description: Forbidden. The API key does not have the required permissions.
+          content:
+            application/json:
+              schema:
+                type: object
+
+components:
+  schemas:
+    VulnerabilitiesRequest:
+      type: object
+      properties:
+        request_data:
+          $ref: '#/components/schemas/VulnerabilitiesRequestPayload'
+      required:
+        - request_data
+
+    VulnerabilitiesRequestPayload:
+      type: object
+      properties:
+        search_from:
+          type: integer
+          default: 0
+          description: An integer representing the start offset index of results.
+        search_to:
+          type: integer
+          default: 500
+          description: An integer representing the end offset index of results. Use this field to specify the number of results on a page when using page token pagination.
+        use_page_token:
+          type: boolean
+          default: true
+          description: Use "use_page_token":true in the initial request to paginate the response data.
+        next_page_token:
+          type: string
+          description: If "use_page_token":true was included in the initial request, the response for that request will include a page token. Use this to pass that page token into the next request to paginate the next set of data.
+        sort:
+          $ref: '#/components/schemas/VulnerabilitySort'
+        filters:
+          type: array
+          description: An array of filter fields
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/AttackVectorFilter'
+              - $ref: '#/components/schemas/CisaKevFilter'
+              - $ref: '#/components/schemas/CvssScoreFilter'
+              - $ref: '#/components/schemas/CvssScoreSourceFilter'
+              - $ref: '#/components/schemas/CvssSeverityFilter'
+              - $ref: '#/components/schemas/CvssSeveritySourceFilter'
+              - $ref: '#/components/schemas/CvssVersionFilter'
+              - $ref: '#/components/schemas/DistributionAndReleasesFilter'
+              - $ref: '#/components/schemas/EpssScoreFilter'
+              - $ref: '#/components/schemas/FirstPublishedFilter'
+              - $ref: '#/components/schemas/LastModifiedFilter'
+              - $ref: '#/components/schemas/PackageNamesFilter'
+              - $ref: '#/components/schemas/ReportedExploitedByFilter'
+              - $ref: '#/components/schemas/VendorsFilter'
+              - $ref: '#/components/schemas/VulnerabilityIdFilter'
+              - $ref: '#/components/schemas/AffectedCpuArchsFilter'
+      required:
+        - use_page_token
+
+    VulnerabilitySort:
+      type: object
+      description: Identifies the sort order for the result set.
+      properties:
+        field:
+          type: string
+          description: Identifies the field you want to sort by. Can be any filter field except fields that take an array as their value.
+          enum:
+            - attack_vector
+            - cisa_kev
+            - cvss_score
+            - cvss_score_source
+            - cvss_severity
+            - cvss_severity_source
+            - cvss_version
+            - epss_score
+            - first_published
+            - last_modified
+            - vulnerability_id
+        keyword:
+          type: string
+          description: Whether you want to sort in ascending (asc) or descending (desc) order.
+          enum: [ asc, desc ]
+
+    # Filter schemas for fields with contains/not_contains operators
+    AttackVectorFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        field:
+          type: string
+          enum: [ attack_vector ]
+        operator:
+          type: string
+          enum: [ contains, not_contains, eq, neq ]
+        value:
+          type: string
+          description: Attack vector value (e.g., NETWORK, ADJACENT_NETWORK, LOCAL, PHYSICAL)
+
+    CvssScoreSourceFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        field:
+          type: string
+          enum: [ cvss_score_source ]
+        operator:
+          type: string
+          enum: [ contains, not_contains, eq, neq ]
+        value:
+          type: string
+          description: Source of the CVSS score (e.g., NVD, vendor)
+
+    CvssSeveritySourceFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        field:
+          type: string
+          enum: [ cvss_severity_source ]
+        operator:
+          type: string
+          enum: [ contains, not_contains, eq, neq ]
+        value:
+          type: string
+          description: Source of the CVSS severity rating
+
+    CvssVersionFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        field:
+          type: string
+          enum: [ cvss_version ]
+        operator:
+          type: string
+          enum: [ contains, not_contains, eq, neq ]
+        value:
+          type: string
+          description: CVSS version (e.g., 2.0, 3.0, 3.1)
+
+    DistributionAndReleasesFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        field:
+          type: string
+          enum: [ distribution_and_releases ]
+        operator:
+          type: string
+          enum: [ contains, not_contains ]
+        value:
+          type: array
+          items:
+            type: string
+          description: List of distribution and release combinations (e.g., ubuntu-22.04, debian-11)
+
+    PackageNamesFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        field:
+          type: string
+          enum: [ package_names ]
+        operator:
+          type: string
+          enum: [ contains, not_contains ]
+        value:
+          type: array
+          items:
+            type: string
+          description: List of package names
+
+    ReportedExploitedByFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        field:
+          type: string
+          enum: [ reported_exploited_by ]
+        operator:
+          type: string
+          enum: [ contains, not_contains ]
+        value:
+          type: array
+          items:
+            type: string
+          description: List of sources reporting exploitation
+
+    VendorsFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        field:
+          type: string
+          enum: [ vendors ]
+        operator:
+          type: string
+          enum: [ contains, not_contains ]
+        value:
+          type: array
+          items:
+            type: string
+          description: List of vendor names
+
+    VulnerabilityIdFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        field:
+          type: string
+          enum: [ vulnerability_id ]
+        operator:
+          type: string
+          enum: [ contains, not_contains, eq, neq ]
+        value:
+          type: string
+          description: Vulnerability identifier (e.g., CVE-2024-1234)
+
+    # Filter schemas for boolean fields
+    CisaKevFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        field:
+          type: string
+          enum: [ cisa_kev ]
+        operator:
+          type: string
+          enum: [ eq, neq ]
+        value:
+          type: boolean
+          description: Whether the vulnerability is in CISA's Known Exploited Vulnerabilities catalog
+
+    # Filter schemas for numeric fields with comparison operators
+    CvssScoreFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        field:
+          type: string
+          enum: [ cvss_score ]
+        operator:
+          type: string
+          enum: [ eq, neq, gte, lte ]
+        value:
+          type: number
+          description: CVSS score value (0.0 to 10.0)
+
+    CvssSeverityFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        field:
+          type: string
+          enum: [ cvss_severity ]
+        operator:
+          type: string
+          enum: [ eq, neq ]
+        value:
+          type: string
+          enum: [ NONE, LOW, MEDIUM, HIGH, CRITICAL ]
+          description: CVSS severity rating
+
+    EpssScoreFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        field:
+          type: string
+          enum: [ epss_score ]
+        operator:
+          type: string
+          enum: [ eq, neq, gte, lte ]
+        value:
+          type: number
+          description: EPSS (Exploit Prediction Scoring System) score (0.0 to 1.0)
+
+    # Filter schemas for timestamp fields
+    FirstPublishedFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        field:
+          type: string
+          enum: [ first_published ]
+        operator:
+          type: string
+          enum: [ gte, lte, range, relative_timestamp ]
+        value:
+          oneOf:
+            - type: integer
+              description: Timestamp in epoch milliseconds
+            - type: object
+              description: Range object for range operator
+              properties:
+                from:
+                  type: integer
+                to:
+                  type: integer
+            - type: string
+              description: Relative timestamp string (e.g., "-7d", "-1M")
+
+    LastModifiedFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        field:
+          type: string
+          enum: [ last_modified ]
+        operator:
+          type: string
+          enum: [ gte, lte, range, relative_timestamp ]
+        value:
+          oneOf:
+            - type: integer
+              description: Timestamp in epoch milliseconds
+            - type: object
+              description: Range object for range operator
+              properties:
+                from:
+                  type: integer
+                to:
+                  type: integer
+            - type: string
+              description: Relative timestamp string (e.g., "-7d", "-1M")
+
+    # Filter for affected CPU architectures
+    AffectedCpuArchsFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        field:
+          type: string
+          enum: [ affected_cpu_archs ]
+        operator:
+          type: string
+          enum: [ contains, not_contains ]
+        value:
+          type: array
+          items:
+            type: string
+          description: List of affected CPU architectures

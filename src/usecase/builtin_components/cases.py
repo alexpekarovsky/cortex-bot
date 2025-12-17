@@ -36,53 +36,40 @@ async def get_cases_response() -> str:
 
 
 async def get_cases(ctx: Context,
-                    filters: Annotated[list, Field(description="Filters list to get the cases by. Leave empty go get all cases")],
+                    filters: Annotated[list[dict], Field(description="Filters list to get the cases by. Leave empty go get all cases")],
                     search_from: Annotated[int, Field(description="Marker for pagination starting point", default=0)] = 0,
-                    search_to: Annotated[int, Field(description="Marker for pagination ending point (max 10 per request to avoid response size issues)", default=10)] = 10,
+                    search_to: Annotated[int, Field(description="Marker for pagination ending point, max 100", default=30)] = 30,
                     sort: Annotated[Optional[dict], Field(description="Dictionary of field and keyword to sort by. By default the sort is defined as creation_time, desc")] = None,
                     ) -> str:
     """
-    Retrieves a list of cases (incidents) from the Cortex XSIAM platform.
-
-    Cases are collections of correlated alerts that represent larger security incidents. XSIAM automatically
-    groups related alerts into cases based on attack patterns and affected entities. Use this for case
-    management and incident tracking.
-
-    Use this tool when:
-    - Listing active or resolved security incidents
-    - Filtering incidents by severity, status, or time range
-    - Getting a specific incident by case ID
-    - Reviewing incident history
-    - Generating incident reports
-
-    Do NOT use this for:
-    - Detailed incident forensics - use get_incident_extra_data instead
-    - Individual alert details - use get_issues instead
-
-    Workflow: After getting cases, use get_incident_extra_data to get full details including all alerts within a case.
+    Retrieves a list of cases or incidents from the Cortex platform.
+    Use this tool to fetch all cases, or a filtered subset of cases, based on various criteria such as time range, status, or specific case IDs.
+    This is highly valuable for security monitoring, historical analysis, and reporting on detected cases.
 
     Args:
         ctx: The FastMCP context.
-        filters: Filters list to get the cases by. Examples -
-            [{"field": "severity", "operator": "in", "value": ["high", "critical"]}]
-            [{"field": "case_id", "operator": "in", "value": [123]}]
-            [{"field": "status_progress", "operator": "in", "value": ["new", "under_investigation"]}]
-            Leave empty to get all cases.
-            Allowed fields: "case_id", "case_domain", "severity", "creation_time", "status_progress"
-        search_from: Marker for pagination starting point (default: 0).
-        search_to: Marker for pagination ending point (default: 10, max 10 per request to avoid response size issues).
-        sort: Field to sort by. Example - {"field": "creation_time", "keyword": "desc"}
-            Allowed fields: "case_id", "severity", "creation_time"
+        filters: Filters list to get the cases by. Example -
+            [{
+                        "field": "severity",
+                        "operator": "in",
+                        "value": ["high", "critical"]
+            }],
+            [{
+                        "field": "id",
+                        "operator": "in",
+                        "value": [123]
+            }],
+            [{"field": "case_domain", "operator": "in", "value": ["SECURITY"]}, {"field": "creation_time", "operator": "gte", "value": 1762774211000}, {"field": "creation_time", "operator": "lte", "value": 1762860611000}], "search_from": 0, "search_to": 100, "sort": [{"field": "creation_time", "keyword": "desc"}]
+            Leave empty go get all cases.
+            Allowed values:"case_id","case_domain","severity","creation_time","status_progress"
+        search_from: Marker for pagination starting point.
+        search_to: Marker for pagination ending point.
+        sort: Field to sort by in the structure of "field" with the field name and "keyword" of "desc" or "asc".
+            Allowed values:"id","severity","creation_time"
 
     Returns:
-        JSON response containing case data with summary information.
+        JSON response containing case data.
       """
-
-    # Enforce maximum page size to prevent oversized responses
-    MAX_PAGE_SIZE = 10
-    if (search_to - search_from) > MAX_PAGE_SIZE:
-        logger.warning(f"Requested page size {search_to - search_from} exceeds maximum {MAX_PAGE_SIZE}, limiting to {MAX_PAGE_SIZE}")
-        search_to = search_from + MAX_PAGE_SIZE
 
     payload = {
         "request_data": {
@@ -91,6 +78,9 @@ async def get_cases(ctx: Context,
         }
     }
     if filters:
+        for f in filters:
+            if f.get("field") == "id":
+                f["value"] = [int(v) for v in f["value"]]  # Ensure id values are integers
         payload["request_data"]["filters"] = filters
     if sort:
         payload["request_data"]["sort"] = sort

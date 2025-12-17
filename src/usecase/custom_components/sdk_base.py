@@ -31,8 +31,8 @@ class DemistoSDKRunner:
 
     @staticmethod
     def is_sdk_available() -> bool:
-        """Check if demisto-sdk is installed and available."""
-        return shutil.which("demisto-sdk") is not None
+        """Check if uvx is available (used to run demisto-sdk in isolated environment)."""
+        return shutil.which("uvx") is not None
 
     @staticmethod
     def get_env_with_sdk_vars() -> dict:
@@ -91,20 +91,30 @@ class DemistoSDKRunner:
                 "success": False,
                 "return_code": -1,
                 "stdout": "",
-                "stderr": "demisto-sdk is not installed. Run: pip install demisto-sdk",
-                "command": f"demisto-sdk {' '.join(args)}"
+                "stderr": "uvx is not installed. Install uv package manager: pip install uv",
+                "command": f"uvx demisto-sdk {' '.join(args)}"
             }
 
-        command = f"demisto-sdk {' '.join(args)}"
-        logger.info(f"Running SDK command: {command}")
+        command = f"uvx demisto-sdk {' '.join(args)}"
+        logger.info(f"Running SDK command via uvx: {command}")
+
+        # Use shared content directory if not specified
+        if cwd is None:
+            cwd = os.path.expanduser("~/projects/content")
+            logger.info(f"Using default content directory: {cwd}")
+
+        # Get environment with SDK variables
+        env = DemistoSDKRunner.get_env_with_sdk_vars()
+        env["DEMISTO_SDK_IGNORE_CONTENT_WARNING"] = "1"
 
         try:
             proc = await asyncio.create_subprocess_exec(
+                "uvx",
                 "demisto-sdk",
                 *args,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
-                env=DemistoSDKRunner.get_env_with_sdk_vars(),
+                env=env,
                 cwd=cwd
             )
 

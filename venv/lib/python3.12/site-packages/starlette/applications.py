@@ -1,14 +1,8 @@
 from __future__ import annotations
 
-import sys
 import warnings
-from collections.abc import Awaitable, Mapping, Sequence
-from typing import Any, Callable, TypeVar
-
-if sys.version_info >= (3, 10):  # pragma: no cover
-    from typing import ParamSpec
-else:  # pragma: no cover
-    from typing_extensions import ParamSpec
+from collections.abc import Awaitable, Callable, Mapping, Sequence
+from typing import Any, ParamSpec, TypeVar
 
 from starlette.datastructures import State, URLPath
 from starlette.middleware import Middleware, _MiddlewareFactory
@@ -166,7 +160,7 @@ class Starlette:
     def exception_handler(self, exc_class_or_status_code: int | type[Exception]) -> Callable:  # type: ignore[type-arg]
         warnings.warn(
             "The `exception_handler` decorator is deprecated, and will be removed in version 1.0.0. "
-            "Refer to https://www.starlette.io/exceptions/ for the recommended approach.",
+            "Refer to https://starlette.dev/exceptions/ for the recommended approach.",
             DeprecationWarning,
         )
 
@@ -192,7 +186,7 @@ class Starlette:
         """
         warnings.warn(
             "The `route` decorator is deprecated, and will be removed in version 1.0.0. "
-            "Refer to https://www.starlette.io/routing/ for the recommended approach.",
+            "Refer to https://starlette.dev/routing/ for the recommended approach.",
             DeprecationWarning,
         )
 
@@ -218,7 +212,7 @@ class Starlette:
         """
         warnings.warn(
             "The `websocket_route` decorator is deprecated, and will be removed in version 1.0.0. "
-            "Refer to https://www.starlette.io/routing/#websocket-routing for the recommended approach.",
+            "Refer to https://starlette.dev/routing/#websocket-routing for the recommended approach.",
             DeprecationWarning,
         )
 
@@ -238,7 +232,7 @@ class Starlette:
         """
         warnings.warn(
             "The `middleware` decorator is deprecated, and will be removed in version 1.0.0. "
-            "Refer to https://www.starlette.io/middleware/#using-middleware for recommended approach.",
+            "Refer to https://starlette.dev/middleware/#using-middleware for recommended approach.",
             DeprecationWarning,
         )
         assert middleware_type == "http", 'Currently only middleware("http") is supported.'

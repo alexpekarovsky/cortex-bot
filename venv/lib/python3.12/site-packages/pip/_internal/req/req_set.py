@@ -1,9 +1,13 @@
 import logging
 from collections import OrderedDict
+from typing import Dict, List
 
+from pip._vendor.packaging.specifiers import LegacySpecifier
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.version import LegacyVersion
 
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.deprecation import deprecated
 
 logger = logging.getLogger(__name__)
 
@@ -12,10 +16,10 @@ class RequirementSet:
     def __init__(self, check_supported_wheels: bool = True) -> None:
         """Create a RequirementSet."""
 
-        self.requirements: dict[str, InstallRequirement] = OrderedDict()
+        self.requirements: Dict[str, InstallRequirement] = OrderedDict()
         self.check_supported_wheels = check_supported_wheels
 
-        self.unnamed_requirements: list[InstallRequirement] = []
+        self.unnamed_requirements: List[InstallRequirement] = []
 
     def __str__(self) -> str:
         requirements = sorted(
@@ -64,11 +68,11 @@ class RequirementSet:
         raise KeyError(f"No project with the name {name!r}")
 
     @property
-    def all_requirements(self) -> list[InstallRequirement]:
+    def all_requirements(self) -> List[InstallRequirement]:
         return self.unnamed_requirements + list(self.requirements.values())
 
     @property
-    def requirements_to_install(self) -> list[InstallRequirement]:
+    def requirements_to_install(self) -> List[InstallRequirement]:
         """Return the list of requirements that need to be installed.
 
         TODO remove this property together with the legacy resolver, since the new
@@ -79,3 +83,37 @@ class RequirementSet:
             for install_req in self.all_requirements
             if not install_req.constraint and not install_req.satisfied_by
         ]
+
+    def warn_legacy_versions_and_specifiers(self) -> None:
+        for req in self.requirements_to_install:
+            version = req.get_dist().version
+            if isinstance(version, LegacyVersion):
+                deprecated(
+                    reason=(
+                        f"pip has selected the non standard version {version} "
+                        f"of {req}. In the future this version will be "
+                        f"ignored as it isn't standard compliant."
+                    ),
+                    replacement=(
+                        "set or update constraints to select another version "
+                        "or contact the package author to fix the version number"
+                    ),
+                    issue=12063,
+                    gone_in="23.3",
+                )
+            for dep in req.get_dist().iter_dependencies():
+                if any(isinstance(spec, LegacySpecifier) for spec in dep.specifier):
+                    deprecated(
+                        reason=(
+                            f"pip has selected {req} {version} which has non "
+                            f"standard dependency specifier {dep}. "
+                            f"In the future this version of {req} will be "
+                            f"ignored as it isn't standard compliant."
+                        ),
+                        replacement=(
+                            "set or update constraints to select another version "
+                            "or contact the package author to fix the version number"
+                        ),
+                        issue=12063,
+                        gone_in="23.3",
+                    )

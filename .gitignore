@@ -83,3 +83,7 @@ tmp/
 temp/
 *.tmp
 *.bak
+
+# Claude Code personal settings (contains secrets)
+.claude/settings.local.json
+CLAUDE.local.md

@@ -1,38 +1,23 @@
 [tool.poetry]
-name = "cortex-mcp"
-version = "1.0.0"
-description = "MCP server providing AI assistants with Cortex XSIAM security operations capabilities"
-authors = ["Palo Alto Networks <devrel@paloaltonetworks.com>"]
-license = "Apache-2.0"
+name = "CortexMCP"
+version = "1.0.1"
+description = ""
+authors = []
 readme = "README.md"
-homepage = "https://github.com/PaloAltoNetworks/cortex-mcp"
-repository = "https://github.com/PaloAltoNetworks/cortex-mcp"
-documentation = "https://github.com/PaloAltoNetworks/cortex-mcp/blob/master/docs/CORTEX_XSIAM_MCP_INSTALLATION_GUIDE.md"
-keywords = ["mcp", "cortex", "xsiam", "security", "soc", "xdr", "ai", "llm"]
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "Intended Audience :: Information Technology",
-    "License :: OSI Approved :: Apache Software License",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Security",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-]
 packages = [
     { include = "src" }
 ]
 
 [tool.poetry.dependencies]
 python = ">=3.12,<4.0"
-fastapi = "0.116.1"
-uvicorn = { version = "^0.34.0", extras = ["standard"] }
+fastapi = "0.122.0"
+uvicorn = { version = "^0.38.0", extras = ["standard"] }
 types-requests = "^2.32.0.20250515"
 requests = "^2.32.3"
-fastmcp = "^2.12.0"
-mcp = "^1.9.3"
-starlette = "0.47.2"
+fastmcp = "^2.13.1"
+mcp = "^1.21.2"
+starlette = "0.50.0"
+authlib = "1.6.5"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.11.10"

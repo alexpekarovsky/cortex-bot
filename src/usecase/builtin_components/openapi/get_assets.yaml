@@ -5,13 +5,12 @@ paths:
       summary: Get All or Filtered Assets
       description: |-
         Retrieve a list of all your assets or a filtered list based on specified criteria.
-        The maximum result limit is 5000 assets per request.
-        A POST request is used to allow for a more complex filtering body.
+        The maximum result limit is 1000 assets per request.
       operationId: get_assets
       tags:
         - Assets
       requestBody:
-        description: JSON object containing filters, sorting, and pagination settings. An empty request_data object returns all results up to the limit.
+        description: JSON object containing filters, sorting, and pagination settings under a 'request_data' key.
         required: true
         content:
           application/json:
@@ -23,22 +22,15 @@ paths:
                 value:
                   request_data:
                     filters:
-                      - field: "name"
-                        operator: "in"
-                        value: "AsmAssetsFilter_value"
+                      AND:
+                        - SEARCH_FIELD: "xdm.asset.type.class"
+                          SEARCH_TYPE: "NEQ"
+                          SEARCH_VALUE: "Other"
                     sort:
                       - FIELD: "xdm.asset.name"
                         ORDER: "DESC"
                     search_from: 0
                     search_to: 100
-              on_demand_fields_request:
-                summary: Example with on-demand fields
-                value:
-                  request_data:
-                    filters: []
-                    on_demand_fields:
-                      - "xdm.host.ipv4_addresses"
-                    search_to: 50
       responses:
         '200':
           description: Successful response containing a list of assets.
@@ -52,20 +44,12 @@ paths:
             application/json:
               schema:
                 type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Unauthorized"
         '403':
           description: Forbidden. The API key does not have the required permissions.
           content:
             application/json:
               schema:
                 type: object
-                properties:
-                  error:
-                    type: string
-                    example: "Forbidden"
 components:
   schemas:
     AssetRequest:
@@ -73,13 +57,12 @@ components:
       properties:
         request_data:
           $ref: '#/components/schemas/AssetRequestPayload'
+
     AssetRequestPayload:
       type: object
       properties:
         filters:
-          type: array
-          items:
-            $ref: '#/components/schemas/Filter'
+          $ref: '#/components/schemas/FilterGroup'
         on_demand_fields:
           type: array
           items:
@@ -94,21 +77,51 @@ components:
         search_to:
           type: integer
           default: 1000
-    Filter:
+
+    FilterGroup:
       type: object
+      description: A logical grouping of filter clauses.
       properties:
-        field:
+        AND:
+          type: array
+          items:
+            $ref: '#/components/schemas/FilterClause'
+        OR:
+          type: array
+          items:
+            $ref: '#/components/schemas/FilterClause'
+      additionalProperties: false
+
+    FilterClause:
+      type: object
+      description: A specific filter criterion.
+      required:
+        - SEARCH_FIELD
+        - SEARCH_TYPE
+        - SEARCH_VALUE
+      properties:
+        SEARCH_FIELD:
           type: string
-        operator:
+          description: The field to search on (e.g. xdm.asset.type.class)
+        SEARCH_TYPE:
           type: string
+          description: The comparison operator.
           enum:
-            - in
-            - gte
-            - lte
-            - contains
-            - like
-        value:
+            - EQ
+            - NEQ
+            - GT
+            - GTE
+            - LT
+            - LTE
+            - LIKE
+            - CONTAINS
+            - IN
+            - NOT_IN
+        SEARCH_VALUE:
           type: string
+          description: The value to compare against. If using IN/NOT_IN, provide a comma-separated string or handle as a stringified array.
+      additionalProperties: false
+
     SortItem:
       type: object
       properties:
