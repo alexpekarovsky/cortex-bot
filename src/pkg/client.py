@@ -187,7 +187,8 @@ class PAPIClient(httpx.AsyncClient):
 
         try:
             return response.json()
-        except json.JSONDecodeError as e:
+        except ValueError as e:
+            # Use ValueError instead of json.JSONDecodeError because 'json' parameter shadows the module
             err_msg = f'Invalid JSON response from server for request to {url}: {e}'
             logger.error(err_msg)
             raise PAPIResponseError(err_msg) from e
