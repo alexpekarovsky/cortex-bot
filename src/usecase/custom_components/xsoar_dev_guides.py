@@ -1603,6 +1603,318 @@ def fetch_indicators_command(client, params):
 """
 
 # ============================================================================
+# LAYOUT DEVELOPMENT GUIDE
+# ============================================================================
+
+LAYOUT_GUIDE = """
+# XSIAM/XSOAR Layout Development Guide
+
+## Overview
+
+Layouts define how alerts, incidents, and cases are displayed in the XSIAM/XSOAR UI.
+This guide covers the correct patterns for creating custom layouts with fields,
+buttons, and dynamic context variables.
+
+**Reference for similar layouts:**
+https://raw.githubusercontent.com/demisto/content/master/Packs/Core/Layouts/
+
+---
+
+## Layout Structure
+
+```json
+{
+  "group": "incident",           // REQUIRED: Must be "incident", "indicator", or "case"
+  "id": "My_Custom_Layout",      // Unique identifier
+  "name": "My Custom Layout",    // Display name
+  "fromServerVersion": "8.0.0",  // Minimum XSIAM version
+  "detailsV2": {
+    "tabs": [...]                // Array of tab objects
+  }
+}
+```
+
+### Group Values (SDK-Compatible)
+- `"incident"` - Use for alerts/issues AND cases (most common)
+- `"indicator"` - Use for indicator layouts
+- `"case"` - Use for case layouts
+
+**IMPORTANT:** The SDK only accepts these 3 values. Even for alert layouts, use `"incident"`.
+
+---
+
+## Tab Structure
+
+```json
+{
+  "hidden": false,
+  "id": "tabId",
+  "name": "Tab Name",
+  "type": "custom",              // "custom", "warRoom", "workPlan"
+  "sections": [...]              // Array of section objects
+}
+```
+
+### Built-in Tab Types
+- `"warRoom"` - War Room tab
+- `"workPlan"` - Work Plan tab
+- `"custom"` - Custom tab with sections
+
+---
+
+## Section Structure
+
+```json
+{
+  "displayType": "ROW",
+  "h": 3,                        // Height in grid units
+  "w": 2,                        // Width (1-3)
+  "x": 0,                        // X position
+  "y": 0,                        // Y position
+  "i": "section-id",             // Unique section ID
+  "name": "Section Name",
+  "items": [...]                 // Array of field/button items
+}
+```
+
+### Special Section Types
+- `"type": "workplan"` - Work plan widget
+- `"type": "notes"` - Notes section
+- `"type": "indicators"` - Indicators grid with query
+
+---
+
+## Field Configuration
+
+```json
+{
+  "sectionItemType": "field",
+  "fieldId": "hostname",         // Field ID from schema
+  "id": "field-hostname",        // Unique item ID
+  "index": 0,                    // Order in section
+  "startCol": 0,                 // Grid column start (0-3)
+  "endCol": 2,                   // Grid column end (1-4)
+  "height": 26                   // Height in pixels
+}
+```
+
+### Common Field IDs
+- Alert fields: `severity`, `name`, `details`, `alertid`
+- Host fields: `hostname`, `hostmacaddress`, `localip`, `agentid`
+- User fields: `username`, `userid`, `domain`
+- Process fields: `cgoname`, `cgocmd`, `cgosha256`, `parentprocessname`
+- Network fields: `remoteip`, `remoteport`, `dnsqueryname`
+- MITRE fields: `mitretacticname`, `mitretechniquename`
+
+---
+
+## Button Configuration (CRITICAL)
+
+### ❌ WRONG - Simple String Interpolation (WILL NOT WORK)
+
+```json
+{
+  "sectionItemType": "button",
+  "name": "Isolate Host",
+  "scriptId": "CrowdstrikeFalcon|||cs-falcon-contain-host",
+  "args": {
+    "ids": {
+      "simple": "${issue.agentid}"    // ❌ WRONG SYNTAX
+    }
+  }
+}
+```
+
+### ✅ CORRECT - Complex Accessor Syntax
+
+```json
+{
+  "sectionItemType": "button",
+  "name": "Isolate Host",
+  "buttonClass": "error",              // "error" (red), "success" (green), "primary" (blue)
+  "scriptId": "CrowdstrikeFalcon|||cs-falcon-contain-host",
+  "args": {
+    "ids": {
+      "complex": {
+        "root": "alert",               // Context object: "alert", "incident", etc.
+        "accessor": "agentid"          // Field name to access
+      }
+    }
+  },
+  "endCol": 1,
+  "height": 44,
+  "id": "btn-isolate",
+  "index": 0,
+  "startCol": 0
+}
+```
+
+---
+
+## Context Variable Syntax
+
+### Complex Accessor Pattern
+
+Use this for ALL dynamic values in buttons:
+
+```json
+{
+  "complex": {
+    "root": "alert",           // The context object
+    "accessor": "fieldname"    // The field to access
+  }
+}
+```
+
+### Common Root Objects
+| Root | Description | Example Fields |
+|------|-------------|----------------|
+| `"alert"` | Alert/Issue context | `agentid`, `hostname`, `alertid` |
+| `"incident"` | Case/Incident context | `id`, `severity`, `status` |
+| `"File"` | File context (playbooks) | `SHA256`, `Name`, `Path` |
+
+### Nested Accessor
+
+For nested fields:
+
+```json
+{
+  "complex": {
+    "root": "alert",
+    "accessor": "hostdata.hostname"
+  }
+}
+```
+
+---
+
+## Complete Button Example
+
+```json
+{
+  "displayType": "ROW",
+  "h": 2,
+  "i": "response-section",
+  "name": "Response Actions",
+  "items": [
+    {
+      "args": {
+        "ids": {
+          "complex": {
+            "root": "alert",
+            "accessor": "agentid"
+          }
+        }
+      },
+      "buttonClass": "error",
+      "endCol": 1,
+      "height": 44,
+      "id": "btn-isolate",
+      "index": 0,
+      "name": "Isolate Host",
+      "scriptId": "CrowdstrikeFalcon|||cs-falcon-contain-host",
+      "sectionItemType": "button",
+      "startCol": 0
+    },
+    {
+      "args": {
+        "ids": {
+          "complex": {
+            "root": "alert",
+            "accessor": "agentid"
+          }
+        }
+      },
+      "buttonClass": "success",
+      "endCol": 2,
+      "height": 44,
+      "id": "btn-unisolate",
+      "index": 1,
+      "name": "Unisolate Host",
+      "scriptId": "CrowdstrikeFalcon|||cs-falcon-lift-host-containment",
+      "sectionItemType": "button",
+      "startCol": 1
+    }
+  ],
+  "w": 1,
+  "x": 2,
+  "y": 0
+}
+```
+
+---
+
+## Script ID Format
+
+Button `scriptId` follows this pattern:
+
+```
+IntegrationName|||command-name
+```
+
+Examples:
+- `CrowdstrikeFalcon|||cs-falcon-contain-host`
+- `Cortex Core - IR|||core-isolate-endpoint`
+- `VirusTotal|||vt-file-scan`
+
+---
+
+## Indicators Section with Query
+
+```json
+{
+  "h": 3,
+  "i": "indicators-section",
+  "items": [],
+  "name": "Malicious Indicators",
+  "query": "reputation:Bad or reputation:Suspicious",
+  "queryType": "input",
+  "type": "indicators",
+  "w": 3,
+  "x": 0,
+  "y": 8
+}
+```
+
+---
+
+## Layout Rules (XSIAM)
+
+After uploading a layout, you must create a **Layout Rule** to apply it:
+
+1. Go to **Settings → Objects Setup → Layout Rules**
+2. Click **+ New Layout Rule**
+3. Configure:
+   - **Name**: Rule name
+   - **Layout**: Select your layout
+   - **Conditions**: Filter (e.g., `alert_source contains "CrowdStrike"`)
+4. Save
+
+Without a Layout Rule, the layout exists but won't be applied to any alerts.
+
+---
+
+## Summary: Layout Development Checklist
+
+✅ **Required:**
+- `"group": "incident"` (for SDK compatibility)
+- Unique `id` and `name`
+- `fromServerVersion: "8.0.0"` or higher
+- Use `complex` accessor syntax for button args
+
+❌ **Avoid:**
+- `"group": "alert"` or `"group": "issue"` (SDK rejects these)
+- `{"simple": "${...}"}` syntax (doesn't work)
+- Missing Layout Rules (layout won't be applied)
+
+✅ **Best Practices:**
+- Use descriptive section names
+- Group related fields together
+- Use appropriate button colors (`error`=red, `success`=green)
+- Reference official Core pack layouts for examples
+"""
+
+# ============================================================================
 # MCP TOOL FUNCTIONS
 # ============================================================================
 
@@ -1780,6 +2092,195 @@ async def get_xsoar_feed_guide(ctx: Context) -> str:
     return FEED_GUIDE
 
 
+async def get_xsoar_layout_guide(ctx: Context) -> str:
+    """
+    Get comprehensive guide for creating XSIAM/XSOAR layouts.
+
+    Use this tool when user requests:
+    - Creating alert or incident layouts
+    - Adding buttons to layouts
+    - Configuring layout fields
+    - Understanding context variable syntax for buttons
+
+    **CRITICAL:** This guide teaches the correct button argument syntax.
+    Use `{"complex": {"root": "alert", "accessor": "fieldname"}}` NOT
+    `{"simple": "${issue.fieldname}"}`.
+
+    Covers:
+    - Layout structure (group, tabs, sections, items)
+    - Field configuration patterns
+    - Button configuration with complex accessor syntax
+    - Context variable patterns (root + accessor)
+    - Script ID format for buttons
+    - Layout Rules for XSIAM
+    - Complete working examples
+
+    Reference layouts available at:
+    https://raw.githubusercontent.com/demisto/content/master/Packs/Core/Layouts/
+
+    Returns: Complete markdown guide with working code examples
+    """
+    return LAYOUT_GUIDE
+
+
+# ============================================================================
+# PLAYBOOK OPERATIONS GUIDE
+# ============================================================================
+
+PLAYBOOK_OPERATIONS_GUIDE = """
+# XSOAR Playbook Operations Guide
+
+## Running Playbooks on Alerts/Incidents
+
+### Prerequisites
+
+The alert/incident must have an **active War Room investigation**. If none exists, first add any entry:
+
+```python
+# Using MCP tool - creates War Room if it doesn't exist
+add_war_room_entry(id="<alert_id>", data="Initializing investigation")
+```
+
+---
+
+### Method 1: setPlaybook Command (Recommended)
+
+```bash
+!setPlaybook incidentId=<alert_or_incident_id> name="<playbook_name>"
+```
+
+**Example:**
+```bash
+!setPlaybook incidentId=9648 name="my_triage_playbook"
+```
+
+**Via MCP:**
+```python
+run_xsoar_automation(
+    command='!setPlaybook incidentId=9648 name="my_triage_playbook"',
+    alert_id="9648"
+)
+```
+
+---
+
+### Method 2: Core API (Alternative)
+
+```bash
+!core-api-post uri=/inv-playbook/new body={"invId":"<alert_id>","playbookId":"<playbook_name>"}
+```
+
+---
+
+## Common Errors and Solutions
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `Could not find investigation` | No War Room exists | Add any entry first via `add_war_room_entry` |
+| `couldn't find investigation playbook with id [X]` | No playbook attached | Use `setPlaybook` to attach one |
+| `Command setPlaybook was not found` | Wrong context | Use via `run_xsoar_automation` with `alert_id` |
+
+---
+
+## Correlation Rule Alert Limitation
+
+**CRITICAL:** Custom fields from correlation rule XQL are NOT automatically mapped to incident fields.
+
+### The Problem
+
+When a correlation rule fires:
+- Standard alert fields work: `severity`, `name`, `tags`, etc.
+- Custom XQL fields (`${incident.my_custom_field}`) are **NOT available**
+- The `alert_fields` mapping only supports these standard fields:
+  - `agent_hostname`, `action_local_ip`, `action_remote_ip`
+  - `action_remote_port`, `agent_device_domain`
+  - `actor_effective_username`, `actor_process_image_name`
+  - `actor_process_image_path`, `actor_process_command_line`
+  - `actor_process_image_sha256`
+
+### The Solution
+
+Query the raw dataset in your playbook using `xdr-xql-generic-query`:
+
+```yaml
+# Playbook task to get raw event data
+scriptarguments:
+  query_name:
+    simple: "get_raw_event"
+  query:
+    simple: |
+      dataset = your_raw_dataset
+      | filter event_type = "your_event_type"
+      | sort desc _time
+      | limit 1
+      | alter
+          custom_field1 = json_extract_scalar(data, "$.field1"),
+          custom_field2 = json_extract_scalar(data, "$.field2")
+      | fields custom_field1, custom_field2
+  time_frame:
+    simple: "24 hours"
+```
+
+Then extract results from `${PaloAltoNetworksXQL.GenericQuery.results}` instead of `${incident.xxx}`.
+
+### Example: Extracting XQL Results in Playbook
+
+After the XQL query task, use `SetAndHandleEmpty` to store the results:
+
+```yaml
+scriptarguments:
+  key:
+    simple: MyData
+  value:
+    complex:
+      root: PaloAltoNetworksXQL
+      accessor: GenericQuery.results
+```
+
+Then reference fields as `${MyData.field_name}` in subsequent tasks.
+
+---
+
+## Summary: Playbook Operations Checklist
+
+✅ **Before running playbook:**
+- Verify War Room exists (or create with `add_war_room_entry`)
+- Use `setPlaybook` command with correct incident ID
+
+✅ **For correlation rule alerts:**
+- Don't rely on `${incident.custom_field}` - it won't exist
+- Query raw dataset via `xdr-xql-generic-query` in playbook
+- Extract data from XQL results context (`${PaloAltoNetworksXQL.GenericQuery.results}`)
+
+✅ **XQL query requirements:**
+- Must include `query_name` argument
+- Must include `query` argument with XQL syntax
+- Must include `time_frame` argument (e.g., "24 hours")
+"""
+
+
+async def get_xsoar_playbook_operations_guide(ctx: Context) -> str:
+    """
+    Get guide for running playbooks on alerts/incidents and handling correlation rule limitations.
+
+    Use this tool when:
+    - Running playbooks on specific alerts or incidents
+    - Troubleshooting "Could not find investigation" errors
+    - Working with correlation rule alerts and custom fields
+    - Understanding why custom XQL fields aren't available in playbooks
+
+    Covers:
+    - setPlaybook command usage
+    - War Room prerequisites
+    - Common errors and solutions
+    - Correlation rule alert_fields limitation
+    - Workaround: querying raw datasets in playbooks
+
+    Returns: Complete markdown guide with working examples
+    """
+    return PLAYBOOK_OPERATIONS_GUIDE
+
+
 # ============================================================================
 # MODULE REGISTRATION
 # ============================================================================
@@ -1799,6 +2300,8 @@ class XSOARDevGuidesModule(BaseModule):
         - get_xsoar_scheduled_commands_guide: Polling pattern for async operations
         - get_xsoar_mirroring_guide: Bidirectional sync pattern
         - get_xsoar_feed_guide: Threat intelligence feed pattern
+        - get_xsoar_layout_guide: Layout development with button syntax
+        - get_xsoar_playbook_operations_guide: Running playbooks and handling correlation rule limitations
         - get_xsoar_best_practices: Topic-specific best practices
     """
 
@@ -1809,6 +2312,8 @@ class XSOARDevGuidesModule(BaseModule):
         self._add_tool(get_xsoar_scheduled_commands_guide)
         self._add_tool(get_xsoar_mirroring_guide)
         self._add_tool(get_xsoar_feed_guide)
+        self._add_tool(get_xsoar_layout_guide)
+        self._add_tool(get_xsoar_playbook_operations_guide)
         self._add_tool(get_xsoar_best_practices)
 
     def register_resources(self):
