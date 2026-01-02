@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 
-A Model Context Protocol (MCP) server that provides AI assistants with comprehensive security operations capabilities for [Cortex XSIAM](https://www.paloaltonetworks.com/cortex/cortex-xsiam). This server enables natural language security investigations, threat hunting, and incident response through 50+ specialized tools.
+A Model Context Protocol (MCP) server that provides AI assistants with comprehensive security operations capabilities for [Cortex XSIAM](https://www.paloaltonetworks.com/cortex/cortex-xsiam). This server enables natural language security investigations, threat hunting, and incident response through 78 specialized tools.
 
 > **📖 Official Documentation:** For the base Cortex MCP server installation and setup, see the [Official Palo Alto Networks Cortex MCP Server Documentation](https://docs-cortex.paloaltonetworks.com/r/Cortex-XSIAM/Cortex-XSIAM-Enterprise-Documentation/Cortex-MCP-server). This repository extends the official server with additional custom tools, XSOAR SDK integration, and development guides.
 
@@ -44,6 +44,7 @@ A Model Context Protocol (MCP) server that provides AI assistants with comprehen
 - **XSOAR Automation** - Execute any XSOAR command through the War Room
 - **AI Summaries** - Generate comprehensive investigation reports automatically
 - **XSOAR Development** - Create, validate, and deploy custom integrations and scripts via Demisto SDK
+- **XSIAM Content Generation** - Programmatically create CaseLayouts, CaseFields, ParsingRules, ModelingRules, and more
 
 ---
 
