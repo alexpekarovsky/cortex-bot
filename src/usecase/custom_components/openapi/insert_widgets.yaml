@@ -1,0 +1,53 @@
+name: insert_widgets
+description: |
+  Creates new widgets or updates existing widgets in XSIAM.
+
+  Use this to:
+  - Create custom XQL widgets for dashboards/reports
+  - Update existing widget queries or configurations
+  - Build programmatic dashboard visualizations
+
+  Requires Instance Administrator permissions.
+
+  Widget Structure:
+  - widget_key: Unique identifier (use "xql_{timestamp}" format for new widgets)
+  - title: Widget display name
+  - creation_time: Unix timestamp in milliseconds
+  - description: Optional widget description
+  - data:
+      - phrase: XQL query to execute
+      - time_frame: {"relativeTime": milliseconds} (86400000 = 1 day)
+      - viewOptions: {"type": "table|pie|bar|line|single", "commands": []}
+  - support_time_range: true (allows users to change time range)
+  - additional_info:
+      - query_tables: ["dataset_name"]
+      - query_uses_library: false
+  - creator_mail: Email of creator
+
+  View Types:
+  - table: Data table
+  - pie: Pie chart
+  - bar: Bar chart
+  - line: Line chart
+  - single: Single value metric
+  - column: Column chart
+
+request:
+  url: ${CORTEX_MCP_PAPI_URL}/public_api/v1/widgets/insert
+  method: POST
+  headers:
+    Authorization: ${CORTEX_MCP_PAPI_AUTH_HEADER}
+    x-xdr-auth-id: ${CORTEX_MCP_PAPI_AUTH_ID}
+    Content-Type: application/json
+
+  body:
+    request_data:
+      type: array
+      description: |
+        Array of widget objects to insert or update.
+        Each object contains a widgets_data array with widget definitions.
+      items:
+        type: object
+
+response:
+  $: reply

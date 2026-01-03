@@ -13,6 +13,8 @@ Supported content types:
 - AssetsModelingRule: Asset data modeling (YML + XIF)
 - XSIAMDashboard: XSIAM-specific dashboards
 - XSIAMReport: XSIAM-specific reports
+- AgentIXAction: AI-accessible actions wrapping XSOAR content
+- AgentIXAgent: AI assistant configurations
 
 Note: CorrelationRule is NOT included - use insert_correlation_rule API tool instead.
 """
@@ -22,6 +24,7 @@ import logging
 import os
 import re
 import subprocess
+import yaml
 from pathlib import Path
 from typing import Annotated, Optional, List
 
@@ -49,6 +52,8 @@ CONTENT_DIRS = {
     "AssetsModelingRule": "AssetsModelingRules",
     "XSIAMDashboard": "XSIAMDashboards",
     "XSIAMReport": "XSIAMReports",
+    "AgentIXAction": "AgentixActions",
+    "AgentIXAgent": "AgentixAgents",
 }
 
 # File prefixes for each content type
@@ -152,20 +157,17 @@ def ensure_pack_exists(pack_name: str) -> Path:
         pack_path.mkdir(parents=True, exist_ok=True)
         logger.info(f"Created pack directory: {pack_path}")
 
-        # Create pack_metadata.json
+        # Create pack_metadata.json (minimal format like NetworkTools)
         metadata = {
             "name": pack_name,
             "description": f"Content pack: {pack_name}",
             "support": "community",
             "currentVersion": "1.0.0",
             "author": "MCP Content Generator",
-            "url": "",
-            "email": "",
-            "categories": [],
+            "categories": ["Utilities"],
             "tags": [],
             "useCases": [],
-            "keywords": [],
-            "marketplaces": ["marketplacev2"]
+            "keywords": []
         }
         metadata_path = pack_path / "pack_metadata.json"
         with open(metadata_path, 'w') as f:
@@ -431,7 +433,18 @@ async def create_case_layout_rule(
             "layout_id": layout_id,
             "description": description or f"Layout rule: {rule_name}",
             "fromVersion": "8.7.0",
-            "marketplaces": ["marketplacev2"]
+            "marketplaces": ["marketplacev2"],
+            "alerts_filter": {
+                "filter": {
+                    "AND": [
+                        {
+                            "SEARCH_FIELD": "type",
+                            "SEARCH_TYPE": "EQ",
+                            "SEARCH_VALUE": "default"
+                        }
+                    ]
+                }
+            }
         }
 
         file_name = f"{FILE_PREFIXES['CaseLayoutRule']}{rule_id}.json"
@@ -511,17 +524,20 @@ async def create_parsing_rule(
 
         rule_id = safe_rule_name.lower()
 
-        # Create YML file
-        yml_content = f"""id: {rule_id}
+        # Create YML file (field order matches HelloWorld: fromversion, id, name, tags, rules, samples)
+        yml_content = f"""fromversion: 8.7.0
+id: {rule_id}
 name: {rule_name}
-fromversion: 8.7.0
 tags: []
+rules: ''
+samples: ''
 """
         yml_path = rule_dir / f"{safe_rule_name}.yml"
         yml_path.write_text(yml_content)
 
-        # Create XIF file with INGEST directive
-        xif_content = f"""[INGEST:vendor="{vendor}", product="{product}", target_dataset="{target_dataset}", no_hit=keep]
+        # Create XIF file with INGEST directive (content_id required for this XSIAM tenant)
+        content_id = rule_id.lower()
+        xif_content = f"""[INGEST:vendor="{vendor}", product="{product}", target_dataset="{target_dataset}", no_hit=keep, content_id="{content_id}"]
 {xql_rules}
 """
         xif_path = rule_dir / f"{safe_rule_name}.xif"
@@ -602,30 +618,51 @@ async def create_modeling_rule(
         rule_id = safe_rule_name.lower()
 
         # Create YML file
-        yml_content = f"""id: {rule_id}
+        yml_content = f"""fromversion: 8.7.0
+id: {rule_id}
 name: {rule_name}
-fromversion: 8.7.0
-tags: []
+rules: ''
+schema: ''
+tags: ''
 """
         yml_path = rule_dir / f"{safe_rule_name}.yml"
         yml_path.write_text(yml_content)
 
-        # Create XIF file with MODEL directive
-        xif_content = f"""[MODEL: dataset="{dataset}", model="{model}"]
+        # Create XIF file with MODEL directive (no quotes around dataset, no model param)
+        xif_content = f"""[MODEL: dataset = {dataset}]
 {xql_rules}
 """
         xif_path = rule_dir / f"{safe_rule_name}.xif"
         xif_path.write_text(xif_content)
 
-        # Create schema file if provided
+        # Create schema file (provided or default)
+        schema_path = rule_dir / f"{safe_rule_name}_schema.json"
         if schema_json:
             try:
                 schema_data = json.loads(schema_json)
-                schema_path = rule_dir / f"{safe_rule_name}_schema.json"
-                with open(schema_path, 'w') as f:
-                    json.dump(schema_data, f, indent=4)
             except json.JSONDecodeError:
-                logger.warning("Invalid schema_json provided, skipping schema file")
+                logger.warning("Invalid schema_json provided, using default schema")
+                schema_data = {
+                    dataset: {
+                        "_raw_log": {
+                            "type": "string",
+                            "is_array": False
+                        }
+                    }
+                }
+        else:
+            # Create default schema
+            schema_data = {
+                dataset: {
+                    "_raw_log": {
+                        "type": "string",
+                        "is_array": False
+                    }
+                }
+            }
+
+        with open(schema_path, 'w') as f:
+            json.dump(schema_data, f, indent=4)
 
         logger.info(f"Created ModelingRule: {rule_dir}")
 
@@ -635,7 +672,8 @@ tags: []
             "directory": str(rule_dir),
             "files": {
                 "yml": str(yml_path),
-                "xif": str(xif_path)
+                "xif": str(xif_path),
+                "schema": str(schema_path)
             },
             "rule_name": rule_name,
             "pack_name": pack_name,
@@ -696,20 +734,35 @@ async def create_assets_modeling_rule(
         rule_id = safe_rule_name.lower()
 
         # Create YML file
-        yml_content = f"""id: {rule_id}
+        yml_content = f"""fromversion: 8.7.0
+id: {rule_id}
 name: {rule_name}
-fromversion: 8.7.0
-tags: []
+rules: ''
+schema: ''
+tags: ''
 """
         yml_path = rule_dir / f"{safe_rule_name}.yml"
         yml_path.write_text(yml_content)
 
-        # Create XIF file with Assets model
-        xif_content = f"""[MODEL: dataset="{dataset}", model="Assets"]
+        # Create XIF file with Assets model (no quotes around dataset, no model param)
+        xif_content = f"""[MODEL: dataset = {dataset}]
 {xql_rules}
 """
         xif_path = rule_dir / f"{safe_rule_name}.xif"
         xif_path.write_text(xif_content)
+
+        # Create default schema file for Assets model
+        schema_data = {
+            dataset: {
+                "_raw_log": {
+                    "type": "string",
+                    "is_array": False
+                }
+            }
+        }
+        schema_path = rule_dir / f"{safe_rule_name}_schema.json"
+        with open(schema_path, 'w') as f:
+            json.dump(schema_data, f, indent=4)
 
         logger.info(f"Created AssetsModelingRule: {rule_dir}")
 
@@ -719,7 +772,8 @@ tags: []
             "directory": str(rule_dir),
             "files": {
                 "yml": str(yml_path),
-                "xif": str(xif_path)
+                "xif": str(xif_path),
+                "schema": str(schema_path)
             },
             "rule_name": rule_name,
             "pack_name": pack_name,
@@ -747,12 +801,19 @@ async def create_xsiam_dashboard(
     pack_name: Annotated[str, Field(description="Name of the pack to create the dashboard in")],
     dashboard_name: Annotated[str, Field(description="Name of the dashboard")],
     description: Annotated[Optional[str], Field(description="Description of the dashboard")] = None,
+    xql_query: Annotated[Optional[str], Field(description="XQL query for default widget (e.g., 'dataset = alerts | comp count() as total')")] = None,
+    widget_title: Annotated[Optional[str], Field(description="Title for the widget")] = None,
+    widget_type: Annotated[str, Field(description="Widget visualization type: single, table, pie, bar, line, column")] = "single",
     upload: Annotated[bool, Field(description="If True, upload pack to XSIAM (requires -z flag)")] = False,
 ) -> str:
     """
-    Creates an XSIAMDashboard JSON file.
+    Creates an XSIAMDashboard JSON file with optional XQL widget.
 
     XSIAMDashboards are XSIAM-specific dashboards (different from classic XSOAR dashboards).
+
+    If xql_query is provided, creates a dashboard with a functional widget.
+    If xql_query is omitted, creates an empty dashboard template.
+
     Note: Requires pack upload (-z flag) to deploy.
 
     Args:
@@ -760,6 +821,10 @@ async def create_xsiam_dashboard(
         pack_name: Name of the pack.
         dashboard_name: Name of the dashboard.
         description: Optional description.
+        xql_query: Optional XQL query for default widget.
+        widget_title: Optional widget title (defaults to dashboard name).
+        widget_type: Visualization type (single, table, pie, bar, line, column).
+        upload: If True, upload to XSIAM.
 
     Returns:
         JSON response with file path.
@@ -770,16 +835,103 @@ async def create_xsiam_dashboard(
 
         dashboard_id = sanitize_name(dashboard_name).lower()
 
+        # Build layout and widgets if XQL query provided
+        layout = []
+        widgets_data = []
+
+        if xql_query:
+            import time
+            widget_key = f"xql_{int(time.time())}"
+            widget_title_text = widget_title or dashboard_name
+
+            # Add view graph command to XQL if not already present
+            final_query = xql_query
+            view_commands = []
+            xaxis_field = None
+            yaxis_field = None
+
+            if "| view graph" not in xql_query.lower():
+                # For aggregation queries, try to detect group by field
+                if " by " in xql_query:
+                    # Extract field after "by" for xaxis
+                    parts = xql_query.split(" by ")
+                    if len(parts) > 1:
+                        xaxis_field = parts[-1].strip().split()[0]
+                        # Extract count field for yaxis (look for "as fieldname")
+                        yaxis_field = "count"
+                        if " as " in xql_query:
+                            as_parts = xql_query.split(" as ")
+                            if len(as_parts) > 1:
+                                yaxis_field = as_parts[-1].strip().split()[0]
+
+                # Append appropriate view graph command based on widget type
+                if widget_type == "single":
+                    final_query += " | view graph type = single"
+                    if yaxis_field:
+                        final_query += f" yaxis = {yaxis_field}"
+                        view_commands.append({"command": {"op": "=", "name": "yaxis", "value": yaxis_field}})
+                elif widget_type == "table":
+                    final_query += " | view graph type = table"
+                elif widget_type in ["pie", "bar", "line", "column"]:
+                    if xaxis_field and yaxis_field:
+                        final_query += f" | view graph type = {widget_type} xaxis = {xaxis_field} yaxis = {yaxis_field}"
+                        view_commands.extend([
+                            {"command": {"op": "=", "name": "xaxis", "value": xaxis_field}},
+                            {"command": {"op": "=", "name": "yaxis", "value": yaxis_field}}
+                        ])
+                    else:
+                        final_query += f" | view graph type = {widget_type}"
+
+            # Create widget for layout
+            layout.append({
+                "id": "row-1",
+                "data": [{
+                    "key": widget_key,
+                    "data": {
+                        "type": "Custom XQL",
+                        "title": widget_title_text,
+                        "width": 100,
+                        "height": 400,
+                        "phrase": final_query,
+                        "time_frame": {"relativeTime": 86400000},
+                        "viewOptions": {"type": widget_type, "commands": view_commands}
+                    }
+                }]
+            })
+
+            # Create widget data entry
+            widgets_data.append({
+                "widget_key": widget_key,
+                "title": widget_title_text,
+                "creation_time": int(time.time() * 1000),
+                "description": description,
+                "data": {
+                    "phrase": final_query,
+                    "time_frame": {"relativeTime": 86400000},
+                    "viewOptions": {"type": widget_type, "commands": []}
+                },
+                "support_time_range": True,
+                "additional_info": {
+                    "query_tables": [],
+                    "query_uses_library": False
+                }
+            })
+
         dashboard_data = {
+            "fromVersion": "8.7.0",
+            "toVersion": "99.99.99",
             "dashboards_data": [
                 {
                     "global_id": dashboard_id,
+                    "status": "ENABLED",
                     "name": dashboard_name,
                     "description": description or f"XSIAM Dashboard: {dashboard_name}",
-                    "fromVersion": "8.7.0"
+                    "default_dashboard_id": None,
+                    "layout": layout,
+                    "metadata": {"params": []}
                 }
             ],
-            "widgets_data": []
+            "widgets_data": widgets_data
         }
 
         file_name = f"{FILE_PREFIXES['XSIAMDashboard']}{dashboard_id}.json"
@@ -820,13 +972,20 @@ async def create_xsiam_report(
     pack_name: Annotated[str, Field(description="Name of the pack to create the report in")],
     report_name: Annotated[str, Field(description="Name of the report")],
     description: Annotated[Optional[str], Field(description="Description of the report")] = None,
+    xql_query: Annotated[Optional[str], Field(description="XQL query for default widget (e.g., 'dataset = alerts | comp count() as total by severity')")] = None,
+    widget_title: Annotated[Optional[str], Field(description="Title for the widget")] = None,
+    widget_type: Annotated[str, Field(description="Widget visualization type: single, table, pie, bar, line, column")] = "table",
     dashboard_id: Annotated[Optional[str], Field(description="ID of associated XSIAMDashboard")] = None,
     upload: Annotated[bool, Field(description="If True, upload pack to XSIAM (requires -z flag)")] = False,
 ) -> str:
     """
-    Creates an XSIAMReport JSON file.
+    Creates an XSIAMReport JSON file with optional XQL widget.
 
     XSIAMReports are XSIAM-specific reports that can be scheduled or run on-demand.
+
+    If xql_query is provided, creates a report with a functional widget.
+    If xql_query is omitted, creates an empty report template.
+
     Note: Requires pack upload (-z flag) to deploy.
 
     Args:
@@ -834,7 +993,11 @@ async def create_xsiam_report(
         pack_name: Name of the pack.
         report_name: Name of the report.
         description: Optional description.
+        xql_query: Optional XQL query for default widget.
+        widget_title: Optional widget title (defaults to report name).
+        widget_type: Visualization type (single, table, pie, bar, line, column).
         dashboard_id: Optional associated dashboard.
+        upload: If True, upload to XSIAM.
 
     Returns:
         JSON response with file path.
@@ -845,18 +1008,109 @@ async def create_xsiam_report(
 
         report_id = sanitize_name(report_name).lower()
 
-        report_template = {
+        # Build layout and widgets if XQL query provided
+        layout = []
+        widgets_data = []
+
+        if xql_query:
+            import time
+            widget_key = f"xql_{int(time.time())}"
+            widget_title_text = widget_title or report_name
+
+            # Add view graph command to XQL if not already present
+            final_query = xql_query
+            view_commands = []
+            xaxis_field = None
+            yaxis_field = None
+
+            if "| view graph" not in xql_query.lower():
+                # For aggregation queries, try to detect group by field
+                if " by " in xql_query:
+                    # Extract field after "by" for xaxis
+                    parts = xql_query.split(" by ")
+                    if len(parts) > 1:
+                        xaxis_field = parts[-1].strip().split()[0]
+                        # Extract count field for yaxis (look for "as fieldname")
+                        yaxis_field = "count"
+                        if " as " in xql_query:
+                            as_parts = xql_query.split(" as ")
+                            if len(as_parts) > 1:
+                                yaxis_field = as_parts[-1].strip().split()[0]
+
+                # Append appropriate view graph command based on widget type
+                if widget_type == "single":
+                    final_query += " | view graph type = single"
+                    if yaxis_field:
+                        final_query += f" yaxis = {yaxis_field}"
+                        view_commands.append({"command": {"op": "=", "name": "yaxis", "value": yaxis_field}})
+                elif widget_type == "table":
+                    final_query += " | view graph type = table"
+                elif widget_type in ["pie", "bar", "line", "column"]:
+                    if xaxis_field and yaxis_field:
+                        final_query += f" | view graph type = {widget_type} xaxis = {xaxis_field} yaxis = {yaxis_field}"
+                        view_commands.extend([
+                            {"command": {"op": "=", "name": "xaxis", "value": xaxis_field}},
+                            {"command": {"op": "=", "name": "yaxis", "value": yaxis_field}}
+                        ])
+                    else:
+                        final_query += f" | view graph type = {widget_type}"
+
+            # Create widget for layout
+            layout.append({
+                "id": "row-1",
+                "data": [{
+                    "key": widget_key,
+                    "data": {
+                        "type": "Custom XQL",
+                        "title": widget_title_text,
+                        "width": 100,
+                        "height": 400,
+                        "phrase": final_query,
+                        "time_frame": {"relativeTime": 86400000},
+                        "viewOptions": {"type": widget_type, "commands": view_commands}
+                    }
+                }]
+            })
+
+            # Create widget data entry
+            widgets_data.append({
+                "widget_key": widget_key,
+                "title": widget_title_text,
+                "creation_time": int(time.time() * 1000),
+                "description": description,
+                "data": {
+                    "phrase": final_query,
+                    "time_frame": {"relativeTime": 86400000},
+                    "viewOptions": {"type": widget_type, "commands": []}
+                },
+                "support_time_range": True,
+                "additional_info": {
+                    "query_tables": [],
+                    "query_uses_library": False
+                }
+            })
+
+        # XSIAMReport uses templates_data wrapper (based on working examples from demisto/content)
+        template = {
             "global_id": report_id,
             "report_name": report_name,
             "report_description": description or f"XSIAM Report: {report_name}",
-            "fromVersion": "8.7.0"
+            "fromVersion": "8.7.0",
+            "layout": layout,
+            "default_template_id": 1,
+            "time_frame": {"relativeTime": 86400000},  # 1 day default
+            "time_offset": 0,
+            "metadata": json.dumps({"params": []})  # JSON string, not object!
         }
 
+        # Optional dashboard_id
         if dashboard_id:
-            report_template["dashboard_id"] = dashboard_id
+            template["dashboard_id"] = dashboard_id
 
         report_data = {
-            "templates_data": [report_template]
+            "templates_data": [template],
+            "fromVersion": "8.7.0",
+            "widgets_data": widgets_data
         }
 
         file_name = f"{FILE_PREFIXES['XSIAMReport']}{report_id}.json"
@@ -885,6 +1139,207 @@ async def create_xsiam_report(
 
     except Exception as e:
         logger.exception(f"Failed to create XSIAMReport: {e}")
+        return create_response(data={"error": str(e)}, is_error=True)
+
+
+# =============================================================================
+# TOOL: create_agentix_action
+# =============================================================================
+
+async def create_agentix_action(
+    ctx: Context,
+    pack_name: Annotated[str, Field(description="Name of the pack to create the action in")],
+    action_name: Annotated[str, Field(description="Name of the AgentIX action")],
+    display_name: Annotated[str, Field(description="Display name shown in UI")],
+    description: Annotated[str, Field(description="Description of what this action does")],
+    underlying_type: Annotated[str, Field(description="Type of underlying content: command, script, or playbook")],
+    underlying_id: Annotated[str, Field(description="ID of the underlying content item")],
+    underlying_name: Annotated[str, Field(description="Name of the underlying content item")],
+    requires_user_approval: Annotated[bool, Field(description="If True, requires user approval before execution. Use True for destructive/sensitive actions (delete, terminate, isolate, modify). Use False for trusted actions that can run automatically.")] = False,
+    underlying_command: Annotated[Optional[str], Field(description="Command name (only for type=command)")] = None,
+    category: Annotated[Optional[str], Field(description="Action category")] = None,
+    upload: Annotated[bool, Field(description="If True, upload pack to XSIAM")] = False,
+) -> str:
+    """
+    Creates an AgentIXAction YAML file for XSIAM.
+
+    AgentIXActions wrap existing XSOAR content (commands, scripts, playbooks)
+    to make them accessible to AI agents in the AgentIX platform.
+
+    Args:
+        ctx: FastMCP context.
+        pack_name: Name of the pack.
+        action_name: Name of the action (used as ID).
+        display_name: Display name in UI.
+        description: What the action does.
+        underlying_type: "command", "script", or "playbook".
+        underlying_id: ID of the underlying content.
+        underlying_name: Name of the underlying content.
+        requires_user_approval: If True, requires user approval before execution (default: False).
+                                Use True for destructive/sensitive actions, False for trusted actions.
+        underlying_command: Command name (required if underlying_type="command").
+        category: Optional category.
+        upload: If True, upload to XSIAM.
+
+    Returns:
+        JSON response with file path.
+    """
+    try:
+        pack_path = ensure_pack_exists(pack_name)
+        content_dir = ensure_content_dir(pack_path, "AgentIXAction")
+
+        action_id = sanitize_name(action_name).lower()
+
+        # Build AgentIXAction YAML structure (based on TestSuite example)
+        action_data = {
+            "commonfields": {
+                "id": action_id,
+                "version": -1
+            },
+            "display": display_name,
+            "name": action_name,
+            "tags": [],
+            "category": category or "Utilities",
+            "description": description,
+            "args": [],  # Required - should match underlying content arguments
+            "outputs": [],  # Required - should match underlying content outputs
+            "underlyingcontentitem": {
+                "id": underlying_id,
+                "name": underlying_name,
+                "type": underlying_type,
+                "version": -1
+            },
+            "requiresuserapproval": requires_user_approval,
+            "marketplaces": ["platform"],
+            "supportedModules": ["agentix"]
+        }
+
+        # Add command field if type is command
+        if underlying_type == "command" and underlying_command:
+            action_data["underlyingcontentitem"]["command"] = underlying_command
+
+        file_path = content_dir / f"{action_id}.yml"
+
+        with open(file_path, 'w') as f:
+            yaml.dump(action_data, f, default_flow_style=False, sort_keys=False)
+
+        logger.info(f"Created AgentIXAction: {file_path}")
+
+        result = {
+            "success": True,
+            "content_type": "AgentIXAction",
+            "file_path": str(file_path),
+            "action_name": action_name,
+            "pack_name": pack_name,
+        }
+
+        if upload:
+            upload_result = run_sdk_upload(pack_name, use_zip=True)
+            result["upload"] = upload_result
+        else:
+            result["note"] = "AgentIXActions require pack upload: demisto-sdk upload -i Packs/{pack} -z --marketplace marketplacev2"
+
+        return create_response(data=result)
+
+    except Exception as e:
+        logger.exception(f"Failed to create AgentIXAction: {e}")
+        return create_response(data={"error": str(e)}, is_error=True)
+
+
+# =============================================================================
+# TOOL: create_agentix_agent
+# =============================================================================
+
+async def create_agentix_agent(
+    ctx: Context,
+    pack_name: Annotated[str, Field(description="Name of the pack to create the agent in")],
+    agent_name: Annotated[str, Field(description="Name of the AgentIX agent")],
+    description: Annotated[str, Field(description="Description of the agent's purpose")],
+    color: Annotated[str, Field(description="Hex color code for UI (e.g., '#3498DB')")],
+    visibility: Annotated[str, Field(description="Agent visibility: 'public' or 'private'")],
+    category: Annotated[Optional[str], Field(description="Agent category")] = None,
+    action_ids: Annotated[Optional[List[str]], Field(description="List of action IDs available to this agent")] = None,
+    system_instructions: Annotated[Optional[str], Field(description="System instructions for the agent")] = None,
+    conversation_starters: Annotated[Optional[List[str]], Field(description="Example conversation starters")] = None,
+    upload: Annotated[bool, Field(description="If True, upload pack to XSIAM")] = False,
+) -> str:
+    """
+    Creates an AgentIXAgent YAML file for XSIAM.
+
+    AgentIXAgents define AI assistant configurations including behavior,
+    available actions, and conversation starters.
+
+    Args:
+        ctx: FastMCP context.
+        pack_name: Name of the pack.
+        agent_name: Name of the agent.
+        description: Agent description.
+        color: Hex color code (e.g., '#3498DB').
+        visibility: 'public' or 'private'.
+        category: Optional category.
+        action_ids: List of action IDs the agent can use.
+        system_instructions: Instructions defining agent behavior.
+        conversation_starters: Example prompts for users.
+        upload: If True, upload to XSIAM.
+
+    Returns:
+        JSON response with file path.
+    """
+    try:
+        pack_path = ensure_pack_exists(pack_name)
+        content_dir = ensure_content_dir(pack_path, "AgentIXAgent")
+
+        agent_id = sanitize_name(agent_name).lower()
+
+        # Build AgentIXAgent YAML structure
+        agent_data = {
+            "commonfields": {
+                "id": agent_id,
+                "version": -1
+            },
+            "name": agent_name,
+            "description": description,
+            "color": color,
+            "visibility": visibility,
+            "marketplaces": ["platform"],
+            "supportedModules": ["agentix"]
+        }
+
+        # Optional fields
+        if category:
+            agent_data["category"] = category
+        if action_ids:
+            agent_data["actionids"] = action_ids
+        if system_instructions:
+            agent_data["systeminstructions"] = system_instructions
+        if conversation_starters:
+            agent_data["conversationstarters"] = conversation_starters
+
+        file_path = content_dir / f"{agent_id}.yml"
+
+        with open(file_path, 'w') as f:
+            yaml.dump(agent_data, f, default_flow_style=False, sort_keys=False)
+
+        logger.info(f"Created AgentIXAgent: {file_path}")
+
+        result = {
+            "success": True,
+            "content_type": "AgentIXAgent",
+            "file_path": str(file_path),
+            "agent_name": agent_name,
+            "pack_name": pack_name,
+        }
+
+        if upload:
+            upload_result = run_sdk_upload(pack_name, use_zip=True)
+            result["upload"] = upload_result
+        else:
+            result["note"] = "AgentIXAgents require pack upload: demisto-sdk upload -i Packs/{pack} -z --marketplace marketplacev2"
+
+        return create_response(data=result)
+
+    except Exception as e:
+        logger.exception(f"Failed to create AgentIXAgent: {e}")
         return create_response(data={"error": str(e)}, is_error=True)
 
 
@@ -1136,6 +1591,8 @@ class XSIAMContentGeneratorModule(BaseModule):
         self._add_tool(create_assets_modeling_rule)
         self._add_tool(create_xsiam_dashboard)
         self._add_tool(create_xsiam_report)
+        self._add_tool(create_agentix_action)
+        self._add_tool(create_agentix_agent)
         self._add_tool(get_xsiam_content_guide)
 
     def register_resources(self):

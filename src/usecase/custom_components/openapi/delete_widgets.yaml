@@ -1,0 +1,45 @@
+name: delete_widgets
+description: |
+  Deletes custom XQL widgets from XSIAM.
+
+  Use this to:
+  - Remove obsolete or unused widgets
+  - Clean up test widgets
+  - Manage widget inventory
+
+  Requires Instance Administrator permissions.
+
+  Filter Fields:
+  - title: Widget title (string)
+  - created_by: Creator name (string)
+
+  Filter Operators:
+  - EQ: Equals
+  - NEQ: Not equals
+  - CONTAINS: Contains substring
+
+  Note: This only deletes custom XQL widgets, not predefined system widgets.
+
+request:
+  url: ${CORTEX_MCP_PAPI_URL}/public_api/v1/widgets/delete
+  method: POST
+  headers:
+    Authorization: ${CORTEX_MCP_PAPI_AUTH_HEADER}
+    x-xdr-auth-id: ${CORTEX_MCP_PAPI_AUTH_ID}
+    Content-Type: application/json
+
+  body:
+    request_data:
+      filters:
+        type: array
+        description: |
+          Array of filter objects to select widgets for deletion.
+          Each filter has:
+          - field: "title" or "created_by"
+          - value: String to match
+          - operator: "EQ", "NEQ", "CONTAINS"
+        items:
+          type: object
+
+response:
+  $: reply

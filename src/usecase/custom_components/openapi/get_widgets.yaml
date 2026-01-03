@@ -1,0 +1,47 @@
+name: get_widgets
+description: |
+  Retrieves XQL widgets by filtering on title and creator.
+
+  Use this to:
+  - List all custom XQL widgets
+  - Find widgets by title
+  - Find widgets created by specific users
+  - Get widget details for dashboards/reports
+
+  Note: Only returns custom XQL widgets, not predefined widgets.
+  Requires Instance Administrator permissions.
+
+  Widget Structure:
+  - widget_key: Unique identifier (e.g., "xql_1646052681403")
+  - title: Widget name
+  - data.phrase: XQL query
+  - data.time_frame: Time range configuration
+  - data.viewOptions: Chart type (table, pie, bar, line, single)
+
+  Use insert_widgets to create new widgets or update existing ones.
+
+request:
+  url: ${CORTEX_MCP_PAPI_URL}/public_api/v1/widgets/get
+  method: POST
+  headers:
+    Authorization: ${CORTEX_MCP_PAPI_AUTH_HEADER}
+    x-xdr-auth-id: ${CORTEX_MCP_PAPI_AUTH_ID}
+    Content-Type: application/json
+
+  body:
+    request_data:
+      filters:
+        type: array
+        description: |
+          Array of filter objects. Each filter has:
+          - field: "title" or "created_by"
+          - value: String to match
+          - operator: "EQ", "NEQ", "CONTAINS"
+
+          Leave empty to get all widgets.
+        default: []
+        items:
+          type: object
+
+response:
+  $: reply
