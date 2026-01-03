@@ -154,11 +154,29 @@ async def enrich_ip_address(
     This is a convenience wrapper around the XSOAR !ip command. For advanced options
     or integration-specific commands, use run_xsoar_automation instead.
 
-    IMPORTANT: Requires alert_id from an alert that is PART OF A CASE. The alert must have
-    an associated investigation (War Room). To find valid alert IDs:
-    1. Use get_incident_extra_data to get alerts from a case, OR
-    2. Use get_issues to find alerts, then check if they have a case_id field, OR
-    3. Ask the user for an alert ID from a case they are investigating.
+    =====================================================================
+    CHOOSING THE RIGHT CONTEXT FOR ENRICHMENT
+    =====================================================================
+
+    **OPTION 1: GENERAL ENRICHMENT** (recommended for ad-hoc lookups)
+    ─────────────────────────────────────────────────────────────────
+    When you just want to check reputation of an IP without a specific case:
+
+    1. Create a workspace: workspace = create_issue()
+    2. Use the returned alert_id: enrich_ip_address(ip="8.8.8.8", alert_id=workspace["alert_id"])
+
+    This keeps general lookups separate from real investigations.
+
+    **OPTION 2: CASE-SPECIFIC INVESTIGATION** (for active incidents)
+    ─────────────────────────────────────────────────────────────────
+    When enriching indicators found in a specific alert/case:
+
+    1. Get case details: case_data = get_incident_extra_data(incident_id="350")
+    2. Find an alert_id from the case's issues (e.g., "6126")
+    3. Run enrichment: enrich_ip_address(ip="8.8.8.8", alert_id="6126")
+
+    Results appear in the specific issue's War Room, documenting your investigation.
+    =====================================================================
 
     The enrichment will:
     - Check IP reputation across threat feeds

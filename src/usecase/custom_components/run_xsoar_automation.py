@@ -153,11 +153,35 @@ async def run_xsoar_automation(
     script, or enrichment command. It automatically waits for and retrieves results
     from XSOAR integrations.
 
-    IMPORTANT: Requires alert_id from an alert that is PART OF A CASE. The alert must have
-    an associated investigation (War Room). To find valid alert IDs:
-    1. Use get_incident_extra_data to get alerts from a case, OR
-    2. Use get_issues to find alerts, then check if they have a case_id field, OR
-    3. Ask the user for an alert ID from a case they are investigating.
+    =====================================================================
+    CHOOSING THE RIGHT CONTEXT FOR AUTOMATION COMMANDS
+    =====================================================================
+
+    **OPTION 1: GENERAL COMMANDS** (recommended for ad-hoc automation)
+    ─────────────────────────────────────────────────────────────────
+    When running commands not tied to a specific investigation:
+
+    1. Create a workspace: workspace = create_issue()
+    2. Use the returned alert_id: run_xsoar_automation(command="!GetInstances", alert_id=workspace["alert_id"])
+
+    This keeps general automation separate from real investigations.
+
+    **OPTION 2: CASE-SPECIFIC AUTOMATION** (for active incidents)
+    ─────────────────────────────────────────────────────────────────
+    When running commands in context of a specific alert/case:
+
+    1. Get case details: case_data = get_incident_extra_data(incident_id="350")
+    2. Find an alert_id from the case's issues (e.g., "6126")
+    3. Run command: run_xsoar_automation(command="!ip ip=8.8.8.8", alert_id="6126")
+
+    Results appear in the specific issue's War Room, documenting your investigation.
+
+    KEY CONCEPTS:
+    - CASE (incident): Container for related security events
+    - ISSUE (alert): Individual security event INSIDE a Case
+    - War Room: Investigation workspace attached to an ISSUE
+    - War Room commands run on ISSUES, not Cases directly
+    =====================================================================
 
     Use this tool when:
     - Running discovery commands (!GetInstances, !GetIntegrations)

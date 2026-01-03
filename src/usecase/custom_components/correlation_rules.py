@@ -95,13 +95,17 @@ async def insert_correlation_rule(
 
     Execution Modes (execution_mode parameter):
     - SCHEDULED: Periodic execution at defined intervals
+      - Requires: search_window (e.g., "10 minutes", "1 hours")
+      - Requires: crontab expression (e.g., "*/10 * * * *" for every 10 min)
     - REAL_TIME: Continuous real-time monitoring
+      - No schedule parameters needed (search_window, crontab ignored)
+      - Processes events as they arrive
 
     XQL Query Requirements:
     - Must start with dataset specification (e.g., "dataset = xdr_data")
     - Should include appropriate filters to reduce false positives
-    - Use aggregations to detect patterns over time
-    - Include LIMIT clause to prevent performance issues
+    - Use aggregations to detect patterns over time (SCHEDULED mode)
+    - REAL_TIME mode: Cannot use LIMIT clause
     - Test queries with run_xql_query before creating rules
 
     Example XQL queries:
@@ -135,7 +139,7 @@ async def insert_correlation_rule(
         is_enabled: Whether the rule is active and generating alerts (default: True).
         description: Detailed description of what the rule detects (optional but recommended).
         alert_description: Description shown in the alert when rule triggers (default: "").
-        execution_mode: Execution mode - must be SCHEDULED (default: SCHEDULED).
+        execution_mode: Execution mode - SCHEDULED or REAL_TIME (default: SCHEDULED).
         search_window: Time window for query execution, minimum 10 minutes (default: "1 hours").
         timezone: Timezone for scheduling (default: "UTC").
         crontab: Crontab expression for advanced scheduling (default: "").
@@ -151,34 +155,80 @@ async def insert_correlation_rule(
         - rule_details: Confirmation of rule configuration
 
     Example Usage:
-        # Create a brute force detection rule
+        # SCHEDULED: Detect risky software installations (runs every hour)
         insert_correlation_rule(
             ctx=ctx,
-            rule_id=10001,
-            name="SSH Brute Force Detection",
-            xql_query="dataset = xdr_data | filter event_type = ENUM.AUTHENTICATION and action_service_name = 'SSH' and outcome = ENUM.FAILED | comp count() by source_ip, user | filter count > 5",
+            name="AnyDesk Installation on endpoint",
+            xql_query=\"\"\"config case_sensitive = false | dataset = host_inventory
+                | fields applications, host_name, os_type
+                | filter applications != null and os_type = ENUM.OS_WINDOWS
+                | arrayexpand applications
+                | alter app_name = applications -> application_name,
+                       app_vendor = applications -> vendor,
+                       uninstall_cmd = applications -> uninstall_string
+                | filter app_name contains "anydesk" or app_vendor contains "anydesk"
+                | fields host_name, app_name, app_vendor, uninstall_cmd\"\"\",
             severity="SEV_040_HIGH",
-            alert_name="SSH Brute Force Attempt Detected",
-            alert_category="CREDENTIAL_ACCESS",
-            is_enabled=True,
-            description="Detects multiple failed SSH authentication attempts from the same IP to the same user account, indicating potential brute force attack",
+            alert_name="AnyDesk found on endpoint",
+            alert_category="EXECUTION",
+            alert_description="AnyDesk version found installed on $host_name",
+            is_enabled=False,
+            description="Triggers alert when AnyDesk remote access tool is detected",
             execution_mode="SCHEDULED",
-            search_window="10 minutes"
+            search_window="1 hours",
+            crontab="0 * * * *"
         )
 
-        # Update an existing rule to refine detection
+        # SCHEDULED: Port scan detection (runs every 10 minutes)
         insert_correlation_rule(
             ctx=ctx,
-            rule_id=10001,
-            name="SSH Brute Force Detection - Enhanced",
-            xql_query="dataset = xdr_data | filter event_type = ENUM.AUTHENTICATION and action_service_name = 'SSH' and outcome = ENUM.FAILED | comp count() by source_ip, user | filter count > 10 and count < 100",
-            severity="SEV_040_HIGH",
-            alert_name="SSH Brute Force Attempt Detected",
-            alert_category="CREDENTIAL_ACCESS",
-            is_enabled=True,
-            description="Enhanced detection with threshold refinement to reduce false positives from automated scanners",
+            name="Noisy Port Scan Detection",
+            xql_query=\"\"\"dataset = xdr_data
+                | filter event_type = ENUM.NETWORK
+                | comp count(distinct action_remote_port) as counter by action_local_ip, action_remote_ip
+                | filter counter > 30\"\"\",
+            severity="SEV_030_MEDIUM",
+            alert_name="Port Scan Detected",
+            alert_category="RECONNAISSANCE",
+            alert_description="Port Scan from $action_local_ip to $action_remote_ip over $counter ports",
+            is_enabled=False,
+            description="Detect port scans over 30 ports in 10 minutes",
             execution_mode="SCHEDULED",
-            search_window="10 minutes"
+            search_window="10 minutes",
+            crontab="*/10 * * * *",
+            suppression_enabled=True,
+            suppression_duration="1 hours"
+        )
+
+        # REAL_TIME: Detect portable AnyDesk execution (continuous monitoring)
+        insert_correlation_rule(
+            ctx=ctx,
+            name="Portable AnyDesk Detected",
+            xql_query=\"\"\"config case_sensitive = false | dataset = xdr_data
+                | filter event_type = ENUM.PROCESS and event_sub_type = ENUM.PROCESS_START
+                  and action_process_signature_vendor contains "anydesk"
+                | alter category = "Threat Detection"
+                | fields action_process_image_name, agent_hostname, category\"\"\",
+            severity="SEV_030_MEDIUM",
+            alert_name="Portable AnyDesk Detected",
+            alert_category="EXECUTION",
+            alert_description="Portable AnyDesk execution detection",
+            is_enabled=False,
+            description="Real-time detection of portable AnyDesk executions",
+            execution_mode="REAL_TIME"
+        )
+
+        # Update an existing rule by providing rule_id
+        insert_correlation_rule(
+            ctx=ctx,
+            rule_id=35,
+            name="Port Scan Detection - Enhanced",
+            xql_query="...",
+            severity="SEV_040_HIGH",
+            alert_name="Port Scan Detected",
+            alert_category="RECONNAISSANCE",
+            is_enabled=True,
+            description="Enhanced with lower threshold"
         )
     """
 
@@ -196,6 +246,16 @@ async def insert_correlation_rule(
             dataset_name = match.group(1)
 
     # Build the correlation rule payload with all required fields
+    # Handle REAL_TIME vs SCHEDULED mode differences
+    if execution_mode == "REAL_TIME":
+        schedule_crontab = None
+        schedule_window = None
+        simple_sched = ""  # Empty string for REAL_TIME
+    else:
+        schedule_crontab = crontab if crontab else "0 * * * *"  # Default: every hour
+        schedule_window = search_window
+        simple_sched = search_window
+
     rule_payload = {
         "name": name,
         "severity": severity,
@@ -206,20 +266,24 @@ async def insert_correlation_rule(
         "alert_category": alert_category,
         "alert_description": alert_description,
         "execution_mode": execution_mode,
-        "search_window": search_window,
-        "simple_schedule": search_window,
+        "search_window": schedule_window,
+        "simple_schedule": simple_sched,  # Required field
         "timezone": timezone,
-        "crontab": crontab,
-        "dataset": dataset_name,
+        "crontab": schedule_crontab,
+        "dataset": "alerts",
+        "action": "ALERTS",
+        "alert_domain": "DOMAIN_SECURITY",
+        "alert_type": None,
+        "lookup_mapping": None,
         "mapping_strategy": "AUTO",
         "suppression_enabled": suppression_enabled,
-        "suppression_duration": suppression_duration,
-        "suppression_fields": suppression_fields if suppression_fields else [],
+        "suppression_duration": suppression_duration if suppression_enabled else None,
+        "suppression_fields": suppression_fields if suppression_fields else None,
         "alert_fields": {},
-        "user_defined_severity": False,
-        "user_defined_category": False,
+        "user_defined_severity": None,
+        "user_defined_category": None,
         "mitre_defs": {},
-        "investigation_query_link": "",
+        "investigation_query_link": None,
         "drilldown_query_timeframe": "ALERT"
     }
 
@@ -229,6 +293,15 @@ async def insert_correlation_rule(
         logger.info(f"Updating correlation rule: rule_id={rule_id}, name='{name}', enabled={is_enabled}")
     else:
         logger.info(f"Creating new correlation rule: name='{name}', enabled={is_enabled}")
+
+    # For REAL_TIME mode, set schedule fields to null
+    if execution_mode == "REAL_TIME":
+        rule_payload["simple_schedule"] = None
+        rule_payload["search_window"] = None
+        rule_payload["crontab"] = None
+        rule_payload["timezone"] = None
+        rule_payload["lookup_mapping"] = None
+        rule_payload["alert_type"] = None
 
     # Build payload - API expects request_data wrapper with array of rules
     payload = {"request_data": [rule_payload]}

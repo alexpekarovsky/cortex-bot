@@ -157,7 +157,7 @@ def ensure_pack_exists(pack_name: str) -> Path:
         pack_path.mkdir(parents=True, exist_ok=True)
         logger.info(f"Created pack directory: {pack_path}")
 
-        # Create pack_metadata.json (minimal format like NetworkTools)
+        # Create pack_metadata.json (minimal format with agentix support)
         metadata = {
             "name": pack_name,
             "description": f"Content pack: {pack_name}",
@@ -167,7 +167,8 @@ def ensure_pack_exists(pack_name: str) -> Path:
             "categories": ["Utilities"],
             "tags": [],
             "useCases": [],
-            "keywords": []
+            "keywords": [],
+            "supportedModules": ["xsiam", "agentix"]
         }
         metadata_path = pack_path / "pack_metadata.json"
         with open(metadata_path, 'w') as f:
@@ -1157,6 +1158,9 @@ async def create_agentix_action(
     underlying_name: Annotated[str, Field(description="Name of the underlying content item")],
     requires_user_approval: Annotated[bool, Field(description="If True, requires user approval before execution. Use True for destructive/sensitive actions (delete, terminate, isolate, modify). Use False for trusted actions that can run automatically.")] = False,
     underlying_command: Annotated[Optional[str], Field(description="Command name (only for type=command)")] = None,
+    args: Annotated[Optional[str], Field(description='JSON array of arguments. Format: [{"name": "ip", "required": true, "description": "IP address", "type": "string", "underlyingargname": "ip"}]')] = None,
+    outputs: Annotated[Optional[str], Field(description='JSON array of outputs. Format: [{"name": "IP.Address", "description": "IP address", "type": "string", "underlyingoutputcontextpath": "IP.Address"}]')] = None,
+    tags: Annotated[Optional[List[str]], Field(description="List of tags for categorization")] = None,
     category: Annotated[Optional[str], Field(description="Action category")] = None,
     upload: Annotated[bool, Field(description="If True, upload pack to XSIAM")] = False,
 ) -> str:
@@ -1178,6 +1182,11 @@ async def create_agentix_action(
         requires_user_approval: If True, requires user approval before execution (default: False).
                                 Use True for destructive/sensitive actions, False for trusted actions.
         underlying_command: Command name (required if underlying_type="command").
+        args: JSON array of arguments (optional). Format:
+              [{"name": "ip", "required": true, "description": "IP to enrich", "type": "string", "underlyingargname": "ip"}]
+        outputs: JSON array of outputs (optional). Format:
+                 [{"name": "IP.Address", "description": "IP address", "type": "string", "underlyingoutputcontextpath": "IP.Address"}]
+        tags: List of tags for categorization.
         category: Optional category.
         upload: If True, upload to XSIAM.
 
@@ -1190,6 +1199,21 @@ async def create_agentix_action(
 
         action_id = sanitize_name(action_name).lower()
 
+        # Parse args and outputs if provided
+        args_list = []
+        if args:
+            try:
+                args_list = json.loads(args) if isinstance(args, str) else args
+            except json.JSONDecodeError:
+                logger.warning("Invalid args JSON, using empty array")
+
+        outputs_list = []
+        if outputs:
+            try:
+                outputs_list = json.loads(outputs) if isinstance(outputs, str) else outputs
+            except json.JSONDecodeError:
+                logger.warning("Invalid outputs JSON, using empty array")
+
         # Build AgentIXAction YAML structure (based on TestSuite example)
         action_data = {
             "commonfields": {
@@ -1198,11 +1222,11 @@ async def create_agentix_action(
             },
             "display": display_name,
             "name": action_name,
-            "tags": [],
+            "tags": tags or [],
             "category": category or "Utilities",
             "description": description,
-            "args": [],  # Required - should match underlying content arguments
-            "outputs": [],  # Required - should match underlying content outputs
+            "args": args_list,
+            "outputs": outputs_list,
             "underlyingcontentitem": {
                 "id": underlying_id,
                 "name": underlying_name,

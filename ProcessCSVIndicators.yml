@@ -1,0 +1,416 @@
+id: Process CSV Indicators and Tag Malicious
+version: -1
+name: Process CSV Indicators and Tag Malicious
+description: Reads a CSV file, extracts indicators (IPs, domains, hashes, URLs), enriches them using threat intelligence, and tags malicious indicators with 'to_block' for blocking.
+starttaskid: "0"
+tasks:
+  "0":
+    id: "0"
+    taskid: b0b3e16a-507f-4db3-8691-b1c077839ca6
+    type: start
+    task:
+      id: d4a95719-77bc-4e04-b111-5903d2457b92
+      version: -1
+      name: ""
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "1"
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 50
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+  "1":
+    id: "1"
+    taskid: eec260b2-139e-479e-9bd8-af0948504a0b
+    type: title
+    task:
+      id: 45b29d04-969c-4508-b248-15899d5af4dd
+      version: -1
+      name: Extract Indicators from CSV
+      type: title
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "2"
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 195
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+  "2":
+    id: "2"
+    taskid: 7373ea91-fe5f-4daf-8101-0082b2be9421
+    type: regular
+    task:
+      id: 8891caa1-be59-413c-be31-215b6005310e
+      version: -1
+      name: Extract Indicators From File
+      description: Extracts indicators from the attached file
+      scriptName: extractIndicators
+      type: regular
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "3"
+    scriptarguments:
+      text:
+        simple: ${File.Text}
+      addToContext:
+        simple: "true"
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 340
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+  "3":
+    id: "3"
+    taskid: dfdcc3ff-696a-4fdf-8f4c-72b78ea7d2c2
+    type: title
+    task:
+      id: 20fba762-8468-43d5-8e70-08f84a14a3b9
+      version: -1
+      name: Enrich Indicators
+      type: title
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "4"
+      - "5"
+      - "6"
+      - "7"
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 485
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+  "4":
+    id: "4"
+    taskid: 12d98e1d-784d-4e62-a39e-7f1891cc8c14
+    type: regular
+    task:
+      id: 778ff8f7-70f2-49ec-ba84-2932ba2d3e9c
+      version: -1
+      name: Enrich IPs
+      description: Enriches IP addresses
+      scriptName: ip
+      type: regular
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "8"
+    scriptarguments:
+      ip:
+        simple: ${ExtractedIndicators.IP}
+    separatecontext: false
+    continueonerror: true
+    view: |-
+      {
+        "position": {
+          "x": 50,
+          "y": 630
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+  "5":
+    id: "5"
+    taskid: 3d29a3da-5c15-4b53-b186-144fcd487964
+    type: regular
+    task:
+      id: c9007412-7a1d-46ed-beb0-e17a25b2bdf9
+      version: -1
+      name: Enrich Domains
+      description: Enriches domain names
+      scriptName: domain
+      type: regular
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "8"
+    scriptarguments:
+      domain:
+        simple: ${ExtractedIndicators.Domain}
+    separatecontext: false
+    continueonerror: true
+    view: |-
+      {
+        "position": {
+          "x": 300,
+          "y": 630
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+  "6":
+    id: "6"
+    taskid: b23570f3-7f05-4a0a-8150-11e1390b2a46
+    type: regular
+    task:
+      id: 17e54759-b378-4d6e-af6c-bff2180708d9
+      version: -1
+      name: Enrich File Hashes
+      description: Enriches file hashes
+      scriptName: file
+      type: regular
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "8"
+    scriptarguments:
+      file:
+        simple: ${ExtractedIndicators.File}
+    separatecontext: false
+    continueonerror: true
+    view: |-
+      {
+        "position": {
+          "x": 600,
+          "y": 630
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+  "7":
+    id: "7"
+    taskid: fec66bb3-6022-469c-b3c5-52dd50566f3f
+    type: regular
+    task:
+      id: f889c8fa-6a23-4542-b0ec-faf71189bd28
+      version: -1
+      name: Enrich URLs
+      description: Enriches URLs
+      scriptName: url
+      type: regular
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "8"
+    scriptarguments:
+      url:
+        simple: ${ExtractedIndicators.URL}
+    separatecontext: false
+    continueonerror: true
+    view: |-
+      {
+        "position": {
+          "x": 850,
+          "y": 630
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+  "8":
+    id: "8"
+    taskid: 65fcf8ad-f71d-4980-9509-e0d23b3e81d8
+    type: title
+    task:
+      id: 3f7b6931-6855-4330-ab96-503909e8835b
+      version: -1
+      name: Evaluate and Tag Malicious
+      type: title
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "9"
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 805
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+  "9":
+    id: "9"
+    taskid: be7f6dd3-2a75-45eb-ac30-bb9951b0142f
+    type: regular
+    task:
+      id: d790d93c-278b-48bf-8160-97ae967e8194
+      version: -1
+      name: Find Malicious Indicators
+      description: Filters indicators with malicious score (3)
+      scriptName: SetAndHandleEmpty
+      type: regular
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "10"
+    scriptarguments:
+      key:
+        simple: MaliciousIndicators
+      value:
+        complex:
+          root: DBotScore
+          filters:
+          - - operator: isEqualNumber
+              left:
+                value:
+                  simple: DBotScore.Score
+                iscontext: true
+              right:
+                value:
+                  simple: "3"
+          accessor: Indicator
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 950
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+  "10":
+    id: "10"
+    taskid: 686c1923-83ca-4fb8-a26e-3a335206f652
+    type: condition
+    task:
+      id: a08070ba-4520-4481-ad99-0aadcb8fd2f6
+      version: -1
+      name: Any Malicious Found?
+      description: Checks if any malicious indicators were found
+      type: condition
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#default#':
+      - "12"
+      "yes":
+      - "11"
+    separatecontext: false
+    conditions:
+    - label: "yes"
+      condition:
+      - - operator: isNotEmpty
+          left:
+            value:
+              simple: MaliciousIndicators
+            iscontext: true
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 1095
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+  "11":
+    id: "11"
+    taskid: 10b8207a-e4e9-4d3c-a229-26459b9b0a39
+    type: regular
+    task:
+      id: c6d754e9-bc9c-48d8-a2a2-b9a91ffc64e1
+      version: -1
+      name: Tag Malicious as to_block
+      description: Tags malicious indicators for blocking
+      scriptName: appendIndicatorField
+      type: regular
+      iscommand: false
+      brand: ""
+    nexttasks:
+      '#none#':
+      - "12"
+    scriptarguments:
+      indicatorsValues:
+        simple: ${MaliciousIndicators}
+      field:
+        simple: tags
+      fieldValue:
+        simple: to_block
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 1270
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+  "12":
+    id: "12"
+    taskid: f5501734-3307-4bee-bd44-839f6f3f76e5
+    type: title
+    task:
+      id: 41db1a9c-5e58-474f-b92c-e2c1fd9a304a
+      version: -1
+      name: Complete
+      type: title
+      iscommand: false
+      brand: ""
+    separatecontext: false
+    view: |-
+      {
+        "position": {
+          "x": 450,
+          "y": 1445
+        }
+      }
+    note: false
+    timertriggers: []
+    ignoreworker: false
+view: |-
+  {
+    "linkLabelsPosition": {},
+    "paper": {
+      "dimensions": {
+        "height": 1545,
+        "width": 1180,
+        "x": 50,
+        "y": 50
+      }
+    }
+  }
+inputs: []
+outputs: []
+fromversion: 6.5.0
+tests:
+- No tests

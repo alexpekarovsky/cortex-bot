@@ -1,0 +1,4182 @@
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $xdm.observer.product from $xdm.observer.name is triggering $xdm.alert.name
+    ($xdm.alert.category)
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: $xdm.alert.name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: The correlation will bring non out of the box ingested alerts to alerts
+    table if parsed through data model as medium or high alerts
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: ec2c670d-61a3-4757-9099-00fc14a0e32d
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs:
+    TA0010 - Exfiltration:
+    - T1011 - Exfiltration Over Other Network Medium
+  name: Alerts from datamodel to Alerts table - Medium and High
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: xdm.alert.category
+  user_defined_severity: xdm.alert.severity
+  xql_query: "datamodel dataset =* | filter xdm.alert.severity in (\"High\",\"Medium\"\
+    ) \n| fields * "
+- action: ALERTS
+  alert_category: RECONNAISSANCE
+  alert_description: Port Scan from $xdm.source.ipv4 to $xdm.target.ipv4 over $counter
+    ports detected by $xdm.observer.product from $xdm.observer.name
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: Noisy Port Scan over pfSense
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: Detect a Port Scan over 30 ports in 10 minutes - Alerts are suppressed
+    for src, dst in the same hour
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: 763c690c-e782-4124-ad65-dc9f58716ff3
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs:
+    TA0007 - Discovery:
+    - T1046 - Network Service Scanning
+  name: Noisy Port Scan over pfSense
+  search_window: 10 minutes
+  severity: SEV_030_MEDIUM
+  suppression_duration: 1 hours
+  suppression_enabled: true
+  suppression_fields: xdm.source.ipv4|xdm.target.ipv4
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "datamodel dataset in(pfsense_fw) \n|fields xdm.source.ipv4 , xdm.target.ipv4\
+    \ , xdm.source.port, xdm.target.port,xdm.observer.name ,xdm.observer.product ,xdm.observer.vendor,\
+    \ xdm.source.host.hostname  \n| comp count_distinct(xdm.target.port) as counter\
+    \ by xdm.source.ipv4, xdm.target.ipv4,xdm.observer.name,xdm.observer.product addrawdata\
+    \ = true as original_data\n| filter counter > 30 and xdm.source.ipv4 != xdm.target.ipv4 "
+- action: ALERTS
+  alert_category: RECONNAISSANCE
+  alert_description: Port Scan from $xdm.source.ipv4 to $xdm.target.ipv4 over $counter
+    ports detected by $xdm.observer.product from $xdm.observer.name
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: Port Scan over pfSense
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: Detect a Port Scan over 10 ports but less than 30 in 10 minutes - Alerts
+    are suppressed for src, dst in the same hour
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: f6b2e07c-e797-452b-b74d-a30fb6f7d31d
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs:
+    TA0007 - Discovery:
+    - T1046 - Network Service Scanning
+  name: Port Scan over pfSense
+  search_window: 10 minutes
+  severity: SEV_030_MEDIUM
+  suppression_duration: 1 hours
+  suppression_enabled: true
+  suppression_fields: xdm.source.ipv4|xdm.target.ipv4
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "datamodel dataset in(pfsense_fw) \n|fields xdm.source.ipv4 , xdm.target.ipv4\
+    \ , xdm.source.port, xdm.target.port,xdm.observer.name ,xdm.observer.product ,xdm.observer.vendor,\
+    \ xdm.source.host.hostname  \n| comp count_distinct(xdm.target.port) as counter\
+    \ by xdm.source.ipv4, xdm.target.ipv4,xdm.observer.name,xdm.observer.product addrawdata\
+    \ = true as original_data\n| filter counter > 10 and counter < 30 and xdm.source.ipv4\
+    \ != xdm.target.ipv4 "
+- action: ALERTS
+  alert_category: CREDENTIAL_ACCESS
+  alert_description: the user $auth_identity performed multiple failed logins from
+    $auth_client
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    action_country: loc_country
+    action_local_ip: auth_client
+    actor_effective_username: domain_user
+    agent_hostname: auth_client
+  alert_name: '[AUTH] - Brute force activity - multiple failed logins'
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: Multiple failed logins from the same remote host attempting to access
+    a specific user
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: ac4dc894-666a-4757-9c91-858ac3f9e6b5
+  investigation_query_link: '// Search for all the authentication events from that
+    client
+
+    preset = authentication_story | filter auth_identity = $auth_client | fields auth_*
+    |
+
+    fields - auth_correlation_id'
+  lookup_mapping: []
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0006 - Credential Access:
+    - T1110 - Brute Force
+    - 'T1110.001 - Brute Force: Password Guessing'
+  name: Brute force activity - multiple failed logins
+  search_window: 20 hours
+  severity: SEV_030_MEDIUM
+  suppression_duration: 1 hours
+  suppression_enabled: true
+  suppression_fields: auth_identity
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "// look for failed auth events\nconfig case_sensitive = false  | preset\
+    \ = authentication_story | filter auth_outcome = \"failure\" and auth_domain !=\
+    \ \"demo-corp.local\" | alter domain_user = auth_normalized_user -> identity |\n\
+    \n// exclude old lab environment flows\nfilter auth_identity not in (\"PC5\",\"\
+    sspain\",\"Sync_DC01_3c6f4731edbc@TSOperations.onmicrosoft.com\",\"apelletier\"\
+    ,\"eoconnell\",\"crhinehart\",\"dwilkins\",\"hwillford\",\"cshadwick\",null,\"\
+    \") | \n\n// look for users that fails to login more than 9 times from the same\
+    \ auth_client (remote host)\ncomp count() as failedlogin by domain_user ,auth_identity\
+    \ , auth_client | iploc auth_client loc_country | filter failedlogin > 120 | view\
+    \ column order = populated "
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: Suricata Detected $filename, an EXE or DLL file, downloaded from
+    $src to $dst
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    action_local_ip: dst
+    action_remote_ip: src
+    action_remote_port: spt
+    actor_effective_username: null
+    actor_process_command_line: null
+    actor_process_image_name: null
+    actor_process_image_path: null
+    actor_process_image_sha256: file_sha256
+    agent_device_domain: null
+    agent_hostname: null
+  alert_name: Suricata Detected A Windows DLL or EXE File Downloaded
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: Take any of the binary download alerts from Suricata and merge it with
+    the fileinfo so reputation can be determined by playbooks
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: 5e0738a7-2fec-4e3c-8f7e-12ab33dce28f
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: CUSTOM
+  mitre_defs: {}
+  name: Suricata Detected A Windows DLL or EXE File Downloaded
+  search_window: 11 minutes
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: category
+  user_defined_severity: sev
+  xql_query: "dataset = suricata_suricata_alert\r\n| filter signature contains \"\
+    EXE or DLL\" or signature contains \"ET HUNTING PE EXE Download\" or signature\
+    \ contains \"'ET INFO .exe File requested over FTP\"\r\n| join (dataset = suricata_suricata_fileinfo_telemetry\
+    \ | filter state != \"TRUNCATED\" | fields flow_id, filename, file_sha256, state,\
+    \ magic) as file_data file_data.flow_id = flow_id\r\n| fields filename, state,\
+    \ file_sha256, magic, *"
+- action: ALERTS
+  alert_category: EXFILTRATION
+  alert_description: null
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    action_local_ip: source_ip
+    action_local_port: source_port
+    action_remote_ip: dest_ip
+    action_remote_port: dest_port
+    actor_effective_username: users
+    agent_device_domain: url_domain
+    agent_hostname: source_ip
+    agent_ip_addresses: source_ip
+    clickedurls: uri
+    fw_app_category: app_category
+    fw_app_id: log_source_id
+    fw_app_subcategory: app_sub_category
+    fw_app_technology: _product
+    fw_device_name: _product
+    fw_rule: rule_matched
+    fw_serial_number: _device_id
+    fw_url_domain: uri
+    internaladdresses: source_ip
+    logsource: log_set
+    logsourcetype: log_type
+    protocolnames: protocol
+    riskrating: risk_of_app
+    user_agent: user_agent
+    vendorproduct: vendor_name
+    verdict: vendor_severity
+    verificationmethod: url_category
+  alert_name: Acesso ao PasteBin com Risco High
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 0269513b-bbbb-4804-9cef-6ac04690716c
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0010 - Exfiltration:
+    - T1567 - Exfiltration Over Web Service
+  name: Acesso ao PasteBin com Risco High
+  search_window: null
+  severity: SEV_050_CRITICAL
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: dataset = panw_ngfw_url_raw | filter _device_id = "007951000416388" and
+    app != "pastebin-base" and risk_of_app = "High"
+- action: ALERTS
+  alert_category: COLLECTION
+  alert_description: null
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: Login out of working hour
+  alert_type: null
+  crontab: 0 0 * * *
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: a96d27ab-0840-4b7d-86ec-8732d25975f1
+  investigation_query_link: ''
+  lookup_mapping: []
+  mapping_strategy: AUTO
+  mitre_defs: {}
+  name: Login out of working hour
+  search_window: 1 hours
+  severity: SEV_040_HIGH
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "datamodel dataset = microsoft_windows_raw | filter xdm.event.id = \"\
+    4624\" \n| alter login_hour = to_integer(format_timestamp(\"%H\", _time))\n| filter\
+    \ xdm.target.user.username != NULL and xdm.target.user.username  != \"NT AUTHORITY\\\
+    SYSTEM\"  and xdm.target.user.username != \"MSOL_3c6f4731edbc\"\n| filter login_hour\
+    \ > 15\n| fields _time, login_hour, xdm.target.user.username, xdm.source.host.hostname\
+    \ \n| sort desc _time \n\n\n\n//Old Rule\n//dataset = xdr_data\n//| filter event_type\
+    \ = ENUM.LOGIN_EVENT\n//| alter login_hour = to_integer(format_timestamp(\"%H\"\
+    , _time))\n//| filter actor_effective_username != NULL\n//| filter login_hour\
+    \ < 4 or login_hour > 16\n\n\n\n\n\n"
+- action: ALERTS
+  alert_category: CREDENTIAL_ACCESS
+  alert_description: 'the user $auth_identity trying to log in from $action_country
+    to $auth_target
+
+    Fail Reason: $auth_outcome_reason'
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    action_country: action_country
+    actor_effective_username: auth_identity
+    agent_device_domain: auth_domain
+    agent_hostname: auth_client
+    agent_ip_addresses: auth_client
+    appmessage: sso_display_message
+    authenticationoutcome: auth_outcome
+    authenticationtarget: auth_target
+    devicename: auth_client_type
+    displayname: auth_identity_display_name
+    location: action_country
+    logsource: associated_vendors
+    logsourcename: associated_products
+    logsourcetype: log_src_type
+  alert_name: Failed login from unusual location
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: every sign in that is not from israel or the US
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 56b0a021-4d49-459c-a860-267bdc0704ff
+  investigation_query_link: '// detect sign-ins out of the allowed locations
+
+    config case_sensitive = false | preset = authentication_story | filter auth_outcome
+    = "FAILURE" | filter action_country not in (ENUM.ISRAEL,ENUM.UNITED_STATES,ENUM.UNKNOWN)
+    and auth_identity = $auth_identity | fields auth_identity , auth_outcome , associated_products
+    , associated_vendors , action_country , auth_client , auth_target  , auth_identity_display_name '
+  lookup_mapping: null
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0001 - Initial Access:
+    - T1078 - Valid Accounts
+    - 'T1078.004 - Valid Accounts: Cloud Accounts'
+  name: Failed login from unusual location
+  search_window: null
+  severity: SEV_030_MEDIUM
+  suppression_duration: 15 minutes
+  suppression_enabled: true
+  suppression_fields: auth_identity|auth_client
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "// detect sign-ins out of the allowed locations\nconfig case_sensitive\
+    \ = false | \npreset = authentication_story | \nfilter auth_outcome = \"FAILURE\"\
+    \ | \nfilter action_country not in (ENUM.ISRAEL,ENUM.UNITED_STATES,ENUM.UNKNOWN)\
+    \ | \nalter associated_vendors = if(associated_vendors = \"msft\", \"Microsoft\"\
+    ,associated_vendors ), log_src_type = \"Authentication\" | \nfields associated_vendors\
+    \ , auth_client ,auth_service, auth_identity , auth_outcome , auth_outcome_reason\
+    \ , sso_severity , sso_display_message , auth_client_type , auth_domain , log_src_type\
+    \ , auth_identity_display_name, associated_products , action_country, auth_target "
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $Description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    _product: SourceProducts
+    _vendor: SourceVendors
+    action_local_ip: LocalIP
+    actor_effective_username: userdomain
+    actor_process_command_line: CommandLine
+    actor_process_image_path: FilePath
+    actor_process_image_sha256: SHA256String
+    agent_device_domain: LogonDomain
+    agent_hostname: Hostname
+    agent_ip_addresses: LocalIP
+    alertaction: PatternDispositionDescription
+    parentprocesscmd: ParentCommandLine
+    parentprocessfilepath: ParentImageFilePath
+    parentprocessname: ParentImageFileName
+  alert_name: $name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: This rule maps the alerts from crowdstrike incidents dataset to 1:1
+    correlation rule
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: cb51954b-6763-406f-ae38-0b480a0be84c
+  investigation_query_link: ''
+  lookup_mapping: []
+  mapping_strategy: CUSTOM
+  mitre_defs: {}
+  name: CrowdStrike Alerts & Detections
+  search_window: null
+  severity: User Defined
+  suppression_duration: 30 minutes
+  suppression_enabled: true
+  suppression_fields: AggregateId
+  user_defined_category: Tactic
+  user_defined_severity: SeverityName
+  xql_query: "dataset = crowdstrike_falcon_incident_raw | \nfields _time as alert_time\
+    \ , Hostname ,LocalIP , CommandLine , DataDomains , Description , FileName , LogonDomain\
+    \ , MACAddress , name , Objective , ParentCommandLine , ParentImageFileName ,\
+    \ ParentImageFilePath , FilePath , SeverityName , Tactic , Technique , UserName\
+    \ , Type , AgentId , AggregateId , SHA256String , PatternDispositionDescription\
+    \ , SourceVendors ,SourceProducts  | \nalter userdomain = concat(LogonDomain ,\
+    \ \"\\\" , UserName ) | \nfilter AgentId != null"
+- action: ALERTS
+  alert_category: DISCOVERY
+  alert_description: Active Directory Brute Force Activity Detected for $source_user
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    action_local_ip: target_ip
+    action_remote_ip: source_ip
+    actor_effective_username: source_user
+    agent_hostname: target_hostname
+    loginattemptcount: Count
+  alert_name: Active Directory - BruteForce Activity for $source_user
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: Active Directory Brute Force Activity
+  drilldown_query_timeframe: QUERY
+  execution_mode: SCHEDULED
+  global_rule_id: 7e7c0eda-5636-44af-921e-049aa904d2eb
+  investigation_query_link: "dataset = microsoft_windows_raw \n| filter event_id =\
+    \ 4625\n| filter _collector_type = \"XDR Collector\"\n| alter user = event_data\
+    \ -> TargetUserName\n| alter source_ip = event_data -> IpAddress\n| alter source_domain\
+    \ = event_data -> TargetDomainName\n| alter source_user = source_domain + \"\\\
+    \" + user\n| alter target_ip = _collector_internal_ip_address  \n| alter target_hostname\
+    \ = _collector_hostname \n| filter source_user = $source_user "
+  lookup_mapping: []
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0006 - Credential Access:
+    - T1110 - Brute Force
+    - 'T1110.001 - Brute Force: Password Guessing'
+    - 'T1110.002 - Brute Force: Password Cracking'
+    - 'T1110.003 - Brute Force: Password Spraying'
+    - 'T1110.004 - Brute Force: Credential Stuffing'
+  name: Active Directory - BruteForce Activity
+  search_window: 1 hours
+  severity: SEV_030_MEDIUM
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "dataset = microsoft_windows_raw \n| filter event_id = 4625\n| filter\
+    \ _collector_type = \"XDR Collector\"\n| alter user = event_data -> TargetUserName\n\
+    | alter source_ip = event_data -> IpAddress\n| alter source_domain = event_data\
+    \ -> TargetDomainName\n| alter source_user = source_domain + \"\\\" + user\n|\
+    \ alter target_ip = _collector_internal_ip_address  \n| alter target_hostname\
+    \ = _collector_hostname \n| comp count(event_id) as Count by source_user, source_ip,\
+    \ target_ip, target_hostname \n| filter Count >= 3"
+- action: ALERTS
+  alert_category: EXFILTRATION
+  alert_description: DNS Tunneling Correlation Rule
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: DNS Tunneling Suspected
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: Correlation rule of DNS Tunneling
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: fa308093-01b1-45fa-aee1-ad3b7801b9c7
+  investigation_query_link: 'datamodel dataset in (panw_ngfw_threat_raw , panw_ngfw_traffic_raw
+    , xdr_data ) |
+
+    fields _time, xdm.network.dns.dns_question.name , xdm.network.dns.response_code
+    , xdm.source.ipv4 , xdm.source.host.hostname , xdm.target.ipv4 , xdm.target.port
+    , xdm.source.agent.identifier, xdm.source.user.username,xdm.source.process.command_line,
+    xdm.source.process.name |
+
+
+    filter xdm.source.ipv4 = $xdm.source.ipv4 and xdm.target.ipv4 = $xdm.target.ipv4 '
+  lookup_mapping: []
+  mapping_strategy: AUTO
+  mitre_defs:
+    TA0010 - Exfiltration:
+    - T1048 - Exfiltration Over Alternative Protocol
+    - T1020 - Automated Exfiltration
+    - T1011 - Exfiltration Over Other Network Medium
+  name: DNS Tunneling
+  search_window: null
+  severity: SEV_050_CRITICAL
+  suppression_duration: 1 minutes
+  suppression_enabled: true
+  suppression_fields: xdm.source.host.hostname|xdm.source.host.hostname
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: 'datamodel dataset in (panw_ngfw_threat_raw , panw_ngfw_traffic_raw ,
+    xdr_data ) | filter xdm.network.dns.dns_question.type = XDM_CONST.DNS_RECORD_TYPE_A
+    | filter xdm.source.host.hostname = "dc01" | filter xdm.source.process.name =
+    "nslookup.exe" | filter xdm.network.dns.dns_resource_record.name != null or xdm.network.dns.dns_question.name
+    != null
+
+    | fields _time, xdm.network.dns.dns_question.name , xdm.network.dns.response_code
+    , xdm.source.ipv4 , xdm.source.host.hostname , xdm.target.ipv4 , xdm.target.port
+    , xdm.source.agent.identifier, xdm.source.user.username, xdm.source.process.command_line,
+    xdm.source.process.name'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: This alert collects information from Google Forms when a user
+    submits a ticket regarding potential system issues.
+  alert_domain: DOMAIN_CTF_SUPPORT
+  alert_fields:
+    actor_effective_username: user
+    issuedesc: issue_desc
+    issuetype: issue_type
+  alert_name: Google Forms - New Issues Raised
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: This alert collects information from Google Forms when a user submits
+    a ticket regarding potential system issues.
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: b4e321d3-2fa3-4763-ac3b-997423f00f56
+  investigation_query_link: "config case_sensitive = false | dataset =  google_forms_issues\
+    \ \n|fields issue_desc, issue_type ,user\n| filter user = $user "
+  lookup_mapping: []
+  mapping_strategy: CUSTOM
+  mitre_defs: {}
+  name: Google Forms - New Issues Raised
+  search_window: 1 hours
+  severity: SEV_020_LOW
+  suppression_duration: 1 hours
+  suppression_enabled: true
+  suppression_fields: user
+  user_defined_category: issue_type
+  user_defined_severity: null
+  xql_query: "config case_sensitive = false | dataset =  google_forms_issues \n|fields\
+    \ issue_desc, issue_type ,user"
+- action: ALERTS
+  alert_category: CREDENTIAL_ACCESS
+  alert_description: 'The identity $xdm.source.user.username failed in multiple MFA
+    authentication attempts.
+
+    MFA Requests - $mfa_requests'
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: MFA Spike Detection
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: Detects unusual spikes in MFA requests for {UserName}, signaling potential
+    MFA bombing.
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: e7a176ee-943e-467a-9738-3e974feabfd9
+  investigation_query_link: "config case_sensitive = false | datamodel dataset = *\
+    \ | filter XDM_ALIAS.user = xdm.source.user.username | sort desc _time \n// normalize\n\
+    | alter final_host = if(xdm.source.host.hostname = null, xdm.source.ipv4, xdm.source.host.hostname)\n\
+    // grouping\n| comp count() as num_actions by final_host, xdm.observer.vendor,xdm.observer.product,\
+    \ xdm.event.operation,xdm.event.type,xdm.target.resource.name,xdm.event.outcome,xdm.event.description\
+    \ ,xdm.event.outcome_reason , xdm.source.location.country, xdm.source.user.username\
+    \ \n| sort asc final_host, desc xdm.observer.vendor "
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs:
+    TA0001 - Initial Access:
+    - T1078 - Valid Accounts
+    - 'T1078.004 - Valid Accounts: Cloud Accounts'
+    TA0006 - Credential Access:
+    - T1621 - Multi-Factor Authentication Request Generation
+  name: MFA Spike Detection
+  search_window: 30 hours
+  severity: SEV_030_MEDIUM
+  suppression_duration: 20 minutes
+  suppression_enabled: true
+  suppression_fields: xdm.source.user.username
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "// detect sign-ins out of the allowed locations\nconfig case_sensitive\
+    \ = false | \n\n// detect strong authentication interrupt\ndatamodel dataset in\
+    \ (msft_azure_ad_raw , msft_o365_azure_ad_raw , okta_sso_raw) | filter xdm.event.outcome_reason\
+    \ = \"UserStrongAuthClientAuthNRequiredInterrupt\" or xdm.event.outcome_reason\
+    \ contains \"Strong Authentication is required\" or xdm.event.outcome_reason =\
+    \ \"UserStrongAuthEnrollmentRequiredInterrupt\" and xdm.source.user.username !=\
+    \ \"Not Available\"\n\n// count by the user \\ identity\n| comp count() as mfa_requests\
+    \ by xdm.source.user.username\n\n// alert in case of more than 10\n| filter mfa_requests\
+    \ >= 10"
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 18cbd0a5-ceb0-5d99-a532-61c52243540f
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: Sample Incident Generator Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = sample_incident_generator_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: EXFILTRATION
+  alert_description: Data exfiltration on s3 critical assets via API by non whitelisted
+    users/roles
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    actor_effective_username: identity_name
+    externalstatus: operation_status
+    operationname: operation_name_orig
+    referenced_resource: referenced_resource
+  alert_name: 'Critical Assets: S3 - Exfiltration'
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: Data exfiltration on s3 critical assets via API by non whitelisted
+    users/roles
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: f1e4e1ff-0752-4827-91e4-5b97b0302dc0
+  investigation_query_link: "dataset in(cloud_audit_logs, amazon_aws_raw)\n| filter\
+    \ identity_name = $identity_name \n| filter referenced_resource = $referenced_resource\
+    \ \n| fields identity_name, operation_name_orig,referenced_resource, operation_status,\
+    \ raw_log"
+  lookup_mapping: []
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0010 - Exfiltration:
+    - T1011 - Exfiltration Over Other Network Medium
+    - T1020 - Automated Exfiltration
+    - T1537 - Transfer Data to Cloud Account
+    - T1567 - Exfiltration Over Web Service
+    - 'T1567.002 - Exfiltration Over Web Service: Exfiltration to Cloud Storage'
+  name: 'Critical Assets: S3 - Exfiltration'
+  search_window: null
+  severity: SEV_050_CRITICAL
+  suppression_duration: 1 hours
+  suppression_enabled: true
+  suppression_fields: identity_name
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "dataset =cloud_audit_logs \n| filter referenced_resource contains \"\
+    company-data\" or referenced_resource contains \"configuration-files\" or referenced_resource\
+    \ contains\"customer-data\" or referenced_resource contains\"payment-data\"\n\
+    | filter user_agent contains \"Boto3\"\n| filter operation_name_orig = \"GetObject\"\
+    \n| filter identity_type = \"user\"\n| alter referenced_resource = json_extract(arrayindex(json_extract_array(raw_log,\
+    \ \"$.resources\"), 0), \"$.ARN\")\n| fields identity_name, operation_name_orig\
+    \ , operation_status, referenced_resource, raw_log "
+- action: ALERTS
+  alert_category: TAMPERING
+  alert_description: Data tampering\modification on s3 critical assets via API by
+    non whitelisted users/roles
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    actor_effective_username: identity_name
+    externalstatus: operation_status
+    operationname: operation_name_orig
+    referenced_resource: referenced_resource
+  alert_name: 'Critical Assets: S3 - Data Tampering'
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: Data tampering\modification on s3 critical assets via API by non whitelisted
+    users/roles
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 9d8b8af2-455f-4865-9861-043902048cd4
+  investigation_query_link: "dataset in(cloud_audit_logs, amazon_aws_raw)\n| filter\
+    \ identity_name = $identity_name \n| filter referenced_resource = $referenced_resource\
+    \ \n| fields identity_name, operation_name_orig,referenced_resource, operation_status,\
+    \ raw_log"
+  lookup_mapping: []
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0040 - Impact:
+    - T1565 - Data Manipulation
+  name: 'Critical Assets: S3 - Data Tampering'
+  search_window: null
+  severity: SEV_050_CRITICAL
+  suppression_duration: 1 hours
+  suppression_enabled: true
+  suppression_fields: identity_name
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "dataset =cloud_audit_logs \n| filter referenced_resource contains \"\
+    company-data\" or referenced_resource contains \"configuration-files\" or referenced_resource\
+    \ contains\"customer-data\" or referenced_resource contains\"payment-data\"\n\
+    | filter user_agent contains \"Boto3\"\n| filter operation_name_orig = \"PutObject\"\
+    \n| filter identity_type = \"user\"\n| alter referenced_resource = json_extract(arrayindex(json_extract_array(raw_log,\
+    \ \"$.resources\"), 0), \"$.ARN\")\n| fields identity_name, operation_name_orig\
+    \ , operation_status, referenced_resource, referenced_resource, raw_log "
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: Portable AnyDesk execution detection
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: Portable AnyDesk Detected
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: This rule looks for portable  anydesk executions in the organization
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 7ed73108-e7d3-42b0-a674-31f51b91798d
+  investigation_query_link: 'dataset = xdr_data | filter action_process_image_sha256  =
+    $action_process_image_sha256 | fields event_type, event_sub_type , agent_hostname,
+    actor_effective_username, action_process_image_name , actor_process_image_name  |
+    alter image_name = if(action_process_image_name,null,actor_process_image_name)
+    | fields -action_process_image_name, actor_process_image_name '
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: {}
+  name: Portable AnyDesk Detected
+  search_window: null
+  severity: SEV_030_MEDIUM
+  suppression_duration: 30 minutes
+  suppression_enabled: true
+  suppression_fields: agent_id|action_process_image_sha256
+  user_defined_category: category
+  user_defined_severity: null
+  xql_query: "config case_sensitive = false | dataset = xdr_data | \nfilter event_type\
+    \ = ENUM.PROCESS and event_sub_type = ENUM.PROCESS_START  and action_process_signature_vendor\
+    \ contains \"anydesk\" | \n alter category = \"Threat Detection\" | fields action_process_signature_*,\
+    \ action_process_image_path, action_process_image_sha256, actor_effective_username,\
+    \ agent_hostname, category , causality_actor_causality_id , action_process_image_name\
+    \ , agent_id"
+- action: ALERTS
+  alert_category: TAMPERING
+  alert_description: Data destruction on s3 critical assets via API by non whitelisted
+    users/roles
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    actor_effective_username: identity_name
+    externalstatus: operation_status
+    operationname: operation_name_orig
+    referenced_resource: referenced_resource
+  alert_name: 'Critical Assets: S3 - Data Destruction'
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: Data destruction on s3 critical assets via API by non whitelisted users/roles
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 976c7a3f-f0fc-48df-90ac-25a62b772251
+  investigation_query_link: "dataset in(cloud_audit_logs, amazon_aws_raw)\n| filter\
+    \ identity_name = $identity_name \n| filter referenced_resource = $referenced_resource\
+    \ \n| fields identity_name, operation_name_orig,referenced_resource, operation_status,\
+    \ raw_log"
+  lookup_mapping: []
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0040 - Impact:
+    - T1485 - Data Destruction
+  name: 'Critical Assets: S3 - Data Destruction'
+  search_window: null
+  severity: SEV_050_CRITICAL
+  suppression_duration: 1 hours
+  suppression_enabled: true
+  suppression_fields: identity_name
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "dataset =cloud_audit_logs \n| filter referenced_resource contains \"\
+    company-data\" or referenced_resource contains \"configuration-files\" or referenced_resource\
+    \ contains\"customer-data\" or referenced_resource contains\"payment-data\"\n\
+    | filter user_agent contains \"Boto3\"\n| filter operation_name_orig = \"DeleteObject\"\
+    \n| filter identity_type = \"user\"\n| alter referenced_resource = json_extract(arrayindex(json_extract_array(raw_log,\
+    \ \"$.resources\"), 0), \"$.ARN\")\n| fields identity_name, operation_name_orig\
+    \ , operation_status, referenced_resource, raw_log "
+- action: ALERTS
+  alert_category: INFILTRATION
+  alert_description: the user $emailed_user received suspicious email with an attachment
+    from $sender_email
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    actor_effective_username: emailed_user
+  alert_name: '[MS365-Emails] - Suspicious email with an attachment from outside of
+    the organization'
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: emails sent from shady users with shady pdfs to users from the organization
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: e5e208f0-f68a-4856-b32a-b412fe8bc7e4
+  investigation_query_link: "config case_sensitive = false | dataset = msft_o365_emails_raw\
+    \ | \n// pdfs outside of the org\nfilter to_string(attachments) contains \"contentType*pdf\"\
+    \ and sender not contains \"democloud.ai\" |\n\n// normalize fields\nalter emailed_user\
+    \ = arrayindex(regextract(toRecipients ,\"\\\"address\\\":\\\"(.+)\\\"\"),0),\
+    \ sender_email = arrayindex(regextract(from  ,\"\\\"address\\\":\\\"(.+)\\\"\"\
+    ),0) | fields emailed_user , sender_email, attachments , weblink, sentDateTime "
+  lookup_mapping: null
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0001 - Initial Access:
+    - 'T1566.001 - Phishing: Spearphishing Attachment'
+  name: Suspicious email with an attachment from outside of the organization
+  search_window: null
+  severity: SEV_020_LOW
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "config case_sensitive = false | dataset = msft_o365_emails_raw | \n\
+    // pdfs outside of the org\nfilter to_string(attachments) contains \"contentType*pdf\"\
+    \ and sender not contains \"democloud.ai\" |\n\n// normalize fields\nalter emailed_user\
+    \ = arrayindex(regextract(toRecipients ,\"\\\"address\\\":\\\"(.+)\\\"\"),0),\
+    \ sender_email = arrayindex(regextract(from  ,\"\\\"address\\\":\\\"(.+)\\\"\"\
+    ),0) | fields emailed_user , sender_email, attachments , weblink, sentDateTime "
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_desc
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    actor_effective_username: alert_user
+    logsource: log_vendor
+    logsourcename: _product
+    logsourcetype: Source
+  alert_name: $name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: alerts triggered from the office 365 compliance and security center
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 5807c606-1293-44a8-8938-f9f4df86c507
+  investigation_query_link: 'datamodel dataset = * | filter XDM_ALIAS.user = $alert_user
+    | sort desc _time | view column order = populated '
+  lookup_mapping: null
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0001 - Initial Access:
+    - T1566 - Phishing
+    - 'T1566.001 - Phishing: Spearphishing Attachment'
+    - 'T1566.002 - Phishing: Spearphishing Link'
+    - 'T1566.003 - Phishing: Spearphishing via Service'
+  name: Office 365 general alerts
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_cat
+  user_defined_severity: Severity
+  xql_query: 'config case_sensitive = false | dataset = msft_o365_general_raw | filter
+    Operation = "AlertTriggered"
+
+    | alter alert_desc = data -> ad , alert_user = data -> f3u , alert_cat = "Initial
+    Access", log_vendor = if(_vendor = "msft", "Microsoft", _vendor)
+
+    | fields name, CreationTime , Source , alert_desc , alert_user , ResultStatus
+    , Severity , alert_cat, log_vendor '
+- action: ALERTS
+  alert_category: TAMPERING
+  alert_description: Data tampering\modification on DynamoDB critical assets via API
+    by non whitelisted users/roles
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    actor_effective_username: identity_name
+    externalstatus: operation_status
+    operationname: operation_name_orig
+    referenced_resource: referenced_resource
+  alert_name: 'Critical Assets: DynamoDB - Data Tampering'
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: Data tampering\modification on DynamoDB critical assets via API by
+    non whitelisted users/roles
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 3c46e1b6-7e64-40cc-9456-8170ffe08631
+  investigation_query_link: "dataset =cloud_audit_logs \n| filter raw_log = $raw_log\n\
+    | filter identity_name = $identity_name \n| fields identity_name, operation_name_orig\
+    \ , operation_status, raw_log"
+  lookup_mapping: []
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0040 - Impact:
+    - T1565 - Data Manipulation
+    - 'T1491.001 - Defacement: Internal Defacement'
+  name: 'Critical Assets: DynamoDB - Data Tampering'
+  search_window: null
+  severity: SEV_050_CRITICAL
+  suppression_duration: 1 hours
+  suppression_enabled: true
+  suppression_fields: identity_name
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "dataset =cloud_audit_logs \n| filter user_agent contains \"Boto3\"\n\
+    | filter identity_type = \"user\"\n| filter raw_log contains \"CustomerOrdersTable-\"\
+    \ or raw_log contains \"CustomerSSNTable-\" or raw_log contains \"too_late\"\n\
+    | filter resource_type_orig = \"dynamodb.amazonaws.com\"\n| filter operation_name_orig\
+    \ = \"CreateTable\" or operation_name_orig = \"PutItem\"\n| filter operation_status\
+    \ != \"Error\"\n| alter referenced_resource = json_extract(arrayindex(json_extract_array(raw_log,\
+    \ \"$.resources\"), 0), \"$.ARN\")\n| fields identity_name, operation_name_orig\
+    \ , operation_status, referenced_resource, raw_log "
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 998e16a4-e801-5b23-bc95-5db1509464b4
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: Gmail Single User Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = gmail_single_user_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: OTHER
+  alert_description: null
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    accountid: UserId
+    action_file_name: SourceFileName
+    action_file_path: ObjectId
+    action_remote_ip: ClientIP
+    actor_effective_username: UserId
+    filesize: FileSizeBytes
+    malwarefamily: VirusInfo
+    malwarename: VirusInfo
+    user_agent: UserAgent
+  alert_name: FileMalwareDetected - SharePoint anti-virus engine detects malware in
+    a file.
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: $UserId has uploaded a malware via sharepoint  $ObjectId
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: acd1d94b-4e71-431a-bb2b-2c8263f617e8
+  investigation_query_link: dataset = msft_o365_sharepoint_online_raw| filter Operation
+    = "FileUploaded" and ObjectId = $ObjectId
+  lookup_mapping: []
+  mapping_strategy: CUSTOM
+  mitre_defs: {}
+  name: FileMalwareDetected - SharePoint anti-virus engine detects malware in a file.
+  search_window: 2 days
+  severity: SEV_030_MEDIUM
+  suppression_duration: 1 hours
+  suppression_enabled: true
+  suppression_fields: ObjectId
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "dataset = msft_o365_sharepoint_online_raw \r\n| filter Operation  =\
+    \ \"FileMalwareDetected\" | fields *\r\n| join type = inner (dataset = msft_o365_sharepoint_online_raw|\
+    \ filter Operation = \"FileUploaded\" | fields ClientIP ,UserId , Operation ,UserAgent,ObjectId\
+    \ , FileSizeBytes , site , Platform, BrowserName  ) as file_uploads  file_uploads.ObjectId\
+    \ = ObjectId \r\n| fields _time, _vendor , _product , ClientIP , ObjectId , Operation\
+    \ , UserAgent , UserId , ItemType , OrganizationId , SourceFileName ,VirusInfo\
+    \ ,Workload , MachineId , SourceFileName , FileSizeBytes , site , Platform, BrowserName"
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: AnyDesk version $app_version found installed on $host_name
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    agent_hostname: host_name
+    followup: uninstall_cmd
+    vendorproduct: app_vendor
+  alert_name: AnyDesk found on endpoint
+  alert_type: null
+  crontab: 0 * * * *
+  dataset: alerts
+  description: this rule will trigger an alert when an AnyDesk application will pop
+    somewhere in the perimeter
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: 14a40e06-8dcc-4472-9107-e3d63d2e40fe
+  investigation_query_link: ''
+  lookup_mapping: null
+  mapping_strategy: CUSTOM
+  mitre_defs: {}
+  name: AnyDesk Installation on endpoint
+  search_window: 1 hours
+  severity: SEV_040_HIGH
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: category_text
+  user_defined_severity: null
+  xql_query: "config case_sensitive = false | dataset = host_inventory |\n fields\
+    \ applications , host_name , os_type \n| filter applications != null and os_type\
+    \ = ENUM.OS_WINDOWS and applications contains \"google\"\n| arrayexpand applications\
+    \ \n| alter app_name = applications -> application_name, app_vendor = applications\
+    \ -> vendor, uninstall_cmd = applications -> uninstall_string , category_text\
+    \ = \"Risky Software\" , app_version = applications -> raw_version\n| filter app_name\
+    \ contains \"anydesk\" or app_vendor contains \"anydesk\"\n| fields host_name\
+    \ , app_name , app_vendor , uninstall_cmd , category_text "
+- action: ALERTS
+  alert_category: EXFILTRATION
+  alert_description: Data exfiltration on DynamoDB critical assets via API by non
+    whitelisted users/roles
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    actor_effective_username: identity_name
+    externalstatus: operation_status
+    operationname: operation_name_orig
+    referenced_resource: referenced_resource
+  alert_name: 'Critical Assets: DynamoDB - Data Exfiltration'
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: Data exfiltration on DynamoDB critical assets via API by non whitelisted
+    users/roles
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: b2cf81a3-9de2-4fab-9776-86351509124e
+  investigation_query_link: "dataset =cloud_audit_logs \n| filter raw_log = $raw_log\n\
+    | filter identity_name = $identity_name \n| fields identity_name, operation_name_orig\
+    \ , operation_status, raw_log"
+  lookup_mapping: []
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0010 - Exfiltration:
+    - T1567 - Exfiltration Over Web Service
+    - T1048 - Exfiltration Over Alternative Protocol
+    - T1020 - Automated Exfiltration
+  name: 'Critical Assets: DynamoDB - Data Exfiltration'
+  search_window: null
+  severity: SEV_050_CRITICAL
+  suppression_duration: 1 hours
+  suppression_enabled: true
+  suppression_fields: identity_name
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "dataset =cloud_audit_logs \n| filter identity_type = \"user\"\n| filter\
+    \ raw_log contains \"CustomerOrdersTable-\" or raw_log contains \"CustomerSSNTable-\"\
+    \ or raw_log contains \"too_late\"\n| filter resource_type_orig = \"dynamodb.amazonaws.com\"\
+    \n| filter operation_name_orig = \"Scan\"\n| filter operation_status != \"Error\"\
+    \n| alter referenced_resource = json_extract(arrayindex(json_extract_array(raw_log,\
+    \ \"$.resources\"), 0), \"$.ARN\")\n| fields identity_name, operation_name_orig\
+    \ , operation_status, referenced_resource, raw_log "
+- action: ALERTS
+  alert_category: TAMPERING
+  alert_description: Data destruction on DynamoDB critical assets via API by non whitelisted
+    users/roles
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    actor_effective_username: identity_name
+    externalstatus: operation_status
+    operationname: operation_name_orig
+    referenced_resource: referenced_resource
+  alert_name: 'Critical Assets: DynamoDB - Data Destruction'
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: Data destruction on DynamoDB critical assets via API by non whitelisted
+    users/roles
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 386ea245-a53f-42ff-979c-deb746b12a06
+  investigation_query_link: "dataset =cloud_audit_logs \n| filter raw_log = $raw_log\n\
+    | filter identity_name = $identity_name \n| fields identity_name, operation_name_orig\
+    \ , operation_status, raw_log"
+  lookup_mapping: []
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0040 - Impact:
+    - T1485 - Data Destruction
+  name: 'Critical Assets: DynamoDB - Data Destruction'
+  search_window: null
+  severity: SEV_050_CRITICAL
+  suppression_duration: 1 hours
+  suppression_enabled: true
+  suppression_fields: identity_name
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "dataset =cloud_audit_logs \n| filter user_agent contains \"Boto3\"\n\
+    | filter identity_type = \"user\"\n| filter raw_log contains \"CustomerOrdersTable-\"\
+    \ or raw_log contains \"CustomerSSNTable-\" or raw_log contains \"too_late\"\n\
+    | filter resource_type_orig = \"dynamodb.amazonaws.com\"\n| filter operation_name_orig\
+    \ = \"DeleteTable\"\n| filter operation_status != \"Error\"\n| alter referenced_resource\
+    \ = json_extract(arrayindex(json_extract_array(raw_log, \"$.resources\"), 0),\
+    \ \"$.ARN\")\n| fields identity_name, operation_name_orig, operation_status, referenced_resource,\
+    \ raw_log"
+- action: ALERTS
+  alert_category: DISCOVERY
+  alert_description: the host $action_local_ip launched more than 10 distinct IP addressed
+    over more than 4 ports in a 30 minute time frame
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    action_local_ip: action_local_ip
+    agent_hostname: action_local_ip
+  alert_name: '[Network] Network Scanning - Host scanned multiple IPs on multiple
+    service ports'
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: this rule will check if host performed more than 7 network connection
+    on more than 4 well known ports in the last 30 minutes
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: 4daa7ca4-4915-47ee-ab80-43b93e128da9
+  investigation_query_link: "preset = network_story | filter action_local_ip = $action_local_ip\
+    \ | \n// Filter for the well known ports - services, os\nfilter (action_remote_port\
+    \ > 1 and action_remote_port < 1025) or action_remote_port in (3389,1433,1521)|\
+    \ \ncomp values(action_remote_port) as ScannedPorts |\narrayexpand ScannedPorts"
+  lookup_mapping: null
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0007 - Discovery:
+    - T1046 - Network Service Scanning
+  name: '[Network] Network Scanning - Host scanned multiple IPs on multiple service
+    ports'
+  search_window: 1 hours
+  severity: SEV_030_MEDIUM
+  suppression_duration: 1 hours
+  suppression_enabled: true
+  suppression_fields: action_local_ip
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "preset = network_story | \n\n// Filter based on monitored networks\n\
+    filter action_local_ip incidr \"172.21.1.1/16\" and action_remote_ip incidr  \"\
+    172.21.1.1/16\" |\n\n// Filter for the well known ports - services, os\nfilter\
+    \ (action_remote_port > 1 and action_remote_port < 1025) or action_remote_port\
+    \ in (3389,1433,1521) |\n\n// Group the amount of distinct ports by the source\
+    \ address and the destination address\ncomp count_distinct(action_remote_port)\
+    \ as numofports by action_local_ip , action_remote_ip | \n\n// Filter to show\
+    \ addresses that scanned more than 4 ports\nfilter numofports >= 4 | \n\n// Group\
+    \ the amount of distinct destination IPs by the source IP and add the raw data\n\
+    comp count_distinct(action_remote_ip) as numofips by action_local_ip addrawdata\
+    \ = true |\n\n// Filter to source IPs which accessed more than 10 destinations\n\
+    filter numofips >= 7"
+- action: ALERTS
+  alert_category: OTHER
+  alert_description: null
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    accountid: UserId
+    action_file_name: SourceFileName
+    action_file_path: ObjectId
+    action_remote_ip: ClientIP
+    actor_effective_username: UserId
+    filesize: FileSizeBytes
+    malwarefamily: VirusInfo
+    malwarename: VirusInfo
+    user_agent: UserAgent
+  alert_name: FileMalwareDetected - SharePoint anti-virus engine detects malware in
+    a file.
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: $UserId has uploaded a malware via sharepoint  $ObjectId
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: 6dbb2d83-1185-401d-a2a5-4e95d7ae9f99
+  investigation_query_link: dataset = msft_o365_sharepoint_online_raw| filter Operation
+    = "FileUploaded" and ObjectId = $ObjectId
+  lookup_mapping: []
+  mapping_strategy: CUSTOM
+  mitre_defs: {}
+  name: test copy with
+  search_window: 10 minutes
+  severity: SEV_030_MEDIUM
+  suppression_duration: 1 hours
+  suppression_enabled: true
+  suppression_fields: ObjectId|ObjectId
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "dataset = msft_o365_sharepoint_online_raw \r\n| filter Operation  =\
+    \ \"FileMalwareDetected\" | alter system_user = UserId | fields *\r\n| join type\
+    \ = inner (dataset = msft_o365_sharepoint_online_raw| filter Operation = \"FileUploaded\"\
+    \ | fields ClientIP ,UserId , Operation ,UserAgent,ObjectId , FileSizeBytes ,\
+    \ site , Platform, BrowserName ) as file_uploads  file_uploads.ObjectId = ObjectId\
+    \ \r\n| fields _time, _vendor , _product , ClientIP , ObjectId , Operation , UserAgent\
+    \ , UserId , ItemType , OrganizationId , SourceFileName ,VirusInfo ,Workload ,\
+    \ MachineId , SourceFileName , system_user, FileSizeBytes , site , Platform, BrowserName\r\
+    \n| alter UserId = arraycreate(system_user , UserId )"
+- action: ALERTS
+  alert_category: LATERAL_MOVEMENT
+  alert_description: Non-Windows OpenVPN Client detected.
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    agent_ip_addresses: clientPublicIp
+    cloudresourcelist: cloudId
+    logsource: _vendor
+    logsourcename: service
+    logsourcetype: category
+    resourcename: cloudId
+  alert_name: OpenVPN NonWindows Correlation Rule
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: Any Non Windows OpenVPN connection
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: ebaf2942-3fa0-4b1e-8a99-f305c4e82bb1
+  investigation_query_link: dataset = openvpn_cloud_connexa_raw  | filter eventname
+    = "client-connected" | alter clientOsType = log -> clientOsType, clientIP = log
+    -> clientPublicIp, clientTunnelIP = log -> clientTunnelIpV4 | filter clientOsType
+    != "Windows" | fields client*, _collector_name, _vendor, cloudId, log, service,
+    category, eventName
+  lookup_mapping: null
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0001 - Initial Access:
+    - T1078 - Valid Accounts
+    TA0006 - Credential Access:
+    - T1528 - Steal Application Access Token
+    TA0009 - Collection:
+    - T1119 - Automated Collection
+    TA0042 - Resource Development:
+    - T1586 - Compromise Accounts
+  name: OpenVPN NonWindows Critical Asset
+  search_window: null
+  severity: SEV_040_HIGH
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: dataset = openvpn_cloud_connexa_raw  | filter eventname = "client-connected"
+    | alter clientOsType = log -> clientOsType, clientIP = log -> clientPublicIp,
+    clientTunnelIP = log -> clientTunnelIpV4 | filter clientOsType != "Windows" |
+    fields client*, _collector_name, _vendor, cloudId, log, service, category, eventName
+- action: ALERTS
+  alert_category: EXFILTRATION
+  alert_description: 'Host $xdm.source.ipv4 detected performing DNS requests with
+    suspicious characters, this may suggest of DNS Tunneling attempt.
+
+    Remote DNS Server: $xdm.target.ipv4'
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: DNS Tunneling - Suspicious characters in DNS requests
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: this rule detects activity where more than 15 requests been made to
+    external server with suspicious characters in the request, this may suggest of
+    DNS Tunneling attempt
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: c2814908-474f-48d1-8053-3575ac6efe7d
+  investigation_query_link: 'datamodel dataset in (panw_ngfw_threat_raw , panw_ngfw_traffic_raw
+    , xdr_data ) |
+
+    fields _time, xdm.network.dns.dns_question.name , xdm.network.dns.response_code
+    , xdm.source.ipv4 , xdm.source.host.hostname , xdm.target.ipv4 , xdm.target.port
+    , xdm.source.agent.identifier, xdm.source.user.username |
+
+    // Look for suspicious chars in DNS requests
+
+    filter xdm.network.dns.dns_question.name != null |
+
+    filter xdm.network.dns.dns_question.name contains "/" or xdm.network.dns.dns_question.name
+    contains "+" or xdm.network.dns.dns_question.name contains "=" |
+
+    filter xdm.source.ipv4 = $xdm.source.ipv4 and xdm.target.ipv4 = $xdm.target.ipv4 '
+  lookup_mapping: []
+  mapping_strategy: AUTO
+  mitre_defs:
+    TA0010 - Exfiltration:
+    - T1011 - Exfiltration Over Other Network Medium
+  name: DNS Tunneling - Suspicious characters in DNS requests
+  search_window: null
+  severity: SEV_020_LOW
+  suppression_duration: 1 hours
+  suppression_enabled: true
+  suppression_fields: xdm.source.ipv4|xdm.target.ipv4
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: 'datamodel dataset in (panw_ngfw_threat_raw , panw_ngfw_traffic_raw ,
+    xdr_data ) |
+
+    fields _time, xdm.network.dns.dns_question.name , xdm.network.dns.response_code
+    , xdm.source.ipv4 , xdm.source.host.hostname , xdm.target.ipv4 , xdm.target.port
+    , xdm.source.agent.identifier, xdm.source.user.username |
+
+    // Look for suspicious chars in DNS requests
+
+    filter xdm.network.dns.dns_question.name != null |
+
+    filter xdm.network.dns.dns_question.name contains "/" or xdm.network.dns.dns_question.name
+    contains "+" or xdm.network.dns.dns_question.name contains "=" '
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    actor_effective_username: email_
+    additionalindicators: source_information
+    assetid: matched_assets
+    logsource: product
+  alert_name: $title
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: this will generate correlation alert for every osint event of leaked
+    credentials
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 54363fcc-c894-4bc4-9dac-5e68fe277105
+  investigation_query_link: datamodel dataset = * | filter XDM_ALIAS.user = $email_
+  lookup_mapping: null
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0043 - Reconnaissance:
+    - 'T1589.001 - Gather Victim Identity Information: Credentials'
+    - T1589 - Gather Victim Identity Information
+    - 'T1589.002 - Gather Victim Identity Information: Email Addresses'
+  name: Shadows Trace exposed credential alert
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: risk_type
+  user_defined_severity: risk_level
+  xql_query: 'dataset = osintel_shadows_trace_raw | filter title != null |
+
+    fields title , description , email_ , source_information ,matched_assets , classification
+    , risk_*, mitre_attack_mapping, product , vendor '
+- action: ALERTS
+  alert_category: RECONNAISSANCE
+  alert_description: the host $remote_actor_parsed tries to enumerate domain users
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    agent_hostname: remote_actor_parsed
+  alert_name: Domain User Enumeraion
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: this rule detects user enumeration activities in the domain - will
+    trigger if more than different 100 users requests tickets from the same remote
+    host
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: 3d50f95d-aaa2-4244-b250-9bb68a5924dd
+  investigation_query_link: "config case_sensitive = false | \n// get the event logs\
+    \ that suggest of bloodhound\ndataset = xdr_data | filter event_type = ENUM.EVENT_LOG\
+    \ and action_evtlog_provider_name contains \"security\" and agent_hostname contains\
+    \ \"dc\" and (action_evtlog_event_id = 4769 or action_evtlog_event_id = 4768 or\
+    \ action_evtlog_event_id = 4771)| \n\n// fields extraction for the matching\n\
+    alter subj_user = action_evtlog_data_fields -> SubjectUserName, target_username\
+    \ = action_evtlog_data_fields -> TargetUserName , kerbe_service_name = action_evtlog_data_fields\
+    \ -> ServiceName |\nalter remote_ip_actor = action_evtlog_data_fields -> IpAddress|\
+    \ \nalter remote_actor_parsed = if(remote_ip_actor contains \"ff\",arrayindex(regextract(remote_ip_actor,\
+    \ \".+:(\\d+\\.\\d+\\.\\d+\\.\\d+)\"),0),remote_ip_actor not contains \"ff\",remote_ip_actor)\
+    \ \n| alter username_no_domain = arrayindex(split(target_username ,\"@\"),0) \n\
+    // relevant fields\n| filter remote_actor_parsed != null and remote_actor_parsed\
+    \ != \"::1\"\n|fields remote_actor_parsed  , action_evtlog_*, _time, subj_user,\
+    \ target_username , kerbe_service_name  , agent_hostname, username_no_domain,\
+    \ actor_effective_username, action_evtlog_event_id, action_evtlog_description"
+  lookup_mapping: null
+  mapping_strategy: CUSTOM
+  mitre_defs: {}
+  name: Domain User Enumeraion
+  search_window: 1 hours
+  severity: SEV_030_MEDIUM
+  suppression_duration: 1 hours
+  suppression_enabled: true
+  suppression_fields: null
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "config case_sensitive = false | \n// get Kerberos ticket request events\n\
+    dataset = xdr_data | filter event_type = ENUM.EVENT_LOG and action_evtlog_provider_name\
+    \ contains \"security\" and agent_hostname contains \"dc\" and (action_evtlog_event_id\
+    \ = 4769 or action_evtlog_event_id = 4768 or action_evtlog_event_id = 4771)| \n\
+    \n// fields extraction\nalter subj_user = action_evtlog_data_fields -> SubjectUserName,\
+    \ target_username = action_evtlog_data_fields -> TargetUserName , kerbe_service_name\
+    \ = action_evtlog_data_fields -> ServiceName |\nalter remote_ip_actor = action_evtlog_data_fields\
+    \ -> IpAddress| \nalter remote_actor_parsed = if(remote_ip_actor contains \"ff\"\
+    ,arrayindex(regextract(remote_ip_actor, \".+:(\\d+\\.\\d+\\.\\d+\\.\\d+)\"),0),remote_ip_actor\
+    \ not contains \"ff\",remote_ip_actor) \n| alter username_no_domain = arrayindex(split(target_username\
+    \ ,\"@\"),0) \n// relevant fields\n| filter remote_actor_parsed != null and remote_actor_parsed\
+    \ != \"::1\"\n|fields remote_actor_parsed  , action_evtlog_*, _time, subj_user,\
+    \ target_username , kerbe_service_name  , agent_hostname, username_no_domain,\
+    \ actor_effective_username, action_evtlog_event_id, action_evtlog_description|\
+    \ \n\n// Count mechanism - more than 100 unique users in the ticket the alert\
+    \ will pop, data will be attached to the rule created\ncomp count_distinct(target_username)\
+    \ as users_count by remote_actor_parsed addrawdata = true as rawfields | filter\
+    \ users_count > 100 "
+- action: ALERTS
+  alert_category: OTHER
+  alert_description: null
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: sample alert
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: d
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: 802f1027-fc7b-4c7b-bf8b-79d796636cba
+  investigation_query_link: "dataset = sample_alert_raw \n| filter name = $name"
+  lookup_mapping: []
+  mapping_strategy: CUSTOM
+  mitre_defs: {}
+  name: sample alerts
+  search_window: 10 minutes
+  severity: SEV_030_MEDIUM
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "dataset = sample_alert_raw \n| alter name = name\n| comp count() as\
+    \ Name by _product \n| fields Name ,_product "
+- action: ALERTS
+  alert_category: INFILTRATION
+  alert_description: $alert_name
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    actor_effective_username: new_sender
+    alert_description: alert_name
+    emailheaders: Headers
+    fw_email_sender: From
+  alert_name: Phishing Alert
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 6abab9df-4ff5-4b99-a227-4bc5df89fa4f
+  investigation_query_link: ''
+  lookup_mapping: []
+  mapping_strategy: AUTO
+  mitre_defs: {}
+  name: AI - Gmail Phishing Alert
+  search_window: null
+  severity: SEV_040_HIGH
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "dataset = gmail_single_user_generic_alert_raw\n| filter _alert_data\
+    \ != null\n| filter (From = \"\"\"Alice Wonders <alice@democloud.ai>\"\"\") \n\
+    | alter alert_severity = json_extract_scalar(_alert_data, \"$.severity\")\n| alter\
+    \ alert_category = json_extract_scalar(_alert_data, \"$.alert_category\")\n| alter\
+    \ alert_name = json_extract_scalar(_alert_data, \"$.alert_name\")\n| alter alert_description\
+    \ = json_extract_scalar(_alert_data, \"$.alert_description\")\n| alter sender_user\
+    \ = Mailbox \n|alter new_sendertemp = arrayindex(regextract(from, \"<([^@]+)@\"\
+    ),0)\n|alter new = \"byos\\\"\n|alter new_sender = new + new_sendertemp "
+- action: ALERTS
+  alert_category: COLLECTION
+  alert_description: the user $UserId made large amount of file activities on the
+    organization $EventSource
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    actor_effective_username: UserId
+    alert_category: EventSource
+    alertcategory: EventSource
+    alertsource: EventSource
+    module_id: field_module
+  alert_name: '[CloudStorage] - User accessing large amount of files in a short period
+    of time'
+  alert_type: null
+  crontab: '*/20 * * * *'
+  dataset: alerts
+  description: user doing file actions on the one drive [except sync operations] in
+    a short period of time
+  drilldown_query_timeframe: QUERY
+  execution_mode: SCHEDULED
+  global_rule_id: 226d6e96-9642-4cc9-b5f8-d7733ec4d12e
+  investigation_query_link: '// configure the time frame to be 1h by adding ''config
+    timeframe = 1h'' before the dataset stage
+
+    dataset = msft_o365_sharepoint_online_raw | filter UserId = $UserId and ItemType
+    = "File" | fields Operation , UserId, ClientIP , SourceFileName , ZipFileName
+    , UserAgent , ObjectId '
+  lookup_mapping: null
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0009 - Collection:
+    - 'T1213.002 - Data from Information Repositories: Sharepoint'
+    - T1213 - Data from Information Repositories
+  name: '[CloudStorage] - User accessing large amount of files in a short period of
+    time'
+  search_window: 1 hours
+  severity: SEV_030_MEDIUM
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "dataset = msft_o365_sharepoint_online_raw | filter ItemType = \"File\"\
+    \ |\nfilter to_epoch(CreationTime,\"SECONDS\") <= to_epoch(current_time(),\"SECONDS\"\
+    ) and to_epoch(CreationTime,\"SECONDS\") >= subtract(to_epoch(current_time(),\"\
+    SECONDS\"), 1200)  | \nfilter Operation != \"FileSyncUploadedFull\" | \ncomp count()\
+    \ as fileact by UserId, EventSource  |\nfilter fileact > 20 | alter field_module\
+    \ = \"Suspicious file activity\""
+- action: ALERTS
+  alert_category: RECONNAISSANCE
+  alert_description: the user $actor_effective_username spotted executing potential
+    bloodhound scan
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    actor_effective_username: actor_effective_username
+    agent_hostname: remote_actor_parsed
+  alert_name: RECON - Potential BloodHound Scanning
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: this rule is triggered when a namedpipe is accessed along with events
+    ids (4769,4799) in a 2 min timeframe
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: 032a6ff1-556c-4c54-bdb2-166b728a024e
+  investigation_query_link: ''
+  lookup_mapping: null
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0007 - Discovery:
+    - 'T1087.002 - Account Discovery: Domain Account'
+    - T1087 - Account Discovery
+  name: '[RECON] - Potential BloodHound Scanning'
+  search_window: 15 minutes
+  severity: SEV_030_MEDIUM
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "config case_sensitive = false | \n// check for named pipes activity\
+    \ on DC\ndataset = xdr_data | filter event_type = ENUM.FILE and (action_file_name\
+    \ = \"srvsvc\" or action_file_name = \"lsarpc\" or action_file_name = \"samr\"\
+    ) and action_file_remote_ip != null and agent_hostname contains \"dc\" |\n// extract\
+    \ just the user name for the if matching\nalter username_no_domain = arrayindex(split(actor_effective_username\
+    \ ,\"\\\"),1) | \n// relevant fields\nfields agent_hostname , agent_ip_addresses,\
+    \ actor_effective_username , username_no_domain , action_file_name, action_file_path,\
+    \ action_file_remote_ip, action_file_remote_port | \n\njoin conflict_strategy\
+    \ = both (\nconfig case_sensitive = false | \n// get the event logs that suggest\
+    \ of bloodhound\ndataset = xdr_data | filter event_type = ENUM.EVENT_LOG and action_evtlog_provider_name\
+    \ contains \"security\" and agent_hostname contains \"dc\" and (action_evtlog_event_id\
+    \ = 4769 or action_evtlog_event_id = 4799) | \n\n// fields extraction for the\
+    \ matching\nalter subj_user = action_evtlog_data_fields -> SubjectUserName, target_username\
+    \ = action_evtlog_data_fields -> TargetUserName , kerbe_service_name = action_evtlog_data_fields\
+    \ -> ServiceName |\nalter remote_ip_actor = action_evtlog_data_fields -> IpAddress|\
+    \ \nalter remote_actor_parsed = if(remote_ip_actor contains \"ff\",arrayindex(regextract(remote_ip_actor,\
+    \ \".+:(\\d+\\.\\d+\\.\\d+\\.\\d+)\"),0),remote_ip_actor not contains \"ff\",remote_ip_actor)\
+    \ \n| alter username_no_domain = arrayindex(split(target_username ,\"@\"),0) \n\
+    // relevant fields\n| filter remote_actor_parsed != null and remote_actor_parsed\
+    \ != \"::1\"\n|fields remote_actor_parsed  , action_evtlog_*, _time, subj_user,\
+    \ target_username , kerbe_service_name  , agent_hostname, username_no_domain,\
+    \ actor_effective_username | \nsort asc _time \n) as joindata joindata.agent_hostname\
+    \ = agent_hostname and (joindata.target_username contains username_no_domain or\
+    \ joindata.subj_user contains username_no_domain )  \n| comp earliest(_time) as\
+    \ first_event, latest(_time) as last_event, count()  by actor_effective_username,remote_actor_parsed\
+    \ addrawdata = true \n| alter timediff = timestamp_diff(last_event , first_event\
+    \ , \"SECOND\" ) \n| filter timediff < 120"
+- action: ALERTS
+  alert_category: RECONNAISSANCE
+  alert_description: $src / $shost is scanning the network over port $dpt ($app) on
+    $counter different hosts
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    action_local_ip: src
+    action_remote_ip: null
+    action_remote_port: dpt
+    actor_effective_username: suser
+    actor_process_command_line: null
+    actor_process_image_name: null
+    actor_process_image_path: null
+    actor_process_image_sha256: null
+    agent_device_domain: null
+    agent_hostname: shost
+  alert_name: Fortigate - Machine Scanning The Network
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: fa1bee62-0840-41cc-8a75-28c9a9f5c22b
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0007 - Discovery:
+    - T1046 - Network Service Scanning
+    TA0008 - Lateral Movement:
+    - T1021 - Remote Services
+    TA0043 - Reconnaissance:
+    - T1595 - Active Scanning
+  name: Fortigate - Machine Scanning The Network
+  search_window: 10 minutes
+  severity: SEV_030_MEDIUM
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "dataset = fortinet_fortigate_raw\r\n| alter source_detailed = \"Fortinet/Fortigate\"\
+    \r\n| comp count_distinct(dst) as counter by source_detailed, src, dpt, app, shost,\
+    \ suser\r\n| filter counter > 100"
+- action: ALERTS
+  alert_category: COLLECTION
+  alert_description: An MSSQL Database Backup has been performed.
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: MSSQL Database Backup Performed
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: an MSSQL Database Backup has been performed.
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: b8346a0b-c04f-44de-aac6-57dcbd22bc0c
+  investigation_query_link: "dataset = xdr_data \r\n| filter event_type = EVENT_LOG\
+    \ and action_evtlog_provider_name = \"MSSQLSERVER\" and action_evtlog_event_id\
+    \ in (18264, 33205, 3014, 18454)\r\n| fields action_evtlog_message, agent_hostname,\
+    \ _vendor, _product, action_evtlog_provider_name, action_evtlog_event_id, action_evtlog_description,\
+    \ event_type, event_sub_type, action_evtlog_level"
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs:
+    TA0009 - Collection:
+    - T1074 - Data Staged
+    - T1213 - Data from Information Repositories
+  name: MSSQL Database Backup Performed
+  search_window: null
+  severity: SEV_030_MEDIUM
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "dataset = xdr_data \r\n| filter event_type = EVENT_LOG and action_evtlog_provider_name\
+    \ = \"MSSQLSERVER\" and action_evtlog_event_id in (18264)\r\n| fields action_evtlog_message,\
+    \ agent_hostname, _vendor, _product, action_evtlog_provider_name, action_evtlog_event_id,\
+    \ action_evtlog_description, event_type, event_sub_type, action_evtlog_level"
+- action: ALERTS
+  alert_category: CREDENTIAL_ACCESS
+  alert_description: The user $auth_identity attempted to login from $country_counter
+    different countries, failed to login $fail_counter times, rejected the authentication
+    $reject_counter times, and also successfully authenticated $success_counter times.
+    This is very indicative of stolen credentials and should be investigated.
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    actor_effective_username: auth_identity
+  alert_name: Multiple Failed Logins From Multiple Locations Followed by Successful
+    Login
+  alert_type: null
+  crontab: 0 0 * * *
+  dataset: alerts
+  description: This rule looks for cases where a user tried login from multiple locations
+    globally, failed multiple times, rejected authentication multiple times and also
+    successfully logged in
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: bd4712dd-71a5-40f5-865b-bd89ef33a516
+  investigation_query_link: "preset = authentication_story \r\n| filter auth_identity\
+    \ = $auth_identity"
+  lookup_mapping: []
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0001 - Initial Access:
+    - T1078 - Valid Accounts
+    TA0006 - Credential Access:
+    - T1110 - Brute Force
+    - T1621 - Multi-Factor Authentication Request Generation
+  name: Multiple Failed Logins From Multiple Locations and Authentication Rejects
+    Followed by Successful Login
+  search_window: 24 hours
+  severity: SEV_040_HIGH
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "preset = authentication_story \n| fields auth_identity, auth_outcome,\
+    \ auth_client, action_country, sso_display_message \n| filter  auth_outcome =\
+    \ \"FAILURE\" and sso_display_message = \"User login to Okta\"\n| comp count_distinct(action_country)\
+    \ as country_counter by auth_identity\n| join (preset = authentication_story |\
+    \ fields auth_identity, auth_outcome, auth_client, action_country, sso_display_message\
+    \ | filter  auth_outcome = \"FAILURE\" and sso_display_message = \"User login\
+    \ to Okta\"| comp count() as fail_counter by auth_identity) as fail fail.auth_identity\
+    \ = auth_identity \n| join (preset = authentication_story | fields auth_identity,\
+    \ auth_outcome, auth_client, action_country, sso_display_message | filter  auth_outcome\
+    \ = \"FAILURE\" and sso_display_message = \"User rejected Okta push verify\"|\
+    \ comp count() as reject_counter by auth_identity) as reject reject.auth_identity\
+    \ = auth_identity \n| join (preset = authentication_story | fields auth_identity,\
+    \ auth_outcome, auth_client, action_country, sso_display_message | filter  auth_outcome\
+    \ = \"SUCCESS\" and sso_display_message = \"User login to Okta\"| comp count()\
+    \ as success_counter by auth_identity) as success success.auth_identity = auth_identity\
+    \ \n| filter country_counter > 2 or fail_counter > 3 or reject_counter > 3\n|\
+    \ alter auth_identity = \"paloaltonetwork\\ocohen\""
+- action: ALERTS
+  alert_category: EXFILTRATION
+  alert_description: $data sent to $dst port $dpt ($app) from $src / $shost by $suser
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    action_local_ip: src
+    action_remote_ip: dst
+    action_remote_port: dpt
+    actor_effective_username: suser
+    actor_process_command_line: null
+    actor_process_image_name: null
+    actor_process_image_path: null
+    actor_process_image_sha256: null
+    agent_device_domain: null
+    agent_hostname: shost
+  alert_name: Fortigate - Large Amount Of Data Sent Over FTP
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: 4ef77fe2-9697-4859-a1d6-f900d3df020f
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0010 - Exfiltration:
+    - T1011 - Exfiltration Over Other Network Medium
+    TA0011 - Command and Control:
+    - 'T1071.002 - Application Layer Protocol: File Transfer Protocols'
+  name: Fortigate - Large Amount Of Data Sent Over FTP
+  search_window: 10 minutes
+  severity: SEV_030_MEDIUM
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "dataset = fortinet_fortigate_raw\r\n| filter to_integer(out) > 1073741824\
+    \ and app = \"FTP\" and dpt = 21\r\n| alter data = concat(arrayindex(regextract(to_string(divide(to_integer(out),1073741824)),\
+    \ \"(\\d+\\.\\d\\d).*\"),0) ,\"GB\"), source_detailed = \"Fortinet/Fortigate\""
+- action: ALERTS
+  alert_category: CREDENTIAL_ACCESS
+  alert_description: $counter different users failed to login from $src / $shost in
+    a short time
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    action_local_ip: src
+    agent_hostname: shost
+  alert_name: Windows - Multiple Different Users Failed To Login From The Same Host
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: 68dc1603-1586-4e9e-b1f8-71862a36e28a
+  investigation_query_link: "dataset = microsoft_microsoft_windows_raw \r\n| filter\
+    \ cefDeviceEventClassId contains \"4625\" and shost = $shost\r\n| alter source_detailed\
+    \ = \"Microsoft/Microsoft Windows\" \r\n| fields suser "
+  lookup_mapping: []
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0004 - Privilege Escalation:
+    - 'T1078.002 - Valid Accounts: Domain Accounts'
+    TA0006 - Credential Access:
+    - T1110 - Brute Force
+    TA0007 - Discovery:
+    - 'T1087.002 - Account Discovery: Domain Account'
+  name: Windows - Multiple Different Users Failed To Login From The Same Host
+  search_window: 1 hours
+  severity: SEV_030_MEDIUM
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "dataset = microsoft_microsoft_windows_raw \r\n| filter cefDeviceEventClassId\
+    \ contains \"4625\"\r\n| alter source_detailed = \"Microsoft/Microsoft Windows\"\
+    \ \r\n| comp count_distinct(suser) as counter by source_detailed, shost, src \r\
+    \n| filter counter > 10"
+- action: ALERTS
+  alert_category: CREDENTIAL_ACCESS
+  alert_description: the host $client_ip performed $NumOfAttempts failed login attempts
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    action_external_hostname: host_name
+    action_remote_ip: client_ip
+    agent_hostname: server_instance_name
+  alert_name: '[MSSQL] - Brute Force attempts'
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: 10 or more failed login by the same user in a 10minute timeframe
+  drilldown_query_timeframe: QUERY
+  execution_mode: SCHEDULED
+  global_rule_id: 6fb84e44-3e90-4b43-97fc-8e8a357a19e3
+  investigation_query_link: 'dataset = microsoft_mssql_audit_offest_raw | filter client_ip
+    = $client_ip | sort desc event_time '
+  lookup_mapping: null
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0006 - Credential Access:
+    - 'T1110.001 - Brute Force: Password Guessing'
+    - 'T1110.003 - Brute Force: Password Spraying'
+    - 'T1110.002 - Brute Force: Password Cracking'
+    - 'T1110.004 - Brute Force: Credential Stuffing'
+  name: '[MSSQL] - Brute Force attempts'
+  search_window: 10 minutes
+  severity: SEV_030_MEDIUM
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "config case_sensitive = false | dataset = microsoft_mssql_audit_offest_raw\
+    \ | \nfilter action_id = \"LGIF\" | comp count(_id) as NumOfAttempts by client_ip,\
+    \ host_name, server_instance_name |\nfilter NumOfAttempts > 10"
+- action: ALERTS
+  alert_category: EXFILTRATION
+  alert_description: the user $UserId performed large amount of file operations @
+    $EventSource in small duration of time
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    actor_effective_username: UserId
+    alert_category: EventSource
+    eventdescriptions: EventSource
+    logsource: EventSource
+    module_id: EventSource
+  alert_name: '[CloudStorage] - User accessing large amount of files in a 10 minute
+    duration'
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: track users that perform large file traffic in the storage (delete,
+    download, create, read....)
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: 77e85791-c0ee-4811-9454-a78989e73c3f
+  investigation_query_link: 'config case_sensitive = false | dataset = msft_o365_sharepoint_online_raw
+    | filter ItemType = "file" and UserId = $UserId | fields userid , SiteUrl , clientip,
+    Platform , Workload , Operation , SourceFileName '
+  lookup_mapping: null
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0009 - Collection:
+    - 'T1213.002 - Data from Information Repositories: Sharepoint'
+    - T1213 - Data from Information Repositories
+  name: OLD!! - [CloudStorage] - User accessing large amount of files in a 10 minute
+    duration
+  search_window: 10 minutes
+  severity: SEV_030_MEDIUM
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: config case_sensitive = false | dataset = msft_o365_sharepoint_online_raw
+    | filter ItemType = "file" | comp count() as fileAction by UserId, EventSource
+    | filter fileAction > 20
+- action: ALERTS
+  alert_category: COLLECTION
+  alert_description: null
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    action_local_ip: null
+    action_remote_ip: null
+    action_remote_port: null
+    actor_effective_username: user
+    actor_process_command_line: null
+    actor_process_image_name: null
+    actor_process_image_path: null
+    actor_process_image_sha256: null
+    agent_device_domain: null
+    agent_hostname: null
+  alert_name: cie association in correlation test
+  alert_type: null
+  crontab: 0 * * * *
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: 2e013c32-0dac-4e58-94c9-797c8e2b181d
+  investigation_query_link: ''
+  lookup_mapping: []
+  mapping_strategy: CUSTOM
+  mitre_defs: {}
+  name: cie association in correlation test
+  search_window: 1 hours
+  severity: SEV_030_MEDIUM
+  suppression_duration: 1 hours
+  suppression_enabled: true
+  suppression_fields: user
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "dataset = xdr_data \r\n| alter user = \"democloud\\timauth\" , actor_effective_username\
+    \ = \"democloud\\timauth\"\r\n| limit 1"
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: bc369d34-1b5e-5351-a353-e1f6e8ed8787
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: HelloWorld Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = helloworld_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 474cc0e7-085c-53de-a624-908dadb99b41
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: VirusTotal - Premium (API v3) Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = virustotal_premium_api_v3__generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: d37a452d-5514-5da1-ac90-a5729ba12de4
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: Palo Alto Networks Threat Vault v2 Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = palo_alto_networks_threat_vault_v2_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: COLLECTION
+  alert_description: Sensitive data accessed @ $database_name by $server_principal_name
+    from $host_name ($client_ip)
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    action_remote_ip: client_ip
+    actor_effective_username: server_principal_name
+    agent_hostname: server_instance_name
+  alert_name: '[MSSQL] - Sensitive data accessed'
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: the user information table is being accessed
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 53de68d5-0071-4018-82ad-5ce7ae1539a9
+  investigation_query_link: 'dataset = microsoft_mssql_audit_offest_raw | filter action_id
+    contains "SL" and statement contains "UserInformation" | fields client_ip, host_name
+    , statement , object_name , database_name , application_name , server_principal_name '
+  lookup_mapping: null
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0009 - Collection:
+    - T1005 - Data from Local System
+  name: '[MSSQL] - Sensitive data accessed'
+  search_window: null
+  severity: SEV_040_HIGH
+  suppression_duration: 10 minutes
+  suppression_enabled: true
+  suppression_fields: client_ip
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: 'dataset = microsoft_mssql_audit_offest_raw | filter action_id contains
+    "SL" and statement contains "UserInformation" | fields client_ip, host_name ,
+    statement , object_name , database_name , application_name , server_principal_name
+    , server_instance_name '
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 52733151-2c38-517a-8d4e-f468bbbec4d5
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: Okta IAM Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = okta_iam_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 0f70dc06-2d72-587d-a920-b80ac192a099
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: Digital Shadows Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = digital_shadows_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 13e02eeb-d30b-53ba-bc00-97b7af578c34
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: GoogleDrive Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = googledrive_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: b43a88c9-f537-59c0-a998-3d1541e94430
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: PrismaCloud v2 Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = prismacloud_v2_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 4e5b2490-6c1e-58ea-80fe-107e68d15e9a
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: RedLock Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = redlock_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: f4787c1b-1a56-552e-8001-3e4d769c7871
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: Panorama Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = panorama_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: bab3d1d4-8502-5b23-83f1-884c409585e3
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: MicrosoftGraphIdentityandAccess Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = microsoftgraphidentityandaccess_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 8630dbf0-7ff4-53b3-989a-d8fadae19ea9
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: PaloAltoNetworks_PrismaCloudCompute Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = paloaltonetworks_prismacloudcompute_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 64b966d5-df9d-55a9-bed3-a93ee03ee4dd
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: Azure Sentinel Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = azure_sentinel_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 0b7cefed-942f-5f63-a280-24be2e84ede1
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: AMPv2 Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = ampv2_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: c6383bb3-6925-50d1-8c33-196d2d21d181
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: Mail Listener v2 Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = mail_listener_v2_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: cc6fccd9-752f-539b-bfc3-14db31724550
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: Wiz Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = wiz_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: e755699a-84e9-5014-9dea-fb68eb5ed901
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: ServiceNow v2 Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = servicenow_v2_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 2cf8f34b-9c42-5783-9e94-842f49956de6
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: ServiceNow Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = servicenow_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 250ce626-b16e-5c7c-844d-3843e14db29a
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: jira-v2 Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = jira_v2_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: c8f1f41a-2865-5e6a-b7b6-c2c99145b213
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: Jira V3 Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = jira_v3_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 8a62dde8-1d17-5a8b-9922-04d043acd2c8
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: CyberArkPAS Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = cyberarkpas_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: CREDENTIAL_ACCESS
+  alert_description: This correlation rule will trigger in an event in which 4 or
+    more Failed Logins events occurred from a single user during a 10 minutes timeframe.
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    action_local_ip: xdm.source.ipv4
+    action_remote_ip: null
+    action_remote_port: null
+    actor_effective_username: xdm.target.user.username
+    actor_process_command_line: null
+    actor_process_image_name: null
+    actor_process_image_path: null
+    actor_process_image_sha256: null
+    agent_device_domain: null
+    agent_hostname: null
+  alert_name: CyberArk Failed Logins
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: This correlation rule will trigger in an event in which 4 or more Failed
+    Logins events occurred from a single user during a 10 minutes timeframe.
+  drilldown_query_timeframe: QUERY
+  execution_mode: SCHEDULED
+  global_rule_id: dfa5c92b-9b98-46f3-a438-5eb64ad89420
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: CUSTOM
+  mitre_defs: {}
+  name: CyberArk Failed Logins
+  search_window: 10 minutes
+  severity: SEV_030_MEDIUM
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "datamodel dataset = cyberark_identity_raw \r\n|filter xdm.event.type=\"\
+    Cloud.Core.LoginFail\"\r\n|comp count(xdm.event.type) as `Failed Logins` by xdm.target.user.username,\
+    \ xdm.source.ipv4 \r\n|filter  `Failed Logins` >=4 "
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: f8596cce-ac26-5b5d-b7b1-8bed39e45a63
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: ReliaQuest GreyMatter DRP Incidents Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = reliaquest_greymatter_drp_incidents_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: cda731a4-4c3b-5bd2-8748-80e1f5744f92
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: SentinelOne V2 Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = sentinelone_v2_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 1d74f8f4-734c-51fd-bf3f-f2144ff9342b
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: Microsoft Defender Advanced Threat Protection Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = microsoft_defender_advanced_threat_protection_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: EXECUTION
+  alert_description: This alert will trigger when Malware is detected by Microsoft
+    Defender for Endpoint.
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    action_local_ip: xdm.target.ipv4
+    actor_effective_username: xdm.source.user.username
+    actor_process_command_line: xdm.target.process.command_line
+    actor_process_image_path: xdm.target.file.path
+    actor_process_image_sha256: xdm.target.file.sha256
+    agent_device_domain: xdm.source.user.domain
+    agent_hostname: xdm.target.host.fqdn
+    eventid: xdm.event.id
+  alert_name: Malware detected by Microsoft Defender for Endpoints
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: This alert will trigger when Malware is detected by Microsoft Defender
+    for Endpoint.
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: 6af7a4d0-498c-4d89-804c-655dd14c37ab
+  investigation_query_link: ''
+  lookup_mapping: null
+  mapping_strategy: CUSTOM
+  mitre_defs: {}
+  name: Microsoft Defender for Endpoint - Malware Detected
+  search_window: 10 minutes
+  severity: SEV_040_HIGH
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "datamodel dataset = microsoft_365_defender_raw \r\n|filter (xdm.alert.category\
+    \ = \"Malware\") and xdm.target.file.sha256 != null\r\n|fields \r\n    xdm.event.id,\r\
+    \n    xdm.alert.original_alert_id,\r\n    xdm.alert.severity,\r\n    xdm.alert.subcategory,\r\
+    \n    xdm.alert.name,\r\n    xdm.alert.description,\r\n    xdm.target.host.device_id,\r\
+    \n    xdm.target.host.fqdn,\r\n    xdm.alert.mitre_techniques,\r\n    xdm.target.file.sha256,\r\
+    \n    xdm.target.file.filename,\r\n    xdm.target.file.path,\r\n    xdm.target.process.pid,\r\
+    \n    xdm.target.process.command_line,\r\n    xdm.target.process.parent_id,\r\n\
+    \    xdm.target.host.ipv4_addresses,\r\n    xdm.target.registry.key,\r\n    xdm.target.registry.value_type,\r\
+    \n    xdm.target.registry.value,\r\n    xdm.source.user.username,\r\n    xdm.source.user.domain,\r\
+    \n    xdm.source.user.identifier,\r\n    xdm.target.ipv4,\r\n    xdm.event.outcome"
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 587e7748-ae47-5d87-a660-eb4efde7e071
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: TrendMicro Cloud App Security Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = trendmicro_cloud_app_security_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: b7db0e89-f859-50eb-af55-56007c9c6355
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: EWSO365 Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = ewso365_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 6936f466-6c0f-5ee2-b209-297ccc7a8b4f
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: EWS v2 Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = ews_v2_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: 'The host $agent_hostname performed suspicious access to known
+    phishing domain
+
+    The domain is $url_domain
+
+    Based on the firewall the traffic is traced as $action and originated from $from_zone'
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    action_local_ip: source_ip
+    action_local_port: source_port
+    action_remote_ip: dest_ip
+    action_remote_port: dest_port
+    actor_effective_username: actor_effective_username
+    actor_process_command_line: actor_process_image_command_line
+    actor_process_image_name: actor_process_image_name
+    actor_process_image_path: actor_process_image_path
+    actor_process_image_sha256: actor_process_image_sha256
+    agent_device_domain: null
+    agent_hostname: agent_hostname
+    alertcategory: cate
+  alert_name: Phishing site access
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: phishing site access rule - combines ngfw categories and agent data
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: 9987ba43-0eb5-427f-b964-1b37525b8175
+  investigation_query_link: "dataset = panw_ngfw_url_raw | \nfilter source_ip = $source_ip\
+    \ | \ncomp count() as catgs by url_category , url_domain "
+  lookup_mapping: []
+  mapping_strategy: CUSTOM
+  mitre_defs:
+    TA0001 - Initial Access:
+    - T1566 - Phishing
+    - 'T1566.002 - Phishing: Spearphishing Link'
+  name: Phishing site access
+  search_window: 1 hours
+  severity: SEV_030_MEDIUM
+  suppression_duration: 1 hours
+  suppression_enabled: true
+  suppression_fields: url_domain|agent_hostname|actor_process_image_name|source_ip|dest_ip|action
+  user_defined_category: cate
+  user_defined_severity: null
+  xql_query: "// Part 1 - get all the phishing site access \ndataset = panw_ngfw_url_raw\
+    \ | \nfilter url_category = \"Known Phishing Sites\" or url_category = \"phishing\"\
+    |\nfields url_category , url_domain, source_ip, source_port  , from_zone , dest_ip,\
+    \ dest_port , to_zone , action , users , source_user |\n\n// Part 2 - match the\
+    \ NGFW alerts with Agent data to find the matching execution chain \njoin (dataset\
+    \ = xdr_data | filter event_type = ENUM.NETWORK and (event_sub_type = ENUM.NETWORK_STREAM_CONNECT\
+    \ or event_sub_type = ENUM.NETWORK_STREAM_CONNECT_FAILED) | fields action_local_ip\
+    \ , action_local_port , action_remote_ip , action_remote_port , _time as innertime,\
+    \ actor_effective_username , agent_hostname , actor_process_*, action_external_hostname\
+    \ ) as agentdata agentdata.action_local_ip = source_ip and agentdata.action_local_port\
+    \ = source_port and agentdata.action_remote_ip = dest_ip and agentdata.action_remote_port\
+    \ = dest_port | \nalter time_diff = timestamp_diff(_time, innertime , \"SECOND\"\
+    ) |\nfilter time_diff < 10 and time_diff > -10 |\nalter cate = \"Phishing\" |\n\
+    fields url_*, agent_hostname, actor_effective_username , actor_process_image_*\
+    \ , from_zone , to_zone , source_*, dest_*, action , action_external_hostname\
+    \ , cate "
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 4e77064d-e102-5730-948c-85424a489c9d
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: AzureDevOps Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = azuredevops_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 8cf63ce6-7002-5be6-8878-c5b3c11508da
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: GitHub Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = github_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: PRIVILEGE_ESCALATION
+  alert_description: User''s permissions have changed from Guest to Owner
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    action_local_ip: null
+    action_remote_ip: xdm.source.ipv4
+    action_remote_port: null
+    actor_effective_username: xdm.target.resource.name
+    actor_process_command_line: null
+    actor_process_image_name: null
+    actor_process_image_path: null
+    actor_process_image_sha256: null
+    agent_device_domain: null
+    agent_hostname: null
+  alert_name: Gitlab - User Permission Changed
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: Alert for change in user''s permissions change from Guest to Owner.
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: 73ffe0c0-d4ef-498b-b740-e461cf4e498b
+  investigation_query_link: "datamodel dataset = gitlab_gitlab_raw \r\n| fields _time\r\
+    \n,xdm.event.id \r\n,xdm.source.user.identifier \r\n,xdm.target.resource.id \r\
+    \n,xdm.target.resource.type \r\n,xdm.source.user.username \r\n,xdm.target.resource.sub_type\
+    \ \r\n,xdm.target.resource.name \r\n,xdm.event.description \r\n,xdm.source.ipv4\
+    \ \r\n,xdm.target.resource_before.value \r\n,xdm.target.resource.value \r\n,xdm.event.operation\
+    \ \r\n,xdm.event.type \r\n,xdm.event.operation_sub_type \r\n| filter xdm.event.operation\
+    \ = \"change_access_level\" and xdm.target.resource_before.value = \"Guest\" and\
+    \ xdm.target.resource.value = \"Owner\""
+  lookup_mapping: null
+  mapping_strategy: CUSTOM
+  mitre_defs: {}
+  name: Gitlab - User Permission Changed
+  search_window: 10 minutes
+  severity: SEV_030_MEDIUM
+  suppression_duration: 10 minutes
+  suppression_enabled: true
+  suppression_fields: xdm.source.user.username
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "datamodel dataset = gitlab_gitlab_raw \r\n| fields _time\r\n,xdm.event.id\
+    \ \r\n,xdm.source.user.identifier \r\n,xdm.target.resource.id \r\n,xdm.target.resource.type\
+    \ \r\n,xdm.source.user.username \r\n,xdm.target.resource.sub_type \r\n,xdm.target.resource.name\
+    \ \r\n,xdm.event.description \r\n,xdm.source.ipv4 \r\n,xdm.target.resource_before.value\
+    \ \r\n,xdm.target.resource.value \r\n,xdm.event.operation \r\n,xdm.event.type\
+    \ \r\n,xdm.event.operation_sub_type \r\n| filter xdm.event.operation = \"change_access_level\"\
+    \ and xdm.target.resource_before.value = \"Guest\" and xdm.target.resource.value\
+    \ = \"Owner\""
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 81bff9a3-ecd0-5c37-80de-319fbac61a48
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: RecordedFuturePlaybookAlerts Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = recordedfutureplaybookalerts_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 677fb12d-b38f-5aa4-ac8f-398e8fcf5238
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: Recorded Future v2 Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = recorded_future_v2_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 6e35c2ad-9dc9-52c3-9bf2-cb67bcfd73f6
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: CommvaultSecurityIQ Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = commvaultsecurityiq_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 35ac166d-670c-5103-b03b-3e652e9dc235
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: Proofpoint TAP v2 Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = proofpoint_tap_v2_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: ef4b7ce3-0acd-5e06-86f2-2ffdfcebe86b
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: Workday IAM Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = workday_iam_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: RECONNAISSANCE
+  alert_description: Port Scan from $xdm.source.ipv4 to $xdm.target.ipv4 over $counter
+    ports detected by $xdm.observer.product from $xdm.observer.name
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: Port Scan over pfSense
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: Detect a Port Scan over 10 ports but less than 30 in 10 minutes - Alerts
+    are suppressed for src, dst in the same hour
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: f731a308-0e58-432f-af5f-ba0a12981454
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs:
+    TA0007 - Discovery:
+    - T1046 - Network Service Scanning
+  name: Port Scan over pfSense
+  search_window: 10 minutes
+  severity: SEV_030_MEDIUM
+  suppression_duration: 1 hours
+  suppression_enabled: true
+  suppression_fields: xdm.source.ipv4|xdm.target.ipv4
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "datamodel dataset in(pfsense_fw) \n|fields xdm.source.ipv4 , xdm.target.ipv4\
+    \ , xdm.source.port, xdm.target.port,xdm.observer.name ,xdm.observer.product ,xdm.observer.vendor,\
+    \ xdm.source.host.hostname  \n| comp count_distinct(xdm.target.port) as counter\
+    \ by xdm.source.ipv4, xdm.target.ipv4,xdm.observer.name,xdm.observer.product addrawdata\
+    \ = true as original_data\n| filter counter > 10 and counter < 30 and xdm.source.ipv4\
+    \ != xdm.target.ipv4 "
+- action: ALERTS
+  alert_category: RECONNAISSANCE
+  alert_description: Port Scan from $xdm.source.ipv4 to $xdm.target.ipv4 over $counter
+    ports detected by $xdm.observer.product from $xdm.observer.name
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: Noisy Port Scan over pfSense
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: Detect a Port Scan over 30 ports in 10 minutes - Alerts are suppressed
+    for src, dst in the same hour
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: 680662be-a9fe-4312-ad5b-66b39c962d3d
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs:
+    TA0007 - Discovery:
+    - T1046 - Network Service Scanning
+  name: Noisy Port Scan over pfSense
+  search_window: 10 minutes
+  severity: SEV_030_MEDIUM
+  suppression_duration: 1 hours
+  suppression_enabled: true
+  suppression_fields: xdm.source.ipv4|xdm.target.ipv4
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "datamodel dataset in(pfsense_fw) \n|fields xdm.source.ipv4 , xdm.target.ipv4\
+    \ , xdm.source.port, xdm.target.port,xdm.observer.name ,xdm.observer.product ,xdm.observer.vendor,\
+    \ xdm.source.host.hostname  \n| comp count_distinct(xdm.target.port) as counter\
+    \ by xdm.source.ipv4, xdm.target.ipv4,xdm.observer.name,xdm.observer.product addrawdata\
+    \ = true as original_data\n| filter counter > 30 and xdm.source.ipv4 != xdm.target.ipv4 "
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: {}
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 2e5a50e1-1318-4ece-9160-9bf228584bf9
+  investigation_query_link: ''
+  lookup_mapping: []
+  mapping_strategy: AUTO
+  mitre_defs:
+    TA0005 - Defense Evasion:
+    - 'T1036.005 - Masquerading: Match Legitimate Name or Location'
+  name: Digital Shadows Alerts (automatically generated) -v2
+  search_window: null
+  severity: SEV_020_LOW
+  suppression_duration: 1 hours
+  suppression_enabled: true
+  suppression_fields: alert_name
+  user_defined_category: alert_category
+  user_defined_severity: null
+  xql_query: 'dataset = digital_shadows_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: fcefc6b0-4905-57e5-960a-8f1e3743130e
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: SplunkPy Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = splunkpy_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: a3e969dd-4c28-59f0-a197-022123d8b3a6
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: Microsoft 365 Defender Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = microsoft_365_defender_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: LATERAL_MOVEMENT
+  alert_description: User $suser has been observed logging into $counter different
+    hosts in a short time
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    action_local_ip: null
+    action_remote_ip: null
+    action_remote_port: null
+    actor_effective_username: suser
+    actor_process_command_line: null
+    actor_process_image_name: null
+    actor_process_image_path: null
+    actor_process_image_sha256: null
+    agent_device_domain: null
+    agent_hostname: null
+  alert_name: Windows - Same User Logged Into Multiple Machines In A Short Time
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: 826c960c-908e-4d31-a338-0a76b9ceffd1
+  investigation_query_link: ''
+  lookup_mapping: []
+  mapping_strategy: CUSTOM
+  mitre_defs: {}
+  name: Windows - Same User Logged Into Multiple Machines In A Short Time
+  search_window: 10 minutes
+  severity: SEV_040_HIGH
+  suppression_duration: 1 hours
+  suppression_enabled: true
+  suppression_fields: suser
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "dataset = microsoft_microsoft_windows_raw \r\n| comp count_distinct(shost\
+    \ ) as counter by suser \r\n| filter counter > 4\r\n"
+- action: ALERTS
+  alert_category: CREDENTIAL_ACCESS
+  alert_description: $counter users have been locked out in a short time frame
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    agent_hostname: shost
+  alert_name: Windows - Multiple Users Locked Out
+  alert_type: null
+  crontab: '*/10 * * * *'
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: 2e0aa138-2078-41e9-8b94-f6425f39c5e3
+  investigation_query_link: ''
+  lookup_mapping: []
+  mapping_strategy: CUSTOM
+  mitre_defs: {}
+  name: Windows - Multiple Users Locked Out
+  search_window: 10 minutes
+  severity: SEV_040_HIGH
+  suppression_duration: 1 hours
+  suppression_enabled: true
+  suppression_fields: shost
+  user_defined_category: null
+  user_defined_severity: null
+  xql_query: "dataset = microsoft_microsoft_windows_raw \r\n| filter cefDeviceEventClassId\
+    \ contains \"4740\"\r\n| comp count(suser) as counter by shost \r\n| filter counter\
+    \ > 4\r\n"
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 294bc1f3-f5a0-50f5-938a-bee89a94a5a7
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: PagerDuty v2 Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = pagerduty_v2_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 7dc9f699-8b36-5622-a1e8-f74d583f5f37
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: Elasticsearch v2 Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = elasticsearch_v2_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 89e75cd1-61f4-5172-b681-053335cd1c67
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: GetEnvironmentInfo Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = getenvironmentinfo_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 5deb1cf3-19d5-579b-8d16-a440c5e05782
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: Darktrace ASM Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = darktrace_asm_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 350905f5-10f8-547a-98f5-12ea98a8ad0d
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: RSA Archer v2 Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = rsa_archer_v2_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 1fa96d12-9950-5b7d-9a58-012e993b7507
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: RSA Archer Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = rsa_archer_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 15ca99aa-d0da-5160-bbd1-c0d535be194c
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: Cortex XDR - IR Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = cortex_xdr_ir_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 89de6480-3d57-5eab-9336-cd9d405266dd
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: ReliaquestTakedown Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = reliaquesttakedown_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 23fcee17-403f-5053-9fed-05be2c2bc667
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: WizDefend Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = wizdefend_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: f76c474d-187f-574b-b1e8-f5e51ffbc594
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: CohesityHelios Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = cohesityhelios_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 51dca805-a670-5f05-912c-726c5d04c0d3
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: Gmail Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = gmail_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 9f6620db-48d5-53ad-9bce-365b6985903d
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: CiscoESA Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = ciscoesa_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 4ce0a493-d6cf-51cd-9aa1-20849469df03
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: Microsoft Teams Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = microsoft_teams_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 063e3a59-17b5-52db-ba4c-c4e0ad6f295d
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: SlackV3 Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = slackv3_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 85269ea5-96b9-5909-9652-0138bca206c5
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: National Vulnerability Database Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = national_vulnerability_database_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: cda670a3-379e-58c4-aa97-57c46304cb06
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: Generic Webhook Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = generic_webhook_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: $alert_description
+  alert_domain: DOMAIN_SECURITY
+  alert_fields: null
+  alert_name: $alert_name
+  alert_type: null
+  crontab: null
+  dataset: alerts
+  description: null
+  drilldown_query_timeframe: ALERT
+  execution_mode: REAL_TIME
+  global_rule_id: 2800a51c-7104-5a4f-b670-3ecaf0407928
+  investigation_query_link: null
+  lookup_mapping: null
+  mapping_strategy: AUTO
+  mitre_defs: null
+  name: RecordedFutureAlerts Alerts (automatically generated)
+  search_window: null
+  severity: User Defined
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: alert_category
+  user_defined_severity: alert_severity
+  xql_query: 'dataset = recordedfuturealerts_generic_alert_raw
+
+    | filter _alert_data != null
+
+    | alter alert_severity = json_extract_scalar(_alert_data, "$.severity")
+
+    | alter alert_category = json_extract_scalar(_alert_data, "$.alert_category")
+
+    | alter alert_name = json_extract_scalar(_alert_data, "$.alert_name")
+
+    | alter alert_description = json_extract_scalar(_alert_data, "$.alert_description")'
