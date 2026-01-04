@@ -44,7 +44,8 @@ A Model Context Protocol (MCP) server that provides AI assistants with comprehen
 - **XSOAR Automation** - Execute any XSOAR command through the War Room
 - **AI Summaries** - Generate comprehensive investigation reports automatically
 - **XSOAR Development** - Create, validate, and deploy custom integrations and scripts via Demisto SDK
-- **XSIAM Content Generation** - Programmatically create CaseLayouts, CaseFields, ParsingRules, ModelingRules, and more
+- **XSIAM Content Generation** - Programmatically create CaseLayouts, Dashboards with XQL widgets, AgentIX actions, and more
+- **Widget Management** - Create, update, and delete XQL widgets for dashboards and reports via API
 
 ---
 
