@@ -27,9 +27,19 @@ async def get_contributing_events(
     """
     Retrieves the individual events that contributed to a CORRELATION alert.
 
-    WARNING: This tool ONLY works with CORRELATION alerts! If you use it with a
-    non-correlation alert, it will return an error. For non-correlation alerts,
-    use get_alert_multi_events instead.
+    WARNING: This tool ONLY works with XSIAM-NATIVE CORRELATION alerts!
+
+    IMPORTANT LIMITATION:
+    - ✅ Works for: Correlation alerts created by XSIAM's analytics engine
+    - ❌ Fails for: External correlation alerts (Wiz, third-party integrations)
+    - Error: Returns 500 Internal Server Error for external correlations
+    - Reason: External correlation alerts don't have internal contributing event data
+
+    RECOMMENDED WORKAROUND:
+    → Use get_alert_multi_events instead - works for ALL alert types
+    → get_alert_multi_events provides comprehensive forensic data for any alert
+    → Unless you specifically need the contributing event breakdown from XSIAM-native
+      correlations, always prefer get_alert_multi_events
 
     Correlation alerts are created when XSIAM's analytics engine detects multiple
     related events that together indicate a security threat or attack pattern.
@@ -37,20 +47,19 @@ async def get_contributing_events(
     were correlated together to trigger the alert.
 
     Use this tool when:
-    - Investigating a CORRELATION alert (check alert type first!)
-    - You need to see all events that triggered the correlation
-    - Understanding the timeline and sequence of a multi-stage attack
-    - Breaking down a complex alert into its component events
+    - Alert is confirmed XSIAM-native correlation (detection.method = CORRELATION from XSIAM)
+    - You specifically need the contributing event breakdown structure
+    - Understanding multi-stage attacks detected by XSIAM analytics
 
     Do NOT use this for:
+    - External correlation alerts (Wiz, etc.) → will fail with 500 error
     - Non-correlation alerts → use get_alert_multi_events instead
-    - Getting detailed event data for any alert type → use get_alert_multi_events
-    - If unsure about alert type → use get_alert_multi_events (works on all alerts)
+    - If unsure about alert source → use get_alert_multi_events (safer, works universally)
 
     Example use cases:
-    - "Show me all the events that led to this lateral movement alert"
-    - "What individual activities triggered this multi-stage attack detection?"
-    - "Break down this correlation alert into its component events"
+    - "Show me all the events that led to this XSIAM-detected lateral movement alert"
+    - "What individual activities triggered this multi-stage attack (XSIAM-native)?"
+    - "Break down this XSIAM correlation alert into its component events"
 
     Args:
         ctx: The FastMCP context.

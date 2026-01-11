@@ -20,6 +20,55 @@ from usecase.fetcher import get_fetcher
 logger = logging.getLogger(__name__)
 
 
+async def _check_itdr_license(ctx: Context) -> tuple[bool, str]:
+    """
+    Check if ITDR (Identity Threat Detection and Response) license is enabled.
+
+    Returns:
+        (has_license: bool, error_message: str)
+    """
+    try:
+        fetcher = await get_fetcher(ctx)
+        tenant_info = await fetcher.send_request(
+            "/public_api/v1/system/get_tenant_info",
+            data={}
+        )
+
+        # Parse tenant info response
+        reply = tenant_info.get("reply", {})
+
+        # Check for ITDR license indicator
+        # Field: identity_threat_expiration (0 = not enabled)
+        itdr_expiration = reply.get("identity_threat_expiration", 0)
+
+        if itdr_expiration == 0:
+            error_msg = (
+                "⚠️ ITDR License Required\n\n"
+                "This tool requires Identity Threat Detection and Response (ITDR) licensing.\n\n"
+                "**What is ITDR?**\n"
+                "ITDR provides behavioral analytics to identify compromised accounts and insider threats "
+                "through ML-based analysis of user and host behavior patterns.\n\n"
+                "**How to enable:**\n"
+                "Contact your Palo Alto Networks account team or XSIAM administrator to:\n"
+                "• Purchase ITDR add-on license\n"
+                "• Enable identity_threat module on your tenant\n\n"
+                "**Alternative Workaround:**\n"
+                "Use XQL queries to manually analyze user/host behavior:\n"
+                "• User behavior: `dataset = xdr_data | filter actor_effective_username = 'username' | ...`\n"
+                "• Host behavior: `dataset = xdr_data | filter agent_hostname = 'hostname' | ...`\n"
+                "• Authentication anomalies: `dataset = xdr_data | filter event_type = ENUM.AUTHENTICATION | ...`"
+            )
+            return False, error_msg
+
+        return True, ""
+
+    except Exception as e:
+        # If license check fails, proceed anyway
+        # Let the actual API call provide the error
+        logger.warning(f"Could not check ITDR license: {e}")
+        return True, ""
+
+
 async def list_risky_users(
     ctx: Context,
 ) -> str:
@@ -51,6 +100,20 @@ async def list_risky_users(
     Returns:
         JSON response containing list of risky users with their risk scores and reasons.
     """
+
+    # Pre-flight license check
+    has_license, error_msg = await _check_itdr_license(ctx)
+    if not has_license:
+        return create_response(
+            data={
+                "error": error_msg,
+                "license_required": "ITDR",
+                "license_status": "not_enabled",
+                "workaround": "Use XQL queries for manual user behavior analysis",
+                "tenant_check": "Run get_tenant_info to verify license status"
+            },
+            is_error=True
+        )
 
     payload = {}
 
@@ -113,6 +176,20 @@ async def list_risky_hosts(
     Returns:
         JSON response containing list of risky hosts with their risk scores and reasons.
     """
+
+    # Pre-flight license check
+    has_license, error_msg = await _check_itdr_license(ctx)
+    if not has_license:
+        return create_response(
+            data={
+                "error": error_msg,
+                "license_required": "ITDR",
+                "license_status": "not_enabled",
+                "workaround": "Use XQL queries for manual host behavior analysis",
+                "tenant_check": "Run get_tenant_info to verify license status"
+            },
+            is_error=True
+        )
 
     payload = {}
 
