@@ -13,7 +13,11 @@ All building blocks verified against production playbooks (2025).
 """
 
 import logging
+from typing import Annotated, Optional
+
 from fastmcp import Context, FastMCP
+from pydantic import Field
+
 from pkg.util import create_response
 from usecase.base_module import BaseModule
 

@@ -108,12 +108,12 @@ async def update_case_ai_summary(
         mitre_tactics = case_data.get('mitre_tactics_ids_and_names', [])
         mitre_techniques = case_data.get('mitre_techniques_ids_and_names', [])
 
-        summary = f"""# 🔴 CRITICAL SECURITY INCIDENT - THE FULL STORY
-## Case {case_id}: When Hackers Came Knocking
+        summary = f"""# Security Incident Investigation Report
+## Case {case_id}: Advanced Threat Analysis
 
 ---
 
-## 📋 WHAT HAPPENED - THE EXECUTIVE BRIEFING
+## Executive Summary
 
 **Threat Level:** {case_data.get('severity', 'UNKNOWN').upper()} (Danger Score: {case_data.get('aggregated_score', 0)} out of 100)
 **Security Alarms Triggered:** {case_data.get('issue_count', 0)} separate warnings
@@ -122,7 +122,7 @@ async def update_case_ai_summary(
 
 ### Executive Summary
 
-Our security monitoring infrastructure detected {case_data.get('issue_count', 0)} correlated alerts indicating unauthorized access and malicious activity within the network. The threat actor demonstrated advanced tradecraft, successfully executing a multi-stage intrusion campaign with the following objectives:
+The security monitoring infrastructure detected {case_data.get('issue_count', 0)} correlated alerts indicating unauthorized access and malicious activity within the network. The threat actor demonstrated advanced tradecraft, successfully executing a multi-stage intrusion campaign with the following objectives:
 
 **Attack Progression:**
 - **Initial Access & Evasion:** Attacker gained entry and employed anti-detection techniques to evade security controls
@@ -134,11 +134,11 @@ This incident exhibits characteristics of an Advanced Persistent Threat (APT) op
 
 ---
 
-## 🎯 THE ATTACK STORY - HOW IT UNFOLDED
+## Incident Timeline and Attack Progression
 
-### When We First Noticed Something Was Wrong
+### Initial Detection and Alert Correlation
 
-**The Wake-Up Call:** {datetime.fromtimestamp(case_data.get('creation_time', 0)/1000).strftime('%B %d, %Y at %I:%M %p UTC') if case_data.get('creation_time') else 'Unknown'}
+**Initial Detection Time:** {datetime.fromtimestamp(case_data.get('creation_time', 0)/1000).strftime('%B %d, %Y at %I:%M %p UTC') if case_data.get('creation_time') else 'Unknown'}
 **Most Recent Activity:** {datetime.fromtimestamp(case_data.get('modification_time', 0)/1000).strftime('%B %d, %Y at %I:%M %p UTC') if case_data.get('modification_time') else 'Unknown'}
 
 ### What The Investigation Revealed

@@ -11,10 +11,10 @@ Key Features:
 - Custom Block Kit with dropdowns and buttons
 - Nested interactive messages
 
-Based on: Real-world implementation for Wiz Cloud Security Alert triage workflow
+Based on: Real-world implementation for security alert triage workflows
 """
 
-from mcp import Context
+from fastmcp import Context
 from ..base_module import BaseModule
 
 SLACK_INTERACTIVE_WORKFLOWS_GUIDE = """
@@ -473,26 +473,28 @@ Sub-Playbook (Escalation):
   - Handle security response
 ```
 
-## Real-World Example: Wiz Cloud Security Triage
+## Integration Example: Third-Party Security Tool Alert Routing
 
-**Scenario:** Route Wiz cloud security alerts to teams via Slack for triage
+**Scenario:** Route cloud security alerts from external monitoring tools to appropriate teams via Slack for collaborative triage
 
 **Flow:**
-1. Correlation rule triggers on wiz_cloud_raw dataset
-2. Main playbook queries Wiz data
+1. Correlation rule triggers on external_cloud_raw dataset (configure for your security tool)
+2. Main playbook queries external security tool data
 3. Routes by cloud platform (AWS/GCP/Azure)
-4. Routes by subscription to team channel
-5. SlackAskV2 sends to team: "Is this FP?"
-6. Team responds → XSOAR captures
-7. If YES: Mark resolved in Wiz
-8. If NO: Escalate to security team
-9. Security team gets second interactive message
-10. Final actions based on security response
+4. Routes by subscription to appropriate team channel
+5. SlackAskV2 sends interactive message to team: "Severity assessment?"
+6. Team responds → XSOAR captures decision
+7. If False Positive: Mark resolved in source system
+8. If Confirmed: Escalate to security operations team
+9. Security team receives follow-up interactive message
+10. Final remediation actions based on security response
 
-**Key Files:**
-- Main: `Wiz-Cloud-Issue-Slack-Triage.yml`
-- Sub: `Wiz-Send-Team-Message.yml`
+**Example Files (Template - Customize for your tool):**
+- Main: `ExternalTool-Alert-Slack-Triage.yml`
+- Sub: `Send-Team-Alert-Message.yml`
 - Custom Script: `SlackAskV2CustomBlocks.yml` (for dropdown support)
+
+**Note:** Replace "ExternalTool" and dataset names with your actual security tool (e.g., Wiz, Prisma Cloud, Orca, Aqua, etc.)
 
 ## Advanced: Custom Blocks with Dropdown
 
@@ -543,7 +545,7 @@ class SlackInteractiveWorkflowsGuide(BaseModule):
     - Worker saturation issues and fixes
     - Production deployment patterns
 
-    Based on real-world Wiz Cloud Security Alert triage implementation.
+    Based on real-world security alert triage implementations.
 
     Tools provided:
         - get_slack_interactive_workflows_guide: Complete Slack workflow guide
