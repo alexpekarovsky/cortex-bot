@@ -4,26 +4,27 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 
-A Model Context Protocol (MCP) server that provides AI assistants with comprehensive security operations capabilities for [Cortex XSIAM](https://www.paloaltonetworks.com/cortex/cortex-xsiam). This server enables natural language security investigations, threat hunting, and incident response through 83 specialized tools.
+A Model Context Protocol (MCP) server that provides AI assistants with comprehensive security operations capabilities for [Cortex XSIAM](https://www.paloaltonetworks.com/cortex/cortex-xsiam). This server enables natural language security investigations, threat hunting, and incident response through 87 specialized tools organized into 12 categories.
 
-> **📖 Official Documentation:** For the base Cortex MCP server installation and setup, see the [Official Palo Alto Networks Cortex MCP Server Documentation](https://docs-cortex.paloaltonetworks.com/r/Cortex-XSIAM/Cortex-XSIAM-Enterprise-Documentation/Cortex-MCP-server). This repository extends the official server with additional custom tools, XSOAR SDK integration, and development guides.
-
-> **Important:** Install the **base Cortex MCP server first** following the [official PANW documentation](https://docs-cortex.paloaltonetworks.com/r/Cortex-XSIAM/Cortex-XSIAM-Enterprise-Documentation/Cortex-MCP-server), then follow the instructions below to add our custom components and enhancements.
-
-> **Note:** This documentation is designed for both **humans** and **AI assistants**. AI agents can parse this README to understand installation steps, tool capabilities, and configuration requirements for automated setup and operation.
+> **Note:** This is the complete, standalone Cortex XSIAM MCP Server. No additional installation required beyond what's documented below. This documentation is designed for both **humans** and **AI assistants**. AI agents can parse this README to understand installation steps, tool capabilities, and configuration requirements for automated setup and operation.
 
 ---
 
 ## Table of Contents
 
 - [Features](#features)
+- [Quick Start](#quick-start-5-minutes)
 - [Architecture](#architecture)
 - [Installation Guide](#installation-guide)
 - [Client Configuration](#client-configuration)
 - [Available Tools](#available-tools)
 - [XSOAR Development Tools](#xsoar-development-tools)
+- [Testing Your Installation](#testing-your-installation)
 - [Safety Considerations](#safety-considerations)
 - [Use Cases](#use-cases)
+- [Example Commands with Output](#example-commands-with-output)
+- [What Can You Ask Claude?](#what-can-you-ask-claude)
+- [FAQ](#faq)
 - [Adding Custom Tools](#adding-custom-tools)
 - [Project Structure](#project-structure)
 - [Development](#development)
@@ -46,6 +47,36 @@ A Model Context Protocol (MCP) server that provides AI assistants with comprehen
 - **XSOAR Development** - Create, validate, and deploy custom integrations and scripts via Demisto SDK
 - **XSIAM Content Generation** - Programmatically create CaseLayouts, Dashboards with XQL widgets, AgentIX actions, and more
 - **Widget Management** - Create, update, and delete XQL widgets for dashboards and reports via API
+
+---
+
+## Quick Start (5 Minutes)
+
+**Prerequisites:** Python 3.12+, Cortex XSIAM API key
+
+```bash
+# 1. Clone and install
+git clone https://github.com/PaloAltoNetworks/cortex-mcp.git
+cd cortex-mcp
+python -m venv venv && source venv/bin/activate
+pip install poetry && poetry install
+
+# 2. Configure credentials
+cp .env.example .env
+# Edit .env with your XSIAM API credentials
+
+# 3. Test server
+python src/main.py  # No output = success
+
+# 4. Configure Claude Code
+claude mcp add cortex-xsiam -- python $(pwd)/src/main.py
+
+# 5. Try it!
+claude
+# Ask: "Show me my top 10 security cases"
+```
+
+**Next steps:** See [Installation Guide](#installation-guide) for detailed setup and configuration options.
 
 ---
 
@@ -86,6 +117,8 @@ graph LR
 ## Installation Guide
 
 > **AI INSTALLATION INSTRUCTIONS**: Follow these steps exactly in order. Each step must complete successfully before proceeding to the next.
+
+> **📖 Credential Configuration:** For comprehensive documentation on all credential configuration methods, troubleshooting, and tenant switching, see [docs/CREDENTIAL_CONFIGURATION.md](docs/CREDENTIAL_CONFIGURATION.md). The guide below provides a quick start.
 
 ### Step 1: Prerequisites
 
@@ -138,68 +171,210 @@ poetry install
 
 > ⚠️ **IMPORTANT:** Do NOT install `demisto-sdk` in this virtual environment! It requires pydantic 1.x which conflicts with the MCP server's pydantic 2.x requirement. See [XSOAR Development Tools](#xsoar-development-tools) for the correct way to use demisto-sdk.
 
-### Step 5: Configure Credentials (Claude Code Centralized Method)
+### Step 5: Configure Credentials (Secure .env File Approach)
 
-**Recommended**: Use Claude Code's centralized credential management (team-safe, secure)
+**🔒 SECURITY FIRST**: Use `.env` files for credential management (git-ignored, secure).
 
-**Create `.claude/settings.local.json`** (personal, git-ignored):
+**🚫 DO NOT** put credentials in JSON configuration files (`settings.local.json`, `claude_desktop_config.json`, etc.).
 
+#### Primary Method: Global .env File
+
+The MCP server loads credentials from `.env` in the `cortex-mcp` directory:
+
+```bash
+cd cortex-mcp
+cp .env.example .env
+# Edit .env with your tenant credentials
+```
+
+**Example `.env` file:**
+```bash
+# Cortex XSIAM API Configuration
+CORTEX_MCP_PAPI_URL=https://api-prod.xdr.us.paloaltonetworks.com
+CORTEX_MCP_PAPI_AUTH_HEADER=your_api_key_here
+CORTEX_MCP_PAPI_AUTH_ID=12
+
+# XSOAR SDK Configuration
+DEMISTO_SDK_CONTENT_PATH=/Users/yourname/projects/content
+
+# MCP Server Settings
+MCP_TRANSPORT=stdio
+LOG_LEVEL=INFO
+```
+
+**Important:** The `.env` file is:
+- ✅ Git-ignored (never committed)
+- ✅ Loaded automatically from absolute path (works from any directory)
+- ✅ Secure (file permissions protect credentials)
+
+#### Per-Project Override: Shell Environment Variables (Optional)
+
+If you need different tenants for different projects, override using shell environment variables:
+
+**Method 1: Export in shell before starting Claude Code**
+```bash
+# Terminal 1 - Project A (Production tenant)
+export CORTEX_MCP_PAPI_URL=https://api-prod.xdr.us.paloaltonetworks.com
+export CORTEX_MCP_PAPI_AUTH_HEADER=prod_api_key
+export CORTEX_MCP_PAPI_AUTH_ID=12
+cd ~/projects/production
+claude
+
+# Terminal 2 - Project B (Dev tenant)
+export CORTEX_MCP_PAPI_URL=https://api-dev.xdr.eu.paloaltonetworks.com
+export CORTEX_MCP_PAPI_AUTH_HEADER=dev_api_key
+export CORTEX_MCP_PAPI_AUTH_ID=27
+cd ~/projects/development
+claude
+```
+
+**Method 2: Use separate .env files per project**
+```bash
+# Put .env in project directory - MCP server will use shell env vars
+# .claude/settings.local.json can set env vars (but NOT credentials directly)
+```
+
+**🔐 Security Note:** Shell environment variables are session-specific and don't persist in files.
+
+#### Claude Code Global Config: `~/.claude.json` (Recommended for Per-Project Tenants)
+
+**Location:** `~/.claude.json` (Claude Code's global configuration file)
+
+**Priority:** HIGH (overrides `.env`, overridden by shell environment variables)
+
+**Best for:**
+- **Multiple projects with different tenants** (Production, Dev, Test)
+- Persistent per-project configuration
+- Claude Code users who want tenant switching without shell variables
+
+**⚠️ IMPORTANT:** This is the **#1 source of credential conflicts**. Always check this file first when troubleshooting!
+
+**Setup:**
+
+1. **Open Claude Code's global config:**
+   ```bash
+   code ~/.claude.json
+   # or
+   nano ~/.claude.json
+   ```
+
+2. **Find or create your project section:**
+   ```json
+   {
+     "projects": {
+       "/path/to/your/project": {
+         "mcpServers": {
+           "cortex-xsiam": {
+             "type": "stdio",
+             "command": "/path/to/cortex-mcp/venv/bin/python",
+             "args": ["/path/to/cortex-mcp/src/main.py"],
+             "env": {
+               "CORTEX_MCP_PAPI_URL": "https://api-{tenant}.xdr.{region}.paloaltonetworks.com",
+               "CORTEX_MCP_PAPI_AUTH_HEADER": "{your_api_key}",
+               "CORTEX_MCP_PAPI_AUTH_ID": "{your_key_id}"
+             }
+           }
+         }
+       }
+     }
+   }
+   ```
+
+3. **Restart Claude Code:**
+   ```bash
+   /exit
+   claude
+   ```
+
+**Why use `~/.claude.json` instead of `.env`?**
+
+| Feature | `~/.claude.json` | `.env` file |
+|---------|------------------|-------------|
+| Per-project tenants | ✅ Each project can have different credentials | ❌ One tenant for all projects |
+| Persistent | ✅ Survives terminal restarts | ✅ Persistent |
+| Priority | 🥈 #2 (High) | 🥉 #3 (Low) |
+| Session-specific | ❌ Global config | ❌ Global config |
+| Best for | **Multiple projects, different tenants** | Single tenant for all projects |
+
+**Example Multi-Tenant Setup:**
 ```json
 {
-  "env": {
-    "DEMISTO_BASE_URL": "https://api-{tenant}.xdr.{region}.paloaltonetworks.com",
-    "DEMISTO_API_KEY": "your_secret_api_key_here",
-    "XSIAM_AUTH_ID": "your_api_key_id_here"
+  "projects": {
+    "/projects/production": {
+      "mcpServers": {
+        "cortex-xsiam": {
+          "env": {
+            "CORTEX_MCP_PAPI_URL": "https://api-prod.xdr.us.paloaltonetworks.com",
+            "CORTEX_MCP_PAPI_AUTH_ID": "12"
+          }
+        }
+      }
+    },
+    "/projects/development": {
+      "mcpServers": {
+        "cortex-xsiam": {
+          "env": {
+            "CORTEX_MCP_PAPI_URL": "https://api-dev.xdr.eu.paloaltonetworks.com",
+            "CORTEX_MCP_PAPI_AUTH_ID": "27"
+          }
+        }
+      }
+    }
   }
 }
 ```
 
-**Why This Approach:**
-- ✅ Secrets in `.claude/settings.local.json` (git-ignored, secure)
-- ✅ Team config in `.claude/settings.json` (committed, no secrets)
-- ✅ Works with demisto-sdk automatically (same variable names)
-- ✅ MCP server maps these to internal variables
-- ✅ Best practice for Claude Code projects
+#### Credential Priority Order
 
-**Alternative**: Use `.env` file (legacy method)
+| Priority | Source | Scope | Security | Use Case |
+|----------|--------|-------|----------|----------|
+| **1 (Highest)** | Shell environment variables | Terminal session | ✅ Secure (not persisted) | Temporary per-session override |
+| **2** | `~/.claude.json` per-project settings | Per-project (persistent) | ✅ Secure (not committed) | **Recommended: Different tenant per project** |
+| **3 (Lowest)** | `.env` file in `cortex-mcp/` | Global default | ✅ Secure (git-ignored) | Fallback default for all projects |
 
-```bash
-cp .env.example .env
-# Edit .env with CORTEX_MCP_PAPI_* variables
-```
+**Note:** The MCP server loads credentials in reverse priority order: `.env` → `~/.claude.json` → shell environment variables. Higher priority sources override lower priority sources.
 
-**Note**: MCP server automatically maps credentials:
-- `DEMISTO_BASE_URL` → `CORTEX_MCP_PAPI_URL` (for MCP compatibility)
-- `DEMISTO_API_KEY` → `CORTEX_MCP_PAPI_AUTH_HEADER`
-- `XSIAM_AUTH_ID` → `CORTEX_MCP_PAPI_AUTH_ID`
+#### Variable Name Mapping
 
-**Variable Mapping Reference:**
+The MCP server accepts **BOTH** naming conventions and auto-maps them:
 
-| You Set (Standard SDK Names) | MCP Uses Internally | Description |
-|------------------------------|---------------------|-------------|
+| Standard SDK Names (Recommended) | MCP Internal Names | Description |
+|----------------------------------|-------------------|-------------|
 | `DEMISTO_BASE_URL` | `CORTEX_MCP_PAPI_URL` | XSIAM API endpoint URL |
-| `DEMISTO_API_KEY` | `CORTEX_MCP_PAPI_AUTH_HEADER` | API key value |
-| `XSIAM_AUTH_ID` | `CORTEX_MCP_PAPI_AUTH_ID` | API key ID |
+| `DEMISTO_API_KEY` | `CORTEX_MCP_PAPI_AUTH_HEADER` | API key secret value |
+| `XSIAM_AUTH_ID` | `CORTEX_MCP_PAPI_AUTH_ID` | API key ID number |
 
-**Example Value:**
+**💡 Tip:** Use `DEMISTO_*` names in client configs - they work with both MCP server AND demisto-sdk tools automatically.
+
+#### Multi-Tenant Example
+
 ```
-DEMISTO_BASE_URL=https://api-acme.xdr.us.paloaltonetworks.com
-DEMISTO_API_KEY=xxxxxxxxxxxxxxxxxxx
-XSIAM_AUTH_ID=12
+Global Default (.env):
+└── Production tenant (US region)
+
+Project Overrides:
+├── /projects/incident-response/.claude/settings.local.json
+│   └── Dev tenant (EU region)
+├── /projects/threat-hunting/.claude/settings.local.json
+│   └── Staging tenant (US region)
+└── /projects/automation/.claude/settings.local.json
+    └── Uses global default (Production)
 ```
 
-**Available Regions:**
-| Region Code | Location |
-|-------------|----------|
-| `us` | United States |
-| `eu` | Europe |
-| `uk` | United Kingdom |
-| `sg` | Singapore |
-| `jp` | Japan |
-| `au` | Australia |
-| `ca` | Canada |
-| `in` | India |
-| `de` | Germany |
+#### Available Regions
+
+| Region Code | Location | Example URL |
+|-------------|----------|-------------|
+| `us` | United States | `https://api-{tenant}.xdr.us.paloaltonetworks.com` |
+| `eu` | Europe | `https://api-{tenant}.xdr.eu.paloaltonetworks.com` |
+| `uk` | United Kingdom | `https://api-{tenant}.xdr.uk.paloaltonetworks.com` |
+| `sg` | Singapore | `https://api-{tenant}.xdr.sg.paloaltonetworks.com` |
+| `jp` | Japan | `https://api-{tenant}.xdr.jp.paloaltonetworks.com` |
+| `au` | Australia | `https://api-{tenant}.xdr.au.paloaltonetworks.com` |
+| `ca` | Canada | `https://api-{tenant}.xdr.ca.paloaltonetworks.com` |
+| `in` | India | `https://api-{tenant}.xdr.in.paloaltonetworks.com` |
+| `de` | Germany | `https://api-{tenant}.xdr.de.paloaltonetworks.com` |
+| `il` | Israel | `https://api-{tenant}.xdr.il.paloaltonetworks.com` |
 
 ### Step 6: Verify Installation
 
@@ -225,56 +400,85 @@ See [Client Configuration](#client-configuration) section below for Claude Deskt
 | macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
 | Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
 
-**Add this configuration:**
+**Recommended Configuration:**
 
 ```json
 {
   "mcpServers": {
     "cortex-xsiam": {
       "command": "python",
-      "args": ["/absolute/path/to/cortex-mcp/src/main.py"],
-      "env": {
-        "CORTEX_MCP_PAPI_URL": "https://api-{tenant}.xdr.{region}.paloaltonetworks.com",
-        "CORTEX_MCP_PAPI_AUTH_HEADER": "your_api_key",
-        "CORTEX_MCP_PAPI_AUTH_ID": "your_api_key_id"
-      }
+      "args": ["/absolute/path/to/cortex-mcp/src/main.py"]
     }
   }
 }
 ```
 
-> **IMPORTANT:** Replace `/absolute/path/to/cortex-mcp` with the actual full path to your installation.
+> **IMPORTANT:**
+> - Replace `/absolute/path/to/cortex-mcp` with the actual full path
+> - Credentials are loaded from `cortex-mcp/.env` automatically
+> - **DO NOT** add credentials to this JSON file for security reasons
+> - Restart Claude Desktop after saving
 
-**Restart Claude Desktop after saving the configuration.**
+**To use a different tenant:** Export environment variables before starting Claude Desktop:
+```bash
+export CORTEX_MCP_PAPI_URL=https://api-dev.xdr.eu.paloaltonetworks.com
+export CORTEX_MCP_PAPI_AUTH_HEADER=dev_api_key
+export CORTEX_MCP_PAPI_AUTH_ID=27
+open -a "Claude"
+```
 
 ### Option B: Claude Code CLI
 
-Run this single command (replace placeholders with your values):
+**Recommended Configuration:**
 
 ```bash
-claude mcp add cortex-xsiam \
-  -e CORTEX_MCP_PAPI_URL=https://api-{tenant}.xdr.{region}.paloaltonetworks.com \
-  -e CORTEX_MCP_PAPI_AUTH_HEADER=your_api_key \
-  -e CORTEX_MCP_PAPI_AUTH_ID=your_api_key_id \
-  -- python /absolute/path/to/cortex-mcp/src/main.py
+# From your project directory
+claude mcp add cortex-xsiam -- python /absolute/path/to/cortex-mcp/src/main.py
+```
+
+**Credentials** are loaded from `cortex-mcp/.env` automatically.
+
+**For different tenant:** Export environment variables before starting Claude Code:
+```bash
+export CORTEX_MCP_PAPI_URL=https://api-dev.xdr.eu.paloaltonetworks.com
+export CORTEX_MCP_PAPI_AUTH_HEADER=dev_api_key
+export CORTEX_MCP_PAPI_AUTH_ID=27
+cd ~/projects/my-project
+claude
 ```
 
 **Verify installation:**
-
 ```bash
 claude mcp list
 ```
 
 **Expected result:** `cortex-xsiam` appears in the list of configured servers.
 
-### Option C: Docker
+### Option C: Gemini (Google AI Studio with MCP)
+
+Create `settings.local.json` in your project directory:
+
+```json
+{
+  "mcpServers": {
+    "cortex-xsiam": {
+      "command": "python",
+      "args": ["/absolute/path/to/cortex-mcp/src/main.py"]
+    }
+  }
+}
+```
+
+**Credentials** are loaded from `cortex-mcp/.env` automatically.
+
+### Option D: Docker
 
 ```bash
 # Build the image
 docker build -t cortex-mcp .
 
-# Run with environment file
-docker run --env-file .env -it cortex-mcp
+# Run with .env file (secure)
+docker run --env-file /absolute/path/to/cortex-mcp/.env -it cortex-mcp
 ```
 
 ---
@@ -445,8 +649,76 @@ insert_correlation_rule(
 | Script Execution | `run_script`, `run_snippet_code_script`, `get_scripts`, `get_script_metadata`, `get_script_execution_status`, `get_script_execution_results` |
 | IOC Management | `insert_indicators_json`, `insert_indicators_csv` |
 | War Room | `add_war_room_entry`, `get_war_room_entries` |
-| Assets & Risk | `get_assets`, `get_endpoints`, `list_risky_users`, `list_risky_hosts`, `get_assessment_profile_results` |
-| Action Tracking | `get_action_status` |
+| Assets & Risk | `get_assets`, `get_endpoints`, `get_filtered_endpoints`, `get_vulnerabilities`, `get_asset_by_id`, `list_risky_users`, `list_risky_hosts`, `get_assessment_profile_results` |
+| Action Tracking | `get_action_status`, `get_tenant_info` |
+
+### Integration Discovery (2 tools)
+
+| Tool | Description | Key Parameters |
+|------|-------------|----------------|
+| `list_integrations` | Discover all XSOAR integrations and automation capabilities available in your XSIAM instance | `integration_filter`, `only_enabled` |
+| `get_integration_commands` | Get detailed command information for a specific integration | `integration_name` |
+
+**Use these to discover what threat intelligence sources, SIEM connectors, ticketing systems, and automation tools are configured before building integrations or playbooks.**
+
+### Widget Management (3 tools)
+
+| Tool | Description | Key Parameters |
+|------|-------------|----------------|
+| `get_widgets` | List XQL widgets with optional filters | `request_data.filters` |
+| `insert_widgets` | Create or update XQL widgets for dashboards/reports | `request_data` (widget definitions) |
+| `delete_widgets` | Delete custom XQL widgets | `request_data.filters` |
+
+**XQL widgets** are reusable query visualizations for dashboards and reports. Create them programmatically to standardize security metrics.
+
+### XSIAM Content Generators (11 tools)
+
+| Tool | Description | Key Parameters |
+|------|-------------|----------------|
+| `create_case_layout` | Create CaseLayout JSON files | `pack_name`, `layout_name`, `tabs` |
+| `create_case_field` | Create custom case fields | `pack_name`, `field_id`, `field_type` |
+| `create_case_layout_rule` | Create layout rules for dynamic UI | `pack_name`, `rule_name`, `layout_id` |
+| `create_parsing_rule` | Create parsing rules (YML + XIF) | `pack_name`, `vendor`, `product`, `xql_rules` |
+| `create_modeling_rule` | Create modeling rules (YML + XIF) | `pack_name`, `dataset`, `model`, `xql_rules` |
+| `create_assets_modeling_rule` | Create asset modeling rules | `pack_name`, `dataset`, `xql_rules` |
+| `create_xsiam_dashboard` | Create dashboards with XQL widgets | `pack_name`, `dashboard_name`, `xql_query` |
+| `create_xsiam_report` | Create report templates | `pack_name`, `report_name`, `xql_query` |
+| `create_agentix_action` | Wrap XSOAR content for AgentIX AI | `pack_name`, `action_name`, `underlying_type` |
+| `create_agentix_agent` | Create AI agent configurations | `pack_name`, `agent_name`, `color`, `visibility` |
+| `get_xsiam_content_guide` | Get comprehensive content type reference | None |
+
+**Use these to programmatically generate XSIAM content** without manually editing JSON/YAML files.
+
+### Testing & Validation (1 tool)
+
+| Tool | Description | Key Parameters |
+|------|-------------|----------------|
+| `test_all_tools` | Comprehensive testing framework for all 87 MCP tools | `skip_destructive`, `endpoint_id`, `categories` |
+
+**Usage:**
+```python
+# Safe mode - skips isolation, termination, quarantine
+test_all_tools(skip_destructive=True)
+
+# Full test suite
+test_all_tools(
+    endpoint_id="test-endpoint-id",
+    skip_destructive=False
+)
+
+# Test specific categories
+test_all_tools(categories="case_management,threat_hunting")
+```
+
+**Returns:** Detailed pass/fail results organized by category with execution times.
+
+### Slack Integration Development (1 tool)
+
+| Tool | Description |
+|------|-------------|
+| `get_slack_interactive_workflows_guide` | Complete reference for building interactive Slack workflows in XSOAR playbooks |
+
+**Covers:** SlackAskV2 parameters, SlackBlockBuilder patterns, entitlement lifecycle, custom Block Kit, troubleshooting.
 
 ---
 
@@ -504,7 +776,7 @@ export XSIAM_AUTH_ID=$CORTEX_MCP_PAPI_AUTH_ID
 
 ### Shared Content Repository
 
-**Location**: `/Users/apekarovsky/projects/content/` (or `~/projects/content`)
+**Location**: `~/projects/content` (default XSOAR content directory)
 
 This directory contains XSOAR content packs that can be:
 - Shared across multiple AI agent sessions
@@ -581,6 +853,66 @@ Claude:
 
 ---
 
+## Testing Your Installation
+
+### Quick Verification
+
+```bash
+# In Claude Code - check MCP connection
+/mcp
+```
+
+**Expected output:** `Connected to cortex-xsiam (87 tools)`
+
+### Comprehensive Test Suite
+
+The `test_all_tools` framework validates all 87 MCP tools against your live XSIAM tenant.
+
+**Safe Mode (Recommended):**
+```python
+test_all_tools(skip_destructive=True)
+```
+
+Skips destructive actions (isolate, terminate, quarantine) and tests:
+- Case management (5 tools)
+- Issue management (4 tools)
+- Threat hunting (7 tools)
+- Script execution (6 tools)
+- SDK tools (10 tools)
+- Content generators (11 tools)
+- And more...
+
+**Full Test Suite:**
+```python
+test_all_tools(
+    endpoint_id="your-test-endpoint-id",
+    skip_destructive=False
+)
+```
+
+Tests ALL tools including isolation, termination, and quarantine actions.
+
+**Category-Specific Testing:**
+```python
+# Test specific tool categories
+test_all_tools(categories="case_management,threat_hunting,widget_apis")
+```
+
+**Results:**
+```
+TESTING SUMMARY:
+Total tools: 87
+Tools tested: 85
+Tools passed: 82
+Tools failed: 1
+Tools skipped: 2
+Success rate: 96.5%
+
+Results by category: [detailed breakdown]
+```
+
+---
+
 ## Safety Considerations
 
 ### Destructive Commands
@@ -638,6 +970,137 @@ For detailed walkthroughs with full code examples, see **[USECASES.md](USECASES.
 2. **Ransomware Containment** - Isolate, terminate, quarantine in coordinated response
 3. **Custom Integration Development** - Build XSOAR integrations with AI assistance
 4. **Automated Phishing Analysis** - Extract IOCs, enrich, block threats automatically
+
+---
+
+## Example Commands with Output
+
+### Threat Hunting with XQL
+
+**Prompt:** *"Hunt for PowerShell execution on domain controllers in the last hour"*
+
+**XQL Query:**
+```sql
+dataset = xdr_data
+| filter event_type = ENUM.PROCESS
+| filter action_process_image_name ~= "powershell"
+| filter agent_hostname contains "DC"
+| filter _time > current_time() - 3600000
+| fields _time, agent_hostname, actor_effective_username,
+         action_process_image_command_line
+| limit 100
+```
+
+**Sample Output:**
+```
+_time                | agent_hostname | actor_effective_username | action_process_image_command_line
+---------------------|----------------|--------------------------|----------------------------------
+2026-02-01 14:32:01 | Server-DC-1    | DOMAIN\admin            | powershell.exe -ExecutionPolicy Bypass
+2026-02-01 14:31:45 | Server-DC-2    | DOMAIN\sysadmin         | powershell.exe Get-ADUser -Filter *
+2026-02-01 14:30:12 | Server-DC-1    | DOMAIN\admin            | powershell.exe -enc JABQAHIAbwBjA...
+```
+
+### IP Enrichment
+
+**Prompt:** *"Check if IP 45.33.32.156 is malicious"*
+
+**Command:** `enrich_ip_address(ip_address="45.33.32.156", alert_id="6126")`
+
+**Sample Output:**
+```json
+{
+  "IP": {
+    "Address": "45.33.32.156",
+    "Geo": {"Country": "US", "City": "New York"},
+    "ASN": "AS20473 (Linode)",
+    "Reputation": "Suspicious",
+    "DBotScore": 2,
+    "Tags": ["Scanner", "Malware C2"],
+    "DetectionEngines": 3,
+    "TotalEngines": 89
+  },
+  "Vendors": {
+    "VirusTotal": {"Score": 2, "Detections": "Suspicious"},
+    "AbuseIPDB": {"Score": 75, "Category": "Scanning"}
+  }
+}
+```
+
+### Case Investigation
+
+**Prompt:** *"Investigate case 350 and generate an AI summary"*
+
+**Commands Used:**
+```python
+# 1. Get full case details
+get_incident_extra_data(incident_id="350")
+
+# 2. Generate AI summary
+update_case_ai_summary(case_id="350")
+```
+
+**AI Summary Includes:**
+- Executive briefing with threat level
+- Attack narrative and timeline
+- Affected systems (5 hosts, 3 users)
+- MITRE ATT&CK mapping (T1059, T1021, T1105)
+- Impact assessment
+- Response actions (immediate + long-term)
+- IOC list
+- Success criteria
+
+---
+
+## What Can You Ask Claude?
+
+Once installed, try these prompts to explore capabilities:
+
+**Investigation & Triage:**
+- "Show me all critical severity cases from the last 24 hours"
+- "Investigate case 350 and summarize the attack"
+- "What are the top 5 risky users right now?"
+- "Generate an AI summary for case 350"
+- "Create a visual timeline for case 350"
+
+**Threat Hunting:**
+- "Hunt for PowerShell execution on domain controllers in the last hour"
+- "Find all processes connecting to suspicious IPs"
+- "Search for lateral movement patterns"
+- "Show me all failed authentication attempts from external IPs"
+
+**Response Actions:**
+- "Isolate endpoint Server-DC-1"
+- "Terminate the malicious process on endpoint XYZ"
+- "Quarantine the suspicious file with hash abc123..."
+- "Scan endpoint for malware"
+
+**Intelligence & Enrichment:**
+- "Check if IP 45.33.32.156 is malicious"
+- "Enrich this file hash: d41d8cd98f00b204e9800998ecf8427e"
+- "What's the reputation of domain evil.com?"
+- "Look up this URL: http://suspicious-site.com/payload"
+
+**Detection Engineering:**
+- "Create a correlation rule to detect SSH brute force attacks"
+- "Show me all my custom correlation rules"
+- "Build a detection for credential dumping from LSASS"
+
+**Development:**
+- "Create a new XSOAR integration for ServiceNow"
+- "Validate my custom playbook"
+- "Generate a playbook for phishing investigation"
+- "Create an XQL widget showing top attacking IPs"
+
+**Discovery & Testing:**
+- "What integrations are available in my XSIAM instance?"
+- "Show me all commands for the VirusTotal integration"
+- "Test all MCP tools in safe mode"
+- "Create a dashboard widget for failed authentication attempts"
+
+**Content Generation:**
+- "Create a case layout with custom fields"
+- "Generate a parsing rule for Cisco firewall logs"
+- "Build an AgentIX action for IP enrichment"
 
 ---
 
@@ -745,20 +1208,166 @@ poetry run mypy src/
 
 ---
 
+## FAQ
+
+### General Questions
+
+**Q: What's the difference between cases and issues?**
+
+A: In XSIAM terminology:
+- **Cases** (API: "incidents") = Containers for related security events
+- **Issues** (API: "alerts") = Individual security events/detections
+
+One case can contain multiple issues. Use case tools for high-level investigation, issue tools for individual alert triage.
+
+**Q: How many tools are included?**
+
+A: **87 tools** organized into these categories:
+- Case Management (5)
+- Issue Management (4)
+- Response Actions (11)
+- Threat Hunting (7)
+- Script Execution (6)
+- XSOAR SDK (10)
+- Development Guides (9)
+- Content Generators (11)
+- Widget Management (3)
+- Integration Discovery (2)
+- War Room & IOC (4)
+- Assets & Risk (8)
+- Testing (1)
+- Slack Workflows (1)
+- Others (6)
+
+**Q: Why do some tools require an ITDR license?**
+
+A: `list_risky_users` and `list_risky_hosts` require the **Identity Threat Detection and Response (ITDR)** add-on license. These tools analyze user/host behavior for anomalies.
+
+**Q: Can I use this with multiple XSIAM tenants?**
+
+A: Yes! Configure different tenants per project using `~/.claude.json`:
+```json
+{
+  "projects": {
+    "/projects/production": {
+      "mcpServers": {
+        "cortex-xsiam": {
+          "env": {
+            "CORTEX_MCP_PAPI_URL": "https://api-prod.xdr.us.paloaltonetworks.com"
+          }
+        }
+      }
+    },
+    "/projects/development": {
+      "mcpServers": {
+        "cortex-xsiam": {
+          "env": {
+            "CORTEX_MCP_PAPI_URL": "https://api-dev.xdr.eu.paloaltonetworks.com"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+See [Credential Priority Order](#credential-priority-order) for complete guide.
+
+### Technical Questions
+
+**Q: Why can't I install demisto-sdk in the MCP virtual environment?**
+
+A: **Pydantic version conflict:**
+- MCP server requires pydantic 2.x
+- demisto-sdk requires pydantic 1.x
+- They cannot coexist in the same environment
+
+**Solution:** Use `uvx demisto-sdk` which runs it in an isolated environment. The MCP SDK tools handle this automatically.
+
+**Q: What Python version should I use?**
+
+A: **Python 3.12+** for the MCP server. The SDK tools use `uvx` which manages its own Python environment (3.9-3.11).
+
+**Q: How do I know which XSOAR integration pattern to use?**
+
+A: Call `get_xsoar_pattern_guide()` first - it teaches pattern recognition:
+- "monitor", "continuously" → Long-Running Integration
+- "fetch", "pull", "import" → Event Collector Integration
+- "query", "get" (one-time) → Regular Integration
+
+**Q: What's the difference between `get_issues` and `get_alert_multi_events`?**
+
+A:
+- `get_issues` - Lists issues with basic metadata (fast, lightweight)
+- `get_alert_multi_events` - Gets complete forensic details including raw events, process chains, network connections (slow, large output)
+
+Use `get_issues` for discovery, `get_alert_multi_events` for deep investigation.
+
+**Q: How do I switch between tenants?**
+
+A: See [docs/CREDENTIAL_CONFIGURATION.md](docs/CREDENTIAL_CONFIGURATION.md) for the complete tenant switching guide.
+
+---
+
 ## Troubleshooting
+
+> **📖 Credential & Connection Issues:** For comprehensive credential troubleshooting, priority order explanation, and tenant switching guide, see [docs/CREDENTIAL_CONFIGURATION.md](docs/CREDENTIAL_CONFIGURATION.md).
 
 ### Common Errors and Solutions
 
 | Error Message | Cause | Solution |
 |---------------|-------|----------|
-| `401 Unauthorized` | Invalid API key | Verify `CORTEX_MCP_PAPI_AUTH_HEADER` and `CORTEX_MCP_PAPI_AUTH_ID` values |
+| `Invalid port: '-https:'` | `.claude/settings.json` has bash expansion syntax | Edit `.claude/settings.json`, use plain strings not `${VAR:-default}`. See [credential docs](docs/CREDENTIAL_CONFIGURATION.md) |
+| `401 Unauthorized` | Invalid API key or wrong credential source | Check ALL FOUR credential sources (env vars, ~/.claude.json, .claude/settings.json, .env). See [credential docs](docs/CREDENTIAL_CONFIGURATION.md) |
+| Changes to `.env` ignored | Higher priority source overriding | **Most common:** Check `~/.claude.json` first! Then: `printenv \| grep CORTEX_MCP_PAPI` and `.claude/settings.json`. See [credential docs](docs/CREDENTIAL_CONFIGURATION.md) |
 | `403 Forbidden` | Insufficient permissions | Ensure API key has Instance Administrator role |
-| `Connection refused` | Wrong URL format | Check URL matches `https://api-{tenant}.xdr.{region}.paloaltonetworks.com` |
+| `Connection refused` | Wrong URL format or region | Check URL matches `https://api-{tenant}.xdr.{region}.paloaltonetworks.com` |
 | `pyenv: version '3.12' is not installed` | `.python-version` file constraint | Remove `.python-version` file: `rm .python-version` then recreate venv |
 | `Could not find investigations` | Issue not in a case | War Room tools require issues (formerly alerts) that are part of a case. Use `get_issues` to find an issue, then check if it has a `case_id` field. |
 | `ImportError: cannot import name 'ModelMetaclass' from 'pydantic.main'` | Pydantic version conflict | MCP server needs pydantic 2.x, demisto-sdk needs 1.x. Use `uvx demisto-sdk` instead of installing directly. See [XSOAR Development Tools](#xsoar-development-tools) |
 | `demisto-sdk not found` | SDK not in PATH | The MCP SDK tools use `uvx demisto-sdk` automatically. For manual use: `uvx demisto-sdk <command>` |
 | `DEMISTO_BASE_URL value is not set` | Missing env vars | Export: `DEMISTO_BASE_URL`, `DEMISTO_API_KEY`, `XSIAM_AUTH_ID` (see [XSOAR Development Tools](#xsoar-development-tools)) |
+
+### Quick Credential Checks
+
+**Problem:** MCP server won't connect or uses wrong tenant
+
+**Check all FOUR credential sources in priority order:**
+
+```bash
+# 1. Environment variables (highest priority - overrides everything)
+printenv | grep CORTEX_MCP_PAPI
+
+# 2. ~/.claude.json (Claude Code global config - MOST COMMON ISSUE!)
+grep -A 10 '"cortex-xsiam"' ~/.claude.json
+# Look for your project path and check the "env" section
+
+# 3. Project settings (overrides .env only)
+cat .claude/settings.json 2>/dev/null | grep -A 5 '"env"'
+
+# 4. .env file (lowest priority - fallback default)
+grep CORTEX_MCP_PAPI ~/projects/cortex-mcp/.env
+```
+
+**Common fixes:**
+```bash
+# Unset environment variable overrides
+unset CORTEX_MCP_PAPI_URL CORTEX_MCP_PAPI_AUTH_HEADER CORTEX_MCP_PAPI_AUTH_ID
+
+# Edit ~/.claude.json (most common fix for Claude Code users!)
+code ~/.claude.json
+# Update the "env" section for your project
+
+# Edit .claude/settings.json - remove bash expansion, use plain strings
+# Edit .env file with correct credentials
+
+# Restart MCP server
+pkill -f "cortex-mcp.*main.py"
+```
+
+**⚠️ Pro Tip:** 90% of credential issues are caused by `~/.claude.json` having old credentials. Always check this file first!
+
+See [docs/CREDENTIAL_CONFIGURATION.md](docs/CREDENTIAL_CONFIGURATION.md) for complete troubleshooting guide.
 
 ### Pydantic Version Conflict Resolution
 
