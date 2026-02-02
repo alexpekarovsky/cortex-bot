@@ -6,7 +6,7 @@
 
 A Model Context Protocol (MCP) server that provides AI assistants with comprehensive security operations capabilities for [Cortex XSIAM](https://www.paloaltonetworks.com/cortex/cortex-xsiam). This server enables natural language security investigations, threat hunting, and incident response through 87 specialized tools organized into 12 categories.
 
-> **Note:** This is the complete, standalone Cortex XSIAM MCP Server. No additional installation required beyond what's documented below. This documentation is designed for both **humans** and **AI assistants**. AI agents can parse this README to understand installation steps, tool capabilities, and configuration requirements for automated setup and operation.
+> Complete standalone server for Cortex XSIAM. Serves both humans and AI assistants.
 
 ---
 
@@ -106,19 +106,11 @@ graph LR
     end
 ```
 
-**How it works:**
-1. You interact with Claude (Desktop or Code) using natural language
-2. Claude uses the MCP protocol to call specialized security tools
-3. The MCP server translates requests to Cortex XSIAM API calls
-4. Results are returned and Claude provides analysis and recommendations
+The MCP server translates natural language requests into Cortex XSIAM REST API calls, enabling Claude to perform security operations through simple conversation.
 
 ---
 
 ## Installation Guide
-
-> **AI INSTALLATION INSTRUCTIONS**: Follow these steps exactly in order. Each step must complete successfully before proceeding to the next.
-
-> **📖 Credential Configuration:** For comprehensive documentation on all credential configuration methods, troubleshooting, and tenant switching, see [docs/CREDENTIAL_CONFIGURATION.md](docs/CREDENTIAL_CONFIGURATION.md). The guide below provides a quick start.
 
 ### Step 1: Prerequisites
 
@@ -135,256 +127,43 @@ Before installation, ensure you have:
 - Role: `Instance Administrator` (for full functionality)
 - Required Permissions: Read access to incidents, alerts, endpoints; Write access for response actions
 
-### Step 2: Clone Repository
+### Step 2: Clone and Setup
 
 ```bash
 git clone https://github.com/PaloAltoNetworks/cortex-mcp.git
 cd cortex-mcp
-```
-
-**Expected result:** Directory `cortex-mcp` created with source files.
-
-### Step 3: Create Virtual Environment
-
-```bash
 python -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate  # macOS/Linux
+# OR
+venv\Scripts\activate  # Windows
 ```
 
-**Activate the virtual environment:**
-
-| Platform | Command |
-|----------|---------|
-| macOS/Linux | `source venv/bin/activate` |
-| Windows CMD | `venv\Scripts\activate.bat` |
-| Windows PowerShell | `venv\Scripts\Activate.ps1` |
-
-**Expected result:** Terminal prompt shows `(venv)` prefix.
-
-### Step 4: Install Dependencies
+### Step 3: Install Dependencies
 
 ```bash
 pip install poetry
 poetry install
 ```
 
-**Expected result:** All dependencies installed without errors.
+> **IMPORTANT:** Do NOT install `demisto-sdk` in this virtual environment. Use `uvx demisto-sdk` instead to avoid pydantic version conflicts. See [XSOAR Development Tools](#xsoar-development-tools).
 
-> ⚠️ **IMPORTANT:** Do NOT install `demisto-sdk` in this virtual environment! It requires pydantic 1.x which conflicts with the MCP server's pydantic 2.x requirement. See [XSOAR Development Tools](#xsoar-development-tools) for the correct way to use demisto-sdk.
+### Step 4: Configure Credentials
 
-### Step 5: Configure Credentials (Secure .env File Approach)
-
-**🔒 SECURITY FIRST**: Use `.env` files for credential management (git-ignored, secure).
-
-**🚫 DO NOT** put credentials in JSON configuration files (`settings.local.json`, `claude_desktop_config.json`, etc.).
-
-#### Primary Method: Global .env File
-
-The MCP server loads credentials from `.env` in the `cortex-mcp` directory:
+Create `.env` file with your XSIAM API credentials:
 
 ```bash
-cd cortex-mcp
 cp .env.example .env
-# Edit .env with your tenant credentials
-```
-
-**Example `.env` file:**
-```bash
-# Cortex XSIAM API Configuration
-CORTEX_MCP_PAPI_URL=https://api-prod.xdr.us.paloaltonetworks.com
+# Edit with these three required variables:
+CORTEX_MCP_PAPI_URL=https://api-{tenant}.xdr.{region}.paloaltonetworks.com
 CORTEX_MCP_PAPI_AUTH_HEADER=your_api_key_here
 CORTEX_MCP_PAPI_AUTH_ID=12
-
-# XSOAR SDK Configuration
-DEMISTO_SDK_CONTENT_PATH=/Users/yourname/projects/content
-
-# MCP Server Settings
-MCP_TRANSPORT=stdio
-LOG_LEVEL=INFO
 ```
 
-**Important:** The `.env` file is:
-- ✅ Git-ignored (never committed)
-- ✅ Loaded automatically from absolute path (works from any directory)
-- ✅ Secure (file permissions protect credentials)
+**For advanced configuration** (multi-tenant setups, credential priority, troubleshooting): See [docs/CREDENTIAL_CONFIGURATION.md](docs/CREDENTIAL_CONFIGURATION.md)
 
-#### Per-Project Override: Shell Environment Variables (Optional)
-
-If you need different tenants for different projects, override using shell environment variables:
-
-**Method 1: Export in shell before starting Claude Code**
-```bash
-# Terminal 1 - Project A (Production tenant)
-export CORTEX_MCP_PAPI_URL=https://api-prod.xdr.us.paloaltonetworks.com
-export CORTEX_MCP_PAPI_AUTH_HEADER=prod_api_key
-export CORTEX_MCP_PAPI_AUTH_ID=12
-cd ~/projects/production
-claude
-
-# Terminal 2 - Project B (Dev tenant)
-export CORTEX_MCP_PAPI_URL=https://api-dev.xdr.eu.paloaltonetworks.com
-export CORTEX_MCP_PAPI_AUTH_HEADER=dev_api_key
-export CORTEX_MCP_PAPI_AUTH_ID=27
-cd ~/projects/development
-claude
-```
-
-**Method 2: Use separate .env files per project**
-```bash
-# Put .env in project directory - MCP server will use shell env vars
-# .claude/settings.local.json can set env vars (but NOT credentials directly)
-```
-
-**🔐 Security Note:** Shell environment variables are session-specific and don't persist in files.
-
-#### Claude Code Global Config: `~/.claude.json` (Recommended for Per-Project Tenants)
-
-**Location:** `~/.claude.json` (Claude Code's global configuration file)
-
-**Priority:** HIGH (overrides `.env`, overridden by shell environment variables)
-
-**Best for:**
-- **Multiple projects with different tenants** (Production, Dev, Test)
-- Persistent per-project configuration
-- Claude Code users who want tenant switching without shell variables
-
-**⚠️ IMPORTANT:** This is the **#1 source of credential conflicts**. Always check this file first when troubleshooting!
-
-**Setup:**
-
-1. **Open Claude Code's global config:**
-   ```bash
-   code ~/.claude.json
-   # or
-   nano ~/.claude.json
-   ```
-
-2. **Find or create your project section:**
-   ```json
-   {
-     "projects": {
-       "/path/to/your/project": {
-         "mcpServers": {
-           "cortex-xsiam": {
-             "type": "stdio",
-             "command": "/path/to/cortex-mcp/venv/bin/python",
-             "args": ["/path/to/cortex-mcp/src/main.py"],
-             "env": {
-               "CORTEX_MCP_PAPI_URL": "https://api-{tenant}.xdr.{region}.paloaltonetworks.com",
-               "CORTEX_MCP_PAPI_AUTH_HEADER": "{your_api_key}",
-               "CORTEX_MCP_PAPI_AUTH_ID": "{your_key_id}"
-             }
-           }
-         }
-       }
-     }
-   }
-   ```
-
-3. **Restart Claude Code:**
-   ```bash
-   /exit
-   claude
-   ```
-
-**Why use `~/.claude.json` instead of `.env`?**
-
-| Feature | `~/.claude.json` | `.env` file |
-|---------|------------------|-------------|
-| Per-project tenants | ✅ Each project can have different credentials | ❌ One tenant for all projects |
-| Persistent | ✅ Survives terminal restarts | ✅ Persistent |
-| Priority | 🥈 #2 (High) | 🥉 #3 (Low) |
-| Session-specific | ❌ Global config | ❌ Global config |
-| Best for | **Multiple projects, different tenants** | Single tenant for all projects |
-
-**Example Multi-Tenant Setup:**
-```json
-{
-  "projects": {
-    "/projects/production": {
-      "mcpServers": {
-        "cortex-xsiam": {
-          "env": {
-            "CORTEX_MCP_PAPI_URL": "https://api-prod.xdr.us.paloaltonetworks.com",
-            "CORTEX_MCP_PAPI_AUTH_ID": "12"
-          }
-        }
-      }
-    },
-    "/projects/development": {
-      "mcpServers": {
-        "cortex-xsiam": {
-          "env": {
-            "CORTEX_MCP_PAPI_URL": "https://api-dev.xdr.eu.paloaltonetworks.com",
-            "CORTEX_MCP_PAPI_AUTH_ID": "27"
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-#### Credential Priority Order
-
-| Priority | Source | Scope | Security | Use Case |
-|----------|--------|-------|----------|----------|
-| **1 (Highest)** | Shell environment variables | Terminal session | ✅ Secure (not persisted) | Temporary per-session override |
-| **2** | `~/.claude.json` per-project settings | Per-project (persistent) | ✅ Secure (not committed) | **Recommended: Different tenant per project** |
-| **3 (Lowest)** | `.env` file in `cortex-mcp/` | Global default | ✅ Secure (git-ignored) | Fallback default for all projects |
-
-**Note:** The MCP server loads credentials in reverse priority order: `.env` → `~/.claude.json` → shell environment variables. Higher priority sources override lower priority sources.
-
-#### Variable Name Mapping
-
-The MCP server accepts **BOTH** naming conventions and auto-maps them:
-
-| Standard SDK Names (Recommended) | MCP Internal Names | Description |
-|----------------------------------|-------------------|-------------|
-| `DEMISTO_BASE_URL` | `CORTEX_MCP_PAPI_URL` | XSIAM API endpoint URL |
-| `DEMISTO_API_KEY` | `CORTEX_MCP_PAPI_AUTH_HEADER` | API key secret value |
-| `XSIAM_AUTH_ID` | `CORTEX_MCP_PAPI_AUTH_ID` | API key ID number |
-
-**💡 Tip:** Use `DEMISTO_*` names in client configs - they work with both MCP server AND demisto-sdk tools automatically.
-
-#### Multi-Tenant Example
-
-```
-Global Default (.env):
-└── Production tenant (US region)
-
-Project Overrides:
-├── /projects/incident-response/.claude/settings.local.json
-│   └── Dev tenant (EU region)
-├── /projects/threat-hunting/.claude/settings.local.json
-│   └── Staging tenant (US region)
-└── /projects/automation/.claude/settings.local.json
-    └── Uses global default (Production)
-```
-
-#### Available Regions
-
-| Region Code | Location | Example URL |
-|-------------|----------|-------------|
-| `us` | United States | `https://api-{tenant}.xdr.us.paloaltonetworks.com` |
-| `eu` | Europe | `https://api-{tenant}.xdr.eu.paloaltonetworks.com` |
-| `uk` | United Kingdom | `https://api-{tenant}.xdr.uk.paloaltonetworks.com` |
-| `sg` | Singapore | `https://api-{tenant}.xdr.sg.paloaltonetworks.com` |
-| `jp` | Japan | `https://api-{tenant}.xdr.jp.paloaltonetworks.com` |
-| `au` | Australia | `https://api-{tenant}.xdr.au.paloaltonetworks.com` |
-| `ca` | Canada | `https://api-{tenant}.xdr.ca.paloaltonetworks.com` |
-| `in` | India | `https://api-{tenant}.xdr.in.paloaltonetworks.com` |
-| `de` | Germany | `https://api-{tenant}.xdr.de.paloaltonetworks.com` |
-| `il` | Israel | `https://api-{tenant}.xdr.il.paloaltonetworks.com` |
-
-### Step 6: Verify Installation
-
-```bash
-python src/main.py
-```
-
-**Expected result:** Server starts without errors. For stdio transport, no output means success.
-
-### Step 7: Configure Your MCP Client
+### Step 5: Configure MCP Client
 
 See [Client Configuration](#client-configuration) section below for Claude Desktop, Claude Code CLI, or Docker setup.
 
@@ -579,11 +358,9 @@ Or check if they're already configured (most XSIAM instances have them pre-confi
 
 ### Issue Management (4 tools)
 
-> **Terminology Note:** In XSIAM APIs, security alerts are called "issues". These tools manage individual security events.
-
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
-| `get_issues` | List and filter security issues (formerly alerts) | `filters`, `search_from`, `search_to` |
+| `get_issues` | List and filter security issues | `filters`, `search_from`, `search_to` |
 | `get_alert_multi_events` | Get detailed issue/alert event data | `filters` (alert_id_list) |
 | `get_contributing_events` | Get correlation issue events | `alert_id` |
 | `update_issue` | Update issue severity/status | `issue_id`, `severity`, `status` |
@@ -776,26 +553,7 @@ export XSIAM_AUTH_ID=$CORTEX_MCP_PAPI_AUTH_ID
 
 ### Shared Content Repository
 
-**Location**: `~/projects/content` (default XSOAR content directory)
-
-This directory contains XSOAR content packs that can be:
-- Shared across multiple AI agent sessions
-- Collaboratively developed
-- Version controlled separately
-- Used by demisto-sdk tools
-
-**Structure**:
-```
-~/projects/content/
-├── Packs/
-│   ├── NetworkTools/
-│   │   ├── Scripts/SSHScan/
-│   │   └── Playbooks/CloseNoisyIssues.yml
-│   ├── PingTools/
-│   └── ThreatHunting/
-```
-
-SDK tools automatically use this shared location when creating, validating, or uploading content.
+SDK tools use `~/projects/content/` for XSOAR content packs (integrations, scripts, playbooks). This enables version-controlled, collaborative development across multiple projects.
 
 ### Development Guide Tools (9 tools)
 
@@ -1311,7 +1069,7 @@ A: See [docs/CREDENTIAL_CONFIGURATION.md](docs/CREDENTIAL_CONFIGURATION.md) for 
 
 ## Troubleshooting
 
-> **📖 Credential & Connection Issues:** For comprehensive credential troubleshooting, priority order explanation, and tenant switching guide, see [docs/CREDENTIAL_CONFIGURATION.md](docs/CREDENTIAL_CONFIGURATION.md).
+> **Credential & Connection Issues:** For comprehensive troubleshooting, see [docs/CREDENTIAL_CONFIGURATION.md](docs/CREDENTIAL_CONFIGURATION.md).
 
 ### Common Errors and Solutions
 
@@ -1365,7 +1123,7 @@ code ~/.claude.json
 pkill -f "cortex-mcp.*main.py"
 ```
 
-**⚠️ Pro Tip:** 90% of credential issues are caused by `~/.claude.json` having old credentials. Always check this file first!
+**Note:** Most credential issues stem from `~/.claude.json` having old credentials. Always check this file first!
 
 See [docs/CREDENTIAL_CONFIGURATION.md](docs/CREDENTIAL_CONFIGURATION.md) for complete troubleshooting guide.
 
@@ -1434,4 +1192,4 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 ---
 
-Made with :purple_heart: by Palo Alto Networks
+**Developed by Palo Alto Networks**
