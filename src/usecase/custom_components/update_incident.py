@@ -31,12 +31,18 @@ async def update_incident(
     timeline: Annotated[Optional[str], Field(description="Visual timeline in HTML format showing alerts chronologically. Must be valid HTML.")] = None,
 ) -> str:
     """
-    Updates a CASE/INCIDENT's status, assignment, severity, or adds resolution comments.
+    Updates a CASE's status, assignment, severity, or adds resolution comments.
+
+    🏷️ TERMINOLOGY: This tool updates CASES (API name: "incident" for backward compatibility).
+    For updating individual ISSUES (API name: "alerts"), use update_issue instead.
+
     This is for case-level management - assigning cases to analysts, updating investigation
     status, and closing cases with resolution notes.
 
-    IMPORTANT: This tool updates CASES (also called incidents). For updating individual
-    ALERTS/ISSUES within a case, use update_issue instead.
+    IMPORTANT: CASES vs ISSUES
+    - CASE (incident): Container for related security events
+    - ISSUE (alert): Individual security event within a case
+    Use this tool for CASE operations, use update_issue for ISSUE operations.
 
     CRITICAL - VALID CUSTOM FIELDS:
     Only TWO custom fields are supported. Do NOT invent or use any other field names:
