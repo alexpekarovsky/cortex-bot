@@ -96,6 +96,16 @@ def create_regular_task(task_id: str, name: str,
 
     is_command = command is not None
 
+    # Wrap arguments in simple: format if not already wrapped
+    wrapped_arguments = {}
+    for key, value in arguments.items():
+        if isinstance(value, dict) and ('simple' in value or 'complex' in value):
+            # Already wrapped
+            wrapped_arguments[key] = value
+        else:
+            # Wrap in simple format
+            wrapped_arguments[key] = {"simple": value}
+
     task_dict = {
         "id": task_id,
         "taskid": generate_uuid(),
@@ -114,7 +124,7 @@ def create_regular_task(task_id: str, name: str,
         "nexttasks": {
             "#none#": next_tasks
         },
-        "scriptarguments": arguments,
+        "scriptarguments": wrapped_arguments,
         "separatecontext": False,
         "continueonerrortype": "",
         "view": json.dumps({"position": position}),
@@ -258,6 +268,16 @@ def create_playbook_task(task_id: str, name: str, playbook_name: str,
                         arguments: dict, next_tasks: List[str],
                         position: dict, description: str = "") -> dict:
     """Generate sub-playbook call task."""
+    # Wrap arguments in simple: format if not already wrapped
+    wrapped_arguments = {}
+    for key, value in arguments.items():
+        if isinstance(value, dict) and ('simple' in value or 'complex' in value):
+            # Already wrapped
+            wrapped_arguments[key] = value
+        else:
+            # Wrap in simple format
+            wrapped_arguments[key] = {"simple": value}
+
     return {
         "id": task_id,
         "taskid": generate_uuid(),
@@ -275,7 +295,7 @@ def create_playbook_task(task_id: str, name: str, playbook_name: str,
         "nexttasks": {
             "#none#": next_tasks
         },
-        "scriptarguments": arguments,
+        "scriptarguments": wrapped_arguments,
         "separatecontext": True,
         "loop": {
             "iscommand": False,
@@ -565,7 +585,7 @@ async def create_playbook(
             },
             "vcShouldKeepItemLegacyProdMachine": False,
             "name": name,
-            "description": description,
+            "description": f"{description}\n\nCreated by Cortex Bot",
             "starttaskid": "0",
             "tasks": {},
             "system": True,
