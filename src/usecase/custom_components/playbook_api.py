@@ -194,7 +194,23 @@ async def insert_playbook(
                         is_error=True
                     )
 
-                response = await resp.json()
+                try:
+                    response = await resp.json()
+                except Exception as json_error:
+                    response_text = await resp.text()
+                    return create_response(
+                        data={
+                            "error": f"Failed to parse response as JSON: {json_error}",
+                            "response_text": response_text[:500]
+                        },
+                        is_error=True
+                    )
+
+                if not isinstance(response, dict):
+                    return create_response(
+                        data={"error": f"Unexpected response type: {type(response)}", "response": str(response)[:500]},
+                        is_error=True
+                    )
 
                 failures = response.get("objects", {}).get("failures_items", [])
 
