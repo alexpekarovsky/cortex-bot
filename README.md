@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 
-A Model Context Protocol (MCP) server that provides AI assistants with comprehensive security operations capabilities for [Cortex XSIAM](https://www.paloaltonetworks.com/cortex/cortex-xsiam). This server enables natural language security investigations, threat hunting, and incident response through 87 specialized tools organized into 12 categories.
+A Model Context Protocol (MCP) server that provides AI assistants with comprehensive security operations capabilities for [Cortex XSIAM](https://www.paloaltonetworks.com/cortex/cortex-xsiam). This server enables natural language security investigations, threat hunting, and incident response through 90 specialized tools organized into 13 categories.
 
 > Complete standalone server for Cortex XSIAM. Serves both humans and AI assistants.
 
@@ -447,6 +447,16 @@ insert_correlation_rule(
 | `delete_widgets` | Delete custom XQL widgets | `request_data.filters` |
 
 **XQL widgets** are reusable query visualizations for dashboards and reports. Create them programmatically to standardize security metrics.
+
+### Playbook Management (3 tools)
+
+| Tool | Description | Key Parameters |
+|------|-------------|----------------|
+| `get_playbook` | Download playbook YAML (returns ZIP file) | `filter` (name or id) |
+| `insert_playbook` | Upload or update playbook from ZIP file | `file` (path to ZIP) |
+| `delete_playbook` | Delete playbook by name or ID | `filter` (name or id) |
+
+**Playbook management** via REST API enables direct playbook deployment without SDK. Use these tools to backup, deploy, and manage XSOAR playbooks programmatically.
 
 ### XSIAM Content Generators (11 tools)
 
@@ -980,7 +990,7 @@ One case can contain multiple issues. Use case tools for high-level investigatio
 
 **Q: How many tools are included?**
 
-A: **87 tools** organized into these categories:
+A: **90 tools** organized into these categories:
 - Case Management (5)
 - Issue Management (4)
 - Response Actions (11)
@@ -990,12 +1000,14 @@ A: **87 tools** organized into these categories:
 - Development Guides (9)
 - Content Generators (11)
 - Widget Management (3)
+- Playbook Management (3)
 - Integration Discovery (2)
 - War Room & IOC (4)
 - Assets & Risk (8)
 - Testing (1)
 - Slack Workflows (1)
-- Others (6)
+- Playbook Creation (2)
+- Others (3)
 
 **Q: Why do some tools require an ITDR license?**
 

@@ -1,0 +1,94 @@
+openapi: 3.0.0
+paths:
+  /public_api/v1/playbooks/get:
+    post:
+      summary: Get Playbook
+      description: |-
+        Get a playbook by filtering based on its name or ID. The playbook's YAML is returned in a ZIP file.
+
+        Use this to:
+        - Download existing playbooks for backup
+        - Export playbooks for version control
+        - Retrieve playbook YAML for modification
+        - Get playbook content for analysis
+
+        You must have Instance Administrator permissions to run this endpoint.
+
+        The response is a ZIP file containing the playbook YAML. You'll need to:
+        1. Save the response to a file (e.g., playbook.zip)
+        2. Unzip to extract the YAML file
+        3. The YAML file name matches the playbook ID
+
+        Example workflow:
+        - get_playbook(filter={"field": "name", "value": "My Playbook"})
+        - Save response to /tmp/playbook.zip
+        - Unzip to get the YAML file
+      operationId: get_playbook
+      tags:
+        - Playbooks
+      requestBody:
+        description: Filter to identify the playbook to retrieve
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetPlaybookRequest'
+            examples:
+              get_by_name:
+                summary: Get playbook by name
+                value:
+                  request_data:
+                    filter:
+                      field: "name"
+                      value: "Phishing Investigation"
+              get_by_id:
+                summary: Get playbook by ID
+                value:
+                  request_data:
+                    filter:
+                      field: "id"
+                      value: "playbook-12345"
+      responses:
+        '200':
+          description: Playbook ZIP file
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - requires Instance Administrator
+        '404':
+          description: Playbook not found
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    GetPlaybookRequest:
+      type: object
+      required:
+        - request_data
+      properties:
+        request_data:
+          type: object
+          required:
+            - filter
+          properties:
+            filter:
+              type: object
+              required:
+                - field
+                - value
+              properties:
+                field:
+                  type: string
+                  enum: ["name", "id"]
+                  description: Filter field (name or id)
+                value:
+                  type: string
+                  description: Playbook name or ID to search for

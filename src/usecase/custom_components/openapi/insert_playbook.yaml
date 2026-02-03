@@ -1,0 +1,88 @@
+openapi: 3.0.0
+paths:
+  /public_api/v1/playbooks/insert:
+    post:
+      summary: Insert or Update Playbook
+      description: |-
+        Add or update a playbook by uploading the YAML in a ZIP file.
+
+        Use this to:
+        - Upload new playbooks to XSIAM
+        - Update existing playbooks
+        - Deploy playbooks from development to production
+        - Restore playbooks from backup
+
+        You must have Instance Administrator permissions to run this endpoint.
+
+        **IMPORTANT - File Format:**
+        - The playbook YAML must be inside a ZIP file
+        - The ZIP file should contain the playbook YAML file
+        - File name format: {PlaybookID}.yml (e.g., My_Playbook.yml)
+
+        **Workflow:**
+        1. Create or modify playbook YAML file
+        2. Zip the YAML file: `zip playbook.zip My_Playbook.yml`
+        3. Use this tool to upload the ZIP file
+        4. Check response for success or errors
+
+        **Note:** This tool uploads via multipart/form-data. The file parameter
+        should be the path to the ZIP file on the local filesystem.
+      operationId: insert_playbook
+      tags:
+        - Playbooks
+      requestBody:
+        description: ZIP file containing playbook YAML
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: ZIP file containing the playbook YAML
+            encoding:
+              file:
+                contentType: application/zip
+      responses:
+        '200':
+          description: Playbook uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsertPlaybookResponse'
+        '400':
+          description: Bad request - invalid ZIP or YAML format
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - requires Instance Administrator
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    InsertPlaybookResponse:
+      type: object
+      properties:
+        objects_count:
+          type: integer
+          description: Number of playbooks identified and attempted to be added
+        objects:
+          type: object
+          properties:
+            failures_items:
+              type: array
+              description: Playbooks that failed to be added
+              items:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                  id:
+                    type: string
+                    description: Playbook ID that failed
