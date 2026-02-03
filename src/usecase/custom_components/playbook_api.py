@@ -47,22 +47,34 @@ async def get_playbook(
     Returns:
         JSON response with playbook YAML content and metadata.
     """
+    import requests
+
     fetcher = await get_fetcher(ctx)
 
     request_data = {"request_data": {"filter": filter}}
 
-    # Make API call with stream=True to get binary ZIP response
-    response = await fetcher.send_request(
-        path="/playbooks/get",
-        method="POST",
-        data=request_data,
-        stream=True
-    )
+    # Use requests library directly for binary ZIP response
+    url = f"{fetcher.url}/public_api/v1/playbooks/get"
+    headers = {
+        "Authorization": fetcher.api_key,
+        "x-xdr-auth-id": fetcher.api_key_id,
+        "Content-Type": "application/json"
+    }
 
-    # Response is io.BytesIO containing ZIP file
     try:
-        # response is already a BytesIO object
-        zip_buffer = response if isinstance(response, io.BytesIO) else io.BytesIO(response)
+        response = requests.post(url, json=request_data, headers=headers, verify=False)
+
+        if response.status_code != 200:
+            return create_response(
+                data={
+                    "error": f"API request failed: {response.status_code} - {response.text}",
+                    "filter": filter
+                },
+                is_error=True
+            )
+
+        # Response is binary ZIP file
+        zip_buffer = io.BytesIO(response.content)
 
         with zipfile.ZipFile(zip_buffer, 'r') as zip_file:
             # List files in ZIP
