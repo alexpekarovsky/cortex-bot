@@ -144,7 +144,7 @@ venv\Scripts\activate  # Windows
 
 ```bash
 pip install poetry
-poetry install
+poetry install  # Installs all dependencies: fastmcp, mcp, requests, aiohttp, pydantic 2.x, etc.
 ```
 
 > **IMPORTANT:** Do NOT install `demisto-sdk` in this virtual environment. Use `uvx demisto-sdk` instead to avoid pydantic version conflicts. See [XSOAR Development Tools](#xsoar-development-tools).
