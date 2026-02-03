@@ -223,6 +223,82 @@ def create_title_task(task_id: str, name: str, next_tasks: List[str],
     }
 
 
+def parse_condition_to_xsoar_format(condition_str: str) -> list:
+    """
+    Parse simplified condition string to proper XSOAR condition structure.
+
+    Simplified: "${variable} == 'value'" or "${variable} >= 3"
+    Proper XSOAR: [[{"operator": "...", "left": {...}, "right": {...}}]]
+
+    Args:
+        condition_str: Simplified condition string
+
+    Returns:
+        Properly structured XSOAR condition
+    """
+    import re
+
+    # Parse condition: ${variable.accessor} OPERATOR value
+    pattern = r'\$\{([^}]+)\}\s*(==|!=|>=|<=|>|<|contains)\s*(.+)'
+    match = re.match(pattern, condition_str.strip())
+
+    if not match:
+        # If can't parse, return as-is (might be pre-formatted)
+        return [[{"operator": "isTrue", "left": {"value": {"simple": condition_str}}}]]
+
+    variable, operator, value = match.groups()
+    value = value.strip().strip('"').strip("'")
+
+    # Map operators
+    operator_map = {
+        "==": "isEqualString",
+        "!=": "isNotEqualString",
+        ">=": "greaterThanOrEqual",
+        "<=": "lessThanOrEqual",
+        ">": "greaterThan",
+        "<": "lessThan",
+        "contains": "containsString"
+    }
+
+    xsoar_operator = operator_map.get(operator, "isEqualString")
+
+    # Parse variable (e.g., "incident.type" → root: incident, accessor: type)
+    parts = variable.split(".", 1)
+    root = parts[0]
+    accessor = parts[1] if len(parts) > 1 else None
+
+    # Build XSOAR condition structure
+    condition = {
+        "operator": xsoar_operator,
+        "left": {
+            "value": {
+                "complex": {
+                    "root": root
+                }
+            },
+            "iscontext": True
+        },
+        "right": {
+            "value": {
+                "simple": value
+            }
+        }
+    }
+
+    # Add accessor if present
+    if accessor:
+        condition["left"]["value"]["complex"]["accessor"] = accessor
+
+    # Try to parse value as number if possible
+    try:
+        numeric_value = int(value)
+        condition["right"]["value"]["simple"] = str(numeric_value)
+    except:
+        pass
+
+    return [[condition]]
+
+
 def create_condition_task(task_id: str, name: str, conditions: list,
                          next_tasks: dict, position: dict,
                          description: str = "",
@@ -268,15 +344,22 @@ def create_playbook_task(task_id: str, name: str, playbook_name: str,
                         arguments: dict, next_tasks: List[str],
                         position: dict, description: str = "") -> dict:
     """Generate sub-playbook call task."""
-    # Wrap arguments in simple: format if not already wrapped
+    # Wrap arguments in proper format for sub-playbooks
     wrapped_arguments = {}
     for key, value in arguments.items():
         if isinstance(value, dict) and ('simple' in value or 'complex' in value):
             # Already wrapped
             wrapped_arguments[key] = value
+        elif isinstance(value, str) and value.startswith('${') and value.endswith('}'):
+            # Context variable - use complex format with root
+            wrapped_arguments[key] = {
+                "complex": {
+                    "root": value
+                }
+            }
         else:
-            # Wrap in simple format
-            wrapped_arguments[key] = {"simple": value}
+            # Static value - use simple format
+            wrapped_arguments[key] = {"simple": str(value)}
 
     return {
         "id": task_id,
@@ -688,10 +771,34 @@ async def create_playbook(
                 manual_tags = task_def.get("tags", [])
                 all_tags = auto_tags + manual_tags
 
+                # Parse conditions to proper XSOAR format
+                raw_conditions = task_def.get("conditions", [])
+                parsed_conditions = []
+
+                for cond in raw_conditions:
+                    if isinstance(cond, dict) and "condition" in cond:
+                        # Check if condition is already properly formatted
+                        if isinstance(cond["condition"], list):
+                            # Already in XSOAR format
+                            parsed_conditions.append(cond)
+                        elif isinstance(cond["condition"], str):
+                            # Simplified string format - parse it
+                            parsed_cond = parse_condition_to_xsoar_format(cond["condition"])
+                            parsed_conditions.append({
+                                "label": cond.get("label", "default"),
+                                "condition": parsed_cond
+                            })
+                        else:
+                            # Unknown format, keep as-is
+                            parsed_conditions.append(cond)
+                    else:
+                        # Already proper format or unknown, keep as-is
+                        parsed_conditions.append(cond)
+
                 playbook["tasks"][task_id] = create_condition_task(
                     task_id,
                     task_def["name"],
-                    task_def.get("conditions", []),
+                    parsed_conditions,
                     cond_nexttasks,
                     position,
                     task_def.get("description", ""),
