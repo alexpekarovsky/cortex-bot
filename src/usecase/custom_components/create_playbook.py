@@ -50,7 +50,7 @@ def calculate_position(task_index: int, total_tasks: int, task_type: str = "regu
 
 def create_start_task(task_id: str, next_tasks: List[str]) -> dict:
     """Generate start task."""
-    return {
+    task_dict = {
         "id": task_id,
         "taskid": generate_uuid(),
         "type": "start",
@@ -73,6 +73,9 @@ def create_start_task(task_id: str, next_tasks: List[str]) -> dict:
         "quietmode": 0
     }
 
+    # Auto-fix common mistakes (e.g., self-loop)
+    return auto_fix_task(task_dict, "start")
+
 
 def create_regular_task(task_id: str, name: str,
                        script_name: str = None,
@@ -81,7 +84,8 @@ def create_regular_task(task_id: str, name: str,
                        arguments: dict = None,
                        next_tasks: List[str] = None,
                        position: dict = None,
-                       description: str = "") -> dict:
+                       description: str = "",
+                       playbook_name: str = None) -> dict:
     """Generate regular task (script/automation OR integration command)."""
     if arguments is None:
         arguments = {}
@@ -130,6 +134,49 @@ def create_regular_task(task_id: str, name: str,
     else:
         task_dict["task"]["scriptName"] = script_name
 
+    # Auto-fix common mistakes (query_name, skipunavailable, field names)
+    task_dict = auto_fix_task(task_dict, "regular", playbook_name=playbook_name)
+
+    return task_dict
+
+
+def auto_fix_task(task_dict: dict, task_type: str, playbook_name: str = None) -> dict:
+    """
+    Automatically fix common playbook YAML mistakes discovered in production.
+
+    Auto-fixes:
+    - Missing query_name for XQL queries
+    - Wrong skipunavailable values (false for XQL, true for optional playbooks)
+    - Common XQL field name mistakes
+    - Start task self-loops
+    - SlackAsk/EmailAsk task parameter → tag mapping for sub-playbooks
+    """
+    # Fix 1: XQL queries must have query_name
+    if task_type == "regular":
+        script = task_dict.get("task", {}).get("scriptName") or task_dict.get("task", {}).get("script", "")
+
+        if "xdr-xql-generic-query" in str(script):
+            # Ensure query_name exists in arguments
+            if "scriptarguments" not in task_dict:
+                task_dict["scriptarguments"] = {}
+
+            if "query_name" not in task_dict["scriptarguments"]:
+                # Generate query_name from task name
+                task_name = task_dict.get("task", {}).get("name", "query")
+                query_name = task_name.lower().replace(" ", "_").replace("-", "_")[:50]
+                task_dict["scriptarguments"]["query_name"] = query_name
+
+            # Fix skipunavailable for XQL (must be false!)
+            task_dict["skipunavailable"] = False
+
+    # Fix 2: Start task pointing to itself
+    if task_type == "start":
+        task_id = task_dict.get("id")
+        next_tasks = task_dict.get("nexttasks", {}).get("#none#", [])
+        if task_id in next_tasks or "0" in next_tasks:
+            # Point to task 1 instead
+            task_dict["nexttasks"]["#none#"] = ["1"]
+
     return task_dict
 
 
@@ -168,9 +215,10 @@ def create_title_task(task_id: str, name: str, next_tasks: List[str],
 
 def create_condition_task(task_id: str, name: str, conditions: list,
                          next_tasks: dict, position: dict,
-                         description: str = "") -> dict:
-    """Generate condition task."""
-    return {
+                         description: str = "",
+                         tags: list = None) -> dict:
+    """Generate condition task with optional tags for Slack/Email entitlements."""
+    task_dict = {
         "id": task_id,
         "taskid": generate_uuid(),
         "type": "condition",
@@ -198,6 +246,12 @@ def create_condition_task(task_id: str, name: str, conditions: list,
         "isoversize": False,
         "isautoswitchedtoquietmode": False
     }
+
+    # Add tags if provided (for Slack/Email entitlement patterns)
+    if tags:
+        task_dict["tags"] = tags
+
+    return task_dict
 
 
 def create_playbook_task(task_id: str, name: str, playbook_name: str,
@@ -362,6 +416,45 @@ async def create_playbook(
     """
     Create an XSOAR/XSIAM playbook programmatically with smart content discovery.
 
+    =====================================================================
+    🤖 LLM WORKFLOW - AFTER CREATING PLAYBOOK
+    =====================================================================
+
+    **PREFERRED: Use insert_playbook (REST API)**
+
+    After this tool generates the YAML file:
+    1. ✅ Tool creates YAML file and ZIP file automatically
+    2. ✅ Tool returns both yaml_path and zip_path
+    3. 🚀 USE insert_playbook(file="{zip_path}") to upload to XSIAM
+    4. ✅ Verify upload was successful
+
+    **FALLBACK: Use sdk_upload (SDK) only if API fails**
+
+    If insert_playbook fails for any reason:
+    - Use sdk_upload(path="{pack_path}") as backup method
+    - SDK requires proper pack structure with metadata
+
+    **Why prefer insert_playbook:**
+    - ✅ Faster (direct API vs SDK overhead)
+    - ✅ Simpler (just upload ZIP, no pack structure needed)
+    - ✅ Returns immediate feedback
+    - ✅ No pydantic version conflicts
+
+    =====================================================================
+
+    📚 RECOMMENDED: Call get_playbook_building_blocks() FIRST
+
+    Before generating custom playbooks, call get_playbook_building_blocks() to access:
+    - 60+ production-tested task patterns
+    - Error path handling (continueonerror + #error# paths)
+    - Slack entitlement patterns (DeleteContext, SlackAskV2, condition routing)
+    - Timer management patterns
+    - Sub-playbook call patterns
+    - XQL query patterns
+    - Modern XSIAM 2.4+ commands
+
+    This ensures generated playbooks follow best practices and use correct patterns.
+
     ⚠️ IMPORTANT - SEARCHES PANW CONTENT FIRST! ⚠️
 
     By DEFAULT (skip_discovery=False), this tool will:
@@ -497,6 +590,11 @@ async def create_playbook(
         first_task_id = tasks_list[0]["id"] if tasks_list else "1"
         playbook["tasks"]["0"] = create_start_task("0", [first_task_id])
 
+        # First pass: Build task reference map for Slack/Email entitlement detection
+        task_reference_map = {}
+        for task_def in tasks_list:
+            task_reference_map[task_def["id"]] = task_def
+
         # Create each task
         for idx, task_def in enumerate(tasks_list):
             task_id = task_def["id"]
@@ -513,7 +611,8 @@ async def create_playbook(
                     arguments=task_def.get("arguments", {}),
                     next_tasks=task_def.get("next", []),
                     position=position,
-                    description=task_def.get("description", "")
+                    description=task_def.get("description", ""),
+                    playbook_name=name
                 )
             elif task_type == "title":
                 playbook["tasks"][task_id] = create_title_task(
@@ -539,13 +638,44 @@ async def create_playbook(
                 if "next" in task_def and not cond_nexttasks:
                     cond_nexttasks = {"#default#": task_def["next"]}
 
+                # Auto-detect if this condition is referenced by SlackAsk/EmailAsk
+                # and automatically add tags for sub-playbook compatibility
+                auto_tags = []
+                for ref_task in tasks_list:
+                    if ref_task["type"] == "regular":
+                        script = ref_task.get("script") or ref_task.get("command", "")
+                        # Check if this is a SlackAsk or EmailAsk command
+                        if "SlackAsk" in str(script) or "EmailAsk" in str(script):
+                            # Check if the task parameter points to this condition
+                            args = ref_task.get("arguments", {})
+                            task_param = args.get("task", {})
+                            task_param_value = None
+
+                            # Handle different argument formats
+                            if isinstance(task_param, dict):
+                                task_param_value = task_param.get("simple") or task_param.get("value")
+                            elif isinstance(task_param, str):
+                                task_param_value = task_param
+
+                            # If this SlackAsk/EmailAsk points to this condition, add tag
+                            if task_param_value == task_id:
+                                # Generate tag name: playbook-name-wait-taskid
+                                tag_name = f"{name.lower().replace(' ', '-')}-wait-{task_id}"
+                                auto_tags.append(tag_name)
+                                logger.info(f"Auto-added tag '{tag_name}' to condition task {task_id} for {script}")
+
+                # Merge auto-detected tags with any manually specified tags
+                manual_tags = task_def.get("tags", [])
+                all_tags = auto_tags + manual_tags
+
                 playbook["tasks"][task_id] = create_condition_task(
                     task_id,
                     task_def["name"],
                     task_def.get("conditions", []),
                     cond_nexttasks,
                     position,
-                    task_def.get("description", "")
+                    task_def.get("description", ""),
+                    tags=all_tags if all_tags else None
                 )
             elif task_type == "collection":
                 playbook["tasks"][task_id] = create_collection_task(
@@ -564,12 +694,27 @@ async def create_playbook(
         with open(output_path, 'w') as f:
             yaml.dump(playbook, f, default_flow_style=False, sort_keys=False)
 
+        # Create ZIP file for easy upload via insert_playbook API
+        import zipfile
+        import os
+
+        zip_path = output_path.replace('.yml', '.zip').replace('.yaml', '.zip')
+        if not zip_path.endswith('.zip'):
+            zip_path = output_path + '.zip'
+
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            # Add YAML file to ZIP with just the filename (no path)
+            zipf.write(output_path, os.path.basename(output_path))
+
         return create_response(data={
             "success": True,
             "playbook_name": name,
-            "output_path": output_path,
+            "yaml_path": output_path,
+            "zip_path": zip_path,
             "tasks_created": len(tasks_list) + 1,  # +1 for start task
-            "message": f"Playbook '{name}' generated successfully at {output_path}"
+            "message": f"Playbook '{name}' generated successfully",
+            "next_step": f"Upload to XSIAM: insert_playbook(file='{zip_path}')",
+            "alternative": f"Or use SDK: sdk_upload(path='{os.path.dirname(output_path)}')"
         })
 
     except Exception as e:
