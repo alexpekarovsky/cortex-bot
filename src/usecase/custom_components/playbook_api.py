@@ -74,7 +74,8 @@ async def get_playbook(
             )
 
         # Response is binary ZIP file
-        zip_buffer = io.BytesIO(response.content)
+        zip_content = response.content
+        zip_buffer = io.BytesIO(zip_content)
 
         with zipfile.ZipFile(zip_buffer, 'r') as zip_file:
             # List files in ZIP
@@ -96,7 +97,7 @@ async def get_playbook(
                 "yaml_filename": yaml_filename,
                 "yaml_content": yaml_content,
                 "file_list": file_list,
-                "size_bytes": len(response),
+                "size_bytes": len(zip_content),
                 "success": True
             })
 
