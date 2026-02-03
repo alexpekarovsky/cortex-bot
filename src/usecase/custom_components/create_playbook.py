@@ -299,11 +299,74 @@ def parse_condition_to_xsoar_format(condition_str: str) -> list:
     return [[condition]]
 
 
+def format_condition_value(value_def):
+    """
+    Format condition left/right value to proper XSOAR structure.
+
+    Converts bare values or simple dicts into proper {value: {simple: ...}} format.
+    Preserves already-wrapped complex structures.
+    """
+    if isinstance(value_def, dict):
+        # Check if already properly wrapped
+        if "value" in value_def:
+            inner_value = value_def["value"]
+            if isinstance(inner_value, dict) and ("simple" in inner_value or "complex" in inner_value):
+                # Already wrapped correctly - return as-is
+                return value_def
+            else:
+                # Has "value" but inner value not wrapped - wrap it
+                return {
+                    "value": {"simple": str(inner_value)},
+                    "iscontext": value_def.get("iscontext", False)
+                }
+        else:
+            # No "value" key - assume it's the old format, return as-is
+            return value_def
+    else:
+        # Bare value - wrap it in proper structure
+        return {
+            "value": {"simple": str(value_def)},
+            "iscontext": False
+        }
+
+
 def create_condition_task(task_id: str, name: str, conditions: list,
                          next_tasks: dict, position: dict,
                          description: str = "",
                          tags: list = None) -> dict:
-    """Generate condition task with optional tags for Slack/Email entitlements."""
+    """Generate condition task with optional tags for Slack/Email entitlements and auto-formatted condition values."""
+
+    # Auto-format condition values to wrap them in {simple:} structure
+    formatted_conditions = []
+    for cond in conditions:
+        if isinstance(cond, dict) and "condition" in cond:
+            formatted_cond = {"label": cond.get("label", "default"), "condition": []}
+
+            # Process each OR group in the condition
+            for or_group in cond.get("condition", []):
+                formatted_or_group = []
+
+                # Process each AND clause in the OR group
+                for and_clause in or_group:
+                    formatted_clause = dict(and_clause)  # Copy the clause
+
+                    # Format left value if exists
+                    if "left" in formatted_clause:
+                        formatted_clause["left"] = format_condition_value(formatted_clause["left"])
+
+                    # Format right value if exists
+                    if "right" in formatted_clause:
+                        formatted_clause["right"] = format_condition_value(formatted_clause["right"])
+
+                    formatted_or_group.append(formatted_clause)
+
+                formatted_cond["condition"].append(formatted_or_group)
+
+            formatted_conditions.append(formatted_cond)
+        else:
+            # Not a dict or no condition key - keep as-is
+            formatted_conditions.append(cond)
+
     task_dict = {
         "id": task_id,
         "taskid": generate_uuid(),
@@ -321,7 +384,7 @@ def create_condition_task(task_id: str, name: str, conditions: list,
         },
         "nexttasks": next_tasks,
         "separatecontext": False,
-        "conditions": conditions,
+        "conditions": formatted_conditions,
         "continueonerrortype": "",
         "view": json.dumps({"position": position}),
         "note": False,
@@ -737,9 +800,17 @@ async def create_playbook(
             elif task_type == "condition":
                 # Condition tasks use nexttasks dict, not list
                 cond_nexttasks = task_def.get("nexttasks", {})
-                # If "next" is provided as list, convert to default path
-                if "next" in task_def and not cond_nexttasks:
-                    cond_nexttasks = {"#default#": task_def["next"]}
+
+                # If not provided, build from label-based routing at top level
+                if not cond_nexttasks:
+                    # Extract routing from top-level keys (Malware, Phishing, yes, no, etc.)
+                    for key, value in task_def.items():
+                        if key not in ["id", "type", "name", "description", "conditions", "next", "tags"] and isinstance(value, list):
+                            cond_nexttasks[key] = value
+
+                # If "next" is provided as list, add as default path
+                if "next" in task_def and "#default#" not in cond_nexttasks:
+                    cond_nexttasks["#default#"] = task_def["next"]
 
                 # Auto-detect if this condition is referenced by SlackAsk/EmailAsk
                 # and automatically add tags for sub-playbook compatibility
@@ -814,7 +885,9 @@ async def create_playbook(
                     position,
                     task_def.get("message_to", "Analyst"),
                     task_def.get("message_subject", ""),
-                    task_def.get("message_body", "")
+                    task_def.get("message_body", ""),
+                    sla=task_def.get("sla"),
+                    slareminder=task_def.get("slareminder")
                 )
 
         # Write YAML
@@ -875,9 +948,11 @@ def create_collection_task(task_id: str, name: str, description: str,
                           position: dict,
                           message_to: str = "Analyst",
                           message_subject: str = "",
-                          message_body: str = "") -> dict:
-    """Generate collection (user input form) task."""
-    return {
+                          message_body: str = "",
+                          sla: dict = None,
+                          slareminder: dict = None) -> dict:
+    """Generate collection (user input form) task with optional SLA."""
+    task_dict = {
         "id": task_id,
         "taskid": generate_uuid(),
         "type": "collection",
@@ -928,3 +1003,11 @@ def create_collection_task(task_id: str, name: str, description: str,
         "isoversize": False,
         "isautoswitchedtoquietmode": False
     }
+
+    # Add SLA fields if provided
+    if sla:
+        task_dict["sla"] = sla
+    if slareminder:
+        task_dict["slareminder"] = slareminder
+
+    return task_dict
