@@ -66,16 +66,21 @@ async def sdk_init(
     Returns:
         JSON response with created file paths and next steps.
     """
-    args = ["init", "--name", name, "--type", content_type]
+    args = ["init", "--name", name]
 
-    if pack_name:
-        args.extend(["--pack-name", pack_name])
+    # Add content type as flag (not --type parameter)
+    if content_type == "integration":
+        args.append("--integration")
+    elif content_type == "script":
+        args.append("--script")
+    elif content_type == "pack":
+        args.append("--pack")
 
     if output_dir:
         args.extend(["--output", output_dir])
 
-    # Don't prompt for input
-    args.append("--non-interactive")
+    # Don't prompt for input (if SDK supports it)
+    # Note: --non-interactive may not be supported in all SDK versions
 
     result = await DemistoSDKRunner.run_sdk_command(args)
 

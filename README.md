@@ -1,19 +1,21 @@
-# Cortex XSIAM MCP Server
+# Cortex Bot - AI-Powered Security Operations Foundation
 
 [![CI](https://github.com/PaloAltoNetworks/cortex-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/PaloAltoNetworks/cortex-mcp/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 
-A Model Context Protocol (MCP) server that provides AI assistants with comprehensive security operations capabilities for [Cortex XSIAM](https://www.paloaltonetworks.com/cortex/cortex-xsiam). This server enables natural language security investigations, threat hunting, and incident response through 90 specialized tools organized into 13 categories.
+The foundation for **Cortex Bot**, an AI-powered security operations assistant for [Cortex XSIAM](https://www.paloaltonetworks.com/cortex/cortex-xsiam). Built on the official Palo Alto Networks Cortex MCP Server, this repository adds 84 specialized tools, smart automation capabilities, and infrastructure for skills and sub-agents.
 
-> Complete standalone server for Cortex XSIAM. Serves both humans and AI assistants.
+> **⚠️ PREREQUISITES:** Install the [official Cortex MCP Server](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools) FIRST, then add Cortex Bot components from this repository.
+
+**Total Capabilities:** 90 tools (6 official base + 84 Cortex Bot custom) | Smart Tools | Skills (Coming Soon) | Sub-Agents (Coming Soon)
 
 ---
 
 ## Table of Contents
 
 - [Features](#features)
-- [Quick Start](#quick-start-5-minutes)
+- [Quick Start](#quick-start)
 - [Architecture](#architecture)
 - [Installation Guide](#installation-guide)
 - [Client Configuration](#client-configuration)
@@ -36,47 +38,95 @@ A Model Context Protocol (MCP) server that provides AI assistants with comprehen
 
 ## Features
 
-- **Case Management** - List, investigate, and update security incidents
-- **Issue Triage** - View and manage security issues (formerly called alerts) with full forensic context
-- **Threat Hunting** - Execute XQL queries for proactive threat detection
-- **Detection Rules** - Create and manage custom XQL-based correlation rules for automated threat detection
-- **Response Actions** - Isolate endpoints, terminate processes, quarantine files
-- **Threat Intelligence** - Enrich IOCs with reputation data from multiple sources
-- **XSOAR Automation** - Execute any XSOAR command through the War Room
-- **AI Summaries** - Generate comprehensive investigation reports automatically
-- **XSOAR Development** - Create, validate, and deploy custom integrations and scripts via Demisto SDK
-- **XSIAM Content Generation** - Programmatically create CaseLayouts, Dashboards with XQL widgets, AgentIX actions, and more
-- **Widget Management** - Create, update, and delete XQL widgets for dashboards and reports via API
+### Official PANW MCP Server (Base - 6 Tools)
+- Case Management - List and filter cases
+- Issue Management - View and query issues
+- Asset Discovery - List endpoints and assets
+- Assessment Results - Compliance posture data
+
+### Cortex Bot Enhancements (+84 Tools)
+
+**Advanced Investigation:**
+- **AI-Powered Summaries** - Auto-generate comprehensive investigation reports
+- **Visual Timelines** - Create interactive HTML timelines for cases
+- **Deep Forensics** - get_alert_multi_events with complete event chains
+- **Contributing Events** - Correlation alert analysis
+
+**Threat Hunting & Detection:**
+- **XQL Query Execution** - run_xql_query with full syntax support
+- **Detection Rules** - Create/manage custom XQL-based correlation rules
+- **Threat Intelligence** - Multi-source IOC enrichment (IP, domain, file, URL)
+
+**Response & Containment:**
+- **Endpoint Actions** - Isolate, scan, retrieve files
+- **Process Control** - Terminate processes and causality chains
+- **File Operations** - Quarantine, restore, check status
+- **Indicator Blocking** - IOC management and blocklisting
+
+**XSOAR Development (10 SDK Tools):**
+- Create, validate, lint, upload integrations and scripts
+- Full demisto-sdk integration via MCP
+- Development guides for all integration patterns
+
+**Playbook Automation (3 Tools):**
+- **create_playbook** - Programmatic playbook generation with auto-formatting
+- **insert_playbook** - Direct API upload
+- **delete_playbook** - Playbook lifecycle management
+
+**Content Generation (11 Tools):**
+- CaseLayouts, CaseFields, LayoutRules
+- XSIAMDashboards, XSIAMReports with XQL widgets
+- ParsingRules, ModelingRules, AssetsModelingRules
+- AgentIX Actions and Agents
+
+**Development Guides (9 Tools):**
+- Pattern recognition, integration types, best practices
+- Comprehensive implementation guides
+
+**Testing & Validation:**
+- **test_all_tools** - Automated testing for all 90 tools
+- Category-specific test suites
 
 ---
 
-## Quick Start (5 Minutes)
+## Quick Start
 
-**Prerequisites:** Python 3.12+, Cortex XSIAM API key
+**Prerequisites:** Python 3.12+, Cortex XSIAM API key, Claude Desktop or Claude Code
+
+### Step 1: Install Official Cortex MCP Server (Required)
+
+Follow the [official PANW installation guide](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools):
+
+1. Open your Cortex XSIAM tenant
+2. Navigate to Settings → Integrations → Cortex MCP Server
+3. Download the MCP server package
+4. Extract and install via Docker or Poetry (Python 3.13+)
+5. Configure your MCP client (Claude Desktop/Code)
+6. **Verify:** You should see 6 base tools available (get_cases, get_issues, get_assets, etc.)
+
+### Step 2: Add Cortex Bot Enhancements (This Repo)
 
 ```bash
-# 1. Clone and install
-git clone https://github.com/PaloAltoNetworks/cortex-mcp.git
+# Clone Cortex Bot repository
+git clone <GITHUB_REPO_URL>
 cd cortex-mcp
-python -m venv venv && source venv/bin/activate
-pip install poetry && poetry install
 
-# 2. Configure credentials
-cp .env.example .env
-# Edit .env with your XSIAM API credentials
+# Install Poetry and dependencies
+pip install poetry
+poetry install
 
-# 3. Test server
-python src/main.py  # No output = success
+# Copy custom tools to your official MCP installation
+cp -r src/usecase/custom_components/* /path/to/official-mcp/src/usecase/custom_components/
 
-# 4. Configure Claude Code
-claude mcp add cortex-xsiam -- python $(pwd)/src/main.py
+# Restart your MCP server
+# Verify: You should now see 90 total tools
 
-# 5. Try it!
+# Try it!
 claude
-# Ask: "Show me my top 10 security cases"
+# Ask: "Create a phishing investigation playbook"
 ```
 
-**Next steps:** See [Installation Guide](#installation-guide) for detailed setup and configuration options.
+**Next steps:** See [Installation Guide](#installation-guide) for detailed configuration, multi-tenant setup, and troubleshooting.
 
 ---
 
@@ -112,12 +162,15 @@ The MCP server translates natural language requests into Cortex XSIAM REST API c
 
 ## Installation Guide
 
+This guide shows how to add Cortex Bot enhancements to your existing official Cortex MCP Server installation.
+
 ### Step 1: Prerequisites
 
-Before installation, ensure you have:
+**Required:**
 
-| Requirement | Version | How to Check | Install Command |
-|-------------|---------|--------------|-----------------|
+| Requirement | Version | How to Check | Install Guide |
+|-------------|---------|--------------|---------------|
+| Official Cortex MCP Server | Latest | Check Claude Desktop/Code shows 6 base tools | [PANW Installation Guide](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools) |
 | Python | 3.12+ | `python --version` | [python.org/downloads](https://www.python.org/downloads/) |
 | Git | Any | `git --version` | [git-scm.com](https://git-scm.com/) |
 | Cortex XSIAM API Key | N/A | See below | [XSIAM API Guide](https://docs-cortex.paloaltonetworks.com/r/Cortex-XSIAM/Cortex-XSIAM-Administrator-Guide/Get-Started-with-APIs) |
@@ -127,45 +180,64 @@ Before installation, ensure you have:
 - Role: `Instance Administrator` (for full functionality)
 - Required Permissions: Read access to incidents, alerts, endpoints; Write access for response actions
 
-### Step 2: Clone and Setup
+> **IMPORTANT:** You MUST install the official Cortex MCP Server first before adding these enhancements. Cortex Bot extends the official server with additional tools.
+
+### Step 2: Clone Cortex Bot Repository
 
 ```bash
 git clone https://github.com/PaloAltoNetworks/cortex-mcp.git
 cd cortex-mcp
-python -m venv venv
-
-# Activate virtual environment
-source venv/bin/activate  # macOS/Linux
-# OR
-venv\Scripts\activate  # Windows
 ```
 
 ### Step 3: Install Dependencies
 
 ```bash
 pip install poetry
-poetry install  # Installs all dependencies: fastmcp, mcp, requests, aiohttp, pydantic 2.x, etc.
+poetry install  # Installs fastmcp, mcp, requests, aiohttp, pydantic 2.x, etc.
 ```
 
-> **IMPORTANT:** Do NOT install `demisto-sdk` in this virtual environment. Use `uvx demisto-sdk` instead to avoid pydantic version conflicts. See [XSOAR Development Tools](#xsoar-development-tools).
+> **Note:** Do NOT install `demisto-sdk` in this virtual environment. Use `uvx demisto-sdk` instead to avoid pydantic version conflicts. See [XSOAR Development Tools](#xsoar-development-tools).
 
-### Step 4: Configure Credentials
-
-Create `.env` file with your XSIAM API credentials:
+### Step 4: Copy Custom Tools to Official MCP Installation
 
 ```bash
-cp .env.example .env
-# Edit with these three required variables:
-CORTEX_MCP_PAPI_URL=https://api-{tenant}.xdr.{region}.paloaltonetworks.com
-CORTEX_MCP_PAPI_AUTH_HEADER=your_api_key_here
-CORTEX_MCP_PAPI_AUTH_ID=12
+# Find your official MCP installation directory
+# Common locations:
+# - Docker: /opt/cortex-mcp
+# - Poetry: ~/.local/share/cortex-mcp
+# - Manual: wherever you extracted it
+
+# Copy custom tools
+cp -r src/usecase/custom_components/* /path/to/official-mcp/src/usecase/custom_components/
+
+# Example for Docker installation:
+# cp -r src/usecase/custom_components/* /opt/cortex-mcp/src/usecase/custom_components/
 ```
 
+### Step 5: Restart MCP Server
+
+```bash
+# For Docker installations
+docker restart cortex-mcp
+
+# For Poetry/manual installations
+pkill -f "cortex-mcp.*main.py"
+# Then restart via your MCP client (Claude Desktop/Code)
+```
+
+### Step 6: Verify Installation
+
+Open Claude Desktop or Claude Code and verify:
+
+```bash
+/mcp
+```
+
+**Expected output:** `Connected to cortex-xsiam (90 tools)`
+
+If you see 90 tools, installation is complete! The 6 official tools + 84 Cortex Bot custom tools are now available.
+
 **For advanced configuration** (multi-tenant setups, credential priority, troubleshooting): See [docs/CREDENTIAL_CONFIGURATION.md](docs/CREDENTIAL_CONFIGURATION.md)
-
-### Step 5: Configure MCP Client
-
-See [Client Configuration](#client-configuration) section below for Claude Desktop, Claude Code CLI, or Docker setup.
 
 ---
 
@@ -480,7 +552,7 @@ insert_correlation_rule(
 
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
-| `test_all_tools` | Comprehensive testing framework for all 87 MCP tools | `skip_destructive`, `endpoint_id`, `categories` |
+| `test_all_tools` | Comprehensive testing framework for all 90 MCP tools | `skip_destructive`, `endpoint_id`, `categories` |
 
 **Usage:**
 ```python
@@ -563,7 +635,28 @@ export XSIAM_AUTH_ID=$CORTEX_MCP_PAPI_AUTH_ID
 
 ### Shared Content Repository
 
-SDK tools use `~/projects/content/` for XSOAR content packs (integrations, scripts, playbooks). This enables version-controlled, collaborative development across multiple projects.
+**REQUIRED for SDK tools:** The SDK tools need a content repository with `Packs/` directory.
+
+**Default Location:** `~/projects/content/`
+
+**Setup:**
+```bash
+mkdir -p ~/projects/content/Packs
+```
+
+**Custom Location:** Set environment variable:
+```bash
+export DEMISTO_SDK_CONTENT_PATH=/path/to/your/content
+# or
+export CONTENT_PATH=/path/to/your/content
+```
+
+**Priority:**
+1. `DEMISTO_SDK_CONTENT_PATH` env var
+2. `CONTENT_PATH` env var
+3. `~/projects/content/` (default)
+
+**Without this directory, SDK tools will fail with:** "FileNotFoundError: No such file or directory: 'Packs'"
 
 ### Development Guide Tools (9 tools)
 
@@ -630,11 +723,11 @@ Claude:
 /mcp
 ```
 
-**Expected output:** `Connected to cortex-xsiam (87 tools)`
+**Expected output:** `Connected to cortex-xsiam (90 tools)`
 
 ### Comprehensive Test Suite
 
-The `test_all_tools` framework validates all 87 MCP tools against your live XSIAM tenant.
+The `test_all_tools` framework validates all 90 MCP tools against your live XSIAM tenant.
 
 **Safe Mode (Recommended):**
 ```python
@@ -669,7 +762,7 @@ test_all_tools(categories="case_management,threat_hunting,widget_apis")
 **Results:**
 ```
 TESTING SUMMARY:
-Total tools: 87
+Total tools: 90
 Tools tested: 85
 Tools passed: 82
 Tools failed: 1
@@ -718,8 +811,6 @@ ENABLE_DESTRUCTIVE_TOOLS=true
 ---
 
 ## Use Cases
-
-For detailed walkthroughs with full code examples, see **[USECASES.md](USECASES.md)**.
 
 ### Quick Examples
 
@@ -1040,8 +1131,6 @@ A: Yes! Configure different tenants per project using `~/.claude.json`:
   }
 }
 ```
-
-See [Credential Priority Order](#credential-priority-order) for complete guide.
 
 ### Technical Questions
 
