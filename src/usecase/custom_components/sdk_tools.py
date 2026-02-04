@@ -288,6 +288,15 @@ async def sdk_run(
 
     result = await DemistoSDKRunner.run_sdk_command(args, timeout=60)
 
+    # Handle playground errors gracefully
+    if not result["success"] and "playground" in result["stderr"].lower():
+        return create_response(data={
+            "success": False,
+            "error": "SDK run command requires XSOAR playground configuration",
+            "recommendation": "Use run_xsoar_automation MCP tool instead, or configure SDK playground",
+            "command": command
+        }, is_error=True)
+
     return create_response(data={
         "success": result["success"],
         "command": command,
@@ -323,6 +332,15 @@ async def sdk_run_playbook(
         args.append("--wait")
 
     result = await DemistoSDKRunner.run_sdk_command(args, timeout=timeout)
+
+    # Handle playground/playbook errors gracefully
+    if not result["success"] and ("playground" in result["stderr"].lower() or "does not exist" in result["stderr"].lower()):
+        return create_response(data={
+            "success": False,
+            "error": "SDK run-playbook requires XSOAR playground and playbook to exist",
+            "recommendation": "Use run_playbook MCP tool instead for running playbooks on issues",
+            "playbook_name": playbook_name
+        }, is_error=True)
 
     return create_response(data={
         "success": result["success"],

@@ -1,53 +1,183 @@
-name: insert_widgets
-description: |
-  Creates new widgets or updates existing widgets in XSIAM.
+openapi: 3.0.0
+paths:
+  /public_api/v1/widgets/insert:
+    post:
+      summary: Create or Update XQL Widgets
+      description: |-
+        Creates new widgets or updates existing widgets in XSIAM.
 
-  Use this to:
-  - Create custom XQL widgets for dashboards/reports
-  - Update existing widget queries or configurations
-  - Build programmatic dashboard visualizations
+        Use this to:
+        - Create custom XQL widgets for dashboards/reports
+        - Update existing widget queries or configurations
+        - Build programmatic dashboard visualizations
 
-  Requires Instance Administrator permissions.
+        Requires Instance Administrator permissions.
 
-  Widget Structure:
-  - widget_key: Unique identifier (use "xql_{timestamp}" format for new widgets)
-  - title: Widget display name
-  - creation_time: Unix timestamp in milliseconds
-  - description: Optional widget description
-  - data:
-      - phrase: XQL query to execute
-      - time_frame: {"relativeTime": milliseconds} (86400000 = 1 day)
-      - viewOptions: {"type": "table|pie|bar|line|single", "commands": []}
-  - support_time_range: true (allows users to change time range)
-  - additional_info:
-      - query_tables: ["dataset_name"]
-      - query_uses_library: false
-  - creator_mail: Email of creator
+        Widget Structure:
+        - widget_key: Unique identifier (use "xql_{timestamp}" format for new widgets)
+        - title: Widget display name
+        - creation_time: Unix timestamp in milliseconds
+        - description: Optional widget description
+        - data:
+            - phrase: XQL query to execute
+            - time_frame: {"relativeTime": milliseconds} (86400000 = 1 day)
+            - viewOptions: {"type": "table|pie|bar|line|single", "commands": []}
+        - support_time_range: true (allows users to change time range)
+        - additional_info:
+            - query_tables: ["dataset_name"]
+            - query_uses_library: false
+        - creator_mail: Email of creator
 
-  View Types:
-  - table: Data table
-  - pie: Pie chart
-  - bar: Bar chart
-  - line: Line chart
-  - single: Single value metric
-  - column: Column chart
+        View Types:
+        - table: Data table
+        - pie: Pie chart
+        - bar: Bar chart
+        - line: Line chart
+        - single: Single value metric
+        - column: Column chart
+      operationId: insert_widgets
+      tags:
+        - Widgets
+      requestBody:
+        description: JSON object containing array of widget definitions to create or update
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InsertWidgetsRequest'
+            examples:
+              create_simple_widget:
+                summary: Create a simple table widget
+                value:
+                  request_data:
+                    - widgets_data:
+                        - widget_key: "xql_1640000000000"
+                          title: "Recent Alerts"
+                          creation_time: 1640000000000
+                          description: "Shows recent security alerts"
+                          data:
+                            phrase: "dataset = xdr_data | filter event_type = ENUM.ALERT | fields agent_hostname, action_process_image_name | limit 10"
+                            time_frame:
+                              relativeTime: 86400000
+                            viewOptions:
+                              type: "table"
+                              commands: []
+                          support_time_range: true
+                          additional_info:
+                            query_tables: ["xdr_data"]
+                            query_uses_library: false
+                          creator_mail: "admin@example.com"
+              create_pie_chart:
+                summary: Create a pie chart widget
+                value:
+                  request_data:
+                    - widgets_data:
+                        - widget_key: "xql_1640000001000"
+                          title: "Alerts by Severity"
+                          creation_time: 1640000001000
+                          data:
+                            phrase: "dataset = xdr_data | filter event_type = ENUM.ALERT | comp count() as alert_count by severity | view graph type = pie"
+                            time_frame:
+                              relativeTime: 86400000
+                            viewOptions:
+                              type: "pie"
+                              commands:
+                                - xaxis:
+                                    - severity
+                                  yaxis:
+                                    - alert_count
+                          support_time_range: true
+                          additional_info:
+                            query_tables: ["xdr_data"]
+                            query_uses_library: false
+                          creator_mail: "admin@example.com"
+      responses:
+        '200':
+          description: Widgets created or updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '500':
+          description: Internal server error
 
-request:
-  url: ${CORTEX_MCP_PAPI_URL}/public_api/v1/widgets/insert
-  method: POST
-  headers:
-    Authorization: ${CORTEX_MCP_PAPI_AUTH_HEADER}
-    x-xdr-auth-id: ${CORTEX_MCP_PAPI_AUTH_ID}
-    Content-Type: application/json
-
-  body:
-    request_data:
-      type: array
-      description: |
-        Array of widget objects to insert or update.
-        Each object contains a widgets_data array with widget definitions.
-      items:
-        type: object
-
-response:
-  $: reply
+components:
+  schemas:
+    InsertWidgetsRequest:
+      type: object
+      properties:
+        request_data:
+          type: array
+          description: Array of widget objects to insert or update. Each object contains a widgets_data array.
+          items:
+            type: object
+            properties:
+              widgets_data:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - widget_key
+                    - title
+                    - creation_time
+                    - data
+                  properties:
+                    widget_key:
+                      type: string
+                      description: Unique identifier (format "xql_{timestamp}")
+                    title:
+                      type: string
+                      description: Widget display name
+                    creation_time:
+                      type: integer
+                      description: Unix timestamp in milliseconds
+                    description:
+                      type: string
+                      description: Optional widget description
+                    data:
+                      type: object
+                      required:
+                        - phrase
+                        - time_frame
+                        - viewOptions
+                      properties:
+                        phrase:
+                          type: string
+                          description: XQL query to execute
+                        time_frame:
+                          type: object
+                          properties:
+                            relativeTime:
+                              type: integer
+                              description: Time range in milliseconds
+                        viewOptions:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                              enum: ["table", "pie", "bar", "line", "single", "column"]
+                            commands:
+                              type: array
+                              items:
+                                type: object
+                    support_time_range:
+                      type: boolean
+                      description: Allow users to change time range
+                    additional_info:
+                      type: object
+                      properties:
+                        query_tables:
+                          type: array
+                          items:
+                            type: string
+                        query_uses_library:
+                          type: boolean
+                    creator_mail:
+                      type: string
+                      description: Email of widget creator

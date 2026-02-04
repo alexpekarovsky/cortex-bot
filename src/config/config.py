@@ -1,7 +1,12 @@
+from pathlib import Path
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from pkg.util import REMOTE_DIR
+
+# Get the absolute path to the cortex-mcp directory (parent of src/)
+CORTEX_MCP_DIR = Path(__file__).parent.parent.parent
+ENV_FILE_PATH = CORTEX_MCP_DIR / ".env"
 
 
 class Settings(BaseSettings):
@@ -32,9 +37,13 @@ class Settings(BaseSettings):
     log_level: str = Field("DEBUG", validation_alias="LOG_LEVEL")
 
     # This configuration tells Pydantic to:
-    # 1. Load variables from a file named '.env' (for local development).
-    # 2. Ignore any extra environment variables that aren't defined in this class.
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    # 1. Load variables from .env file in cortex-mcp directory (absolute path)
+    # 2. Environment variables override .env file values (highest priority)
+    # 3. Ignore any extra environment variables that aren't defined in this class
+    model_config = SettingsConfigDict(
+        env_file=str(ENV_FILE_PATH) if ENV_FILE_PATH.exists() else None,
+        extra="ignore"
+    )
 
     # --- Update Settings ---
     update_folder: str = Field(REMOTE_DIR.as_posix(), validation_alias="CORTEX_MCP_UPDATE_FOLDER")

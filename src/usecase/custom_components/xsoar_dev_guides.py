@@ -2130,15 +2130,25 @@ async def get_xsoar_layout_guide(ctx: Context) -> str:
 PLAYBOOK_OPERATIONS_GUIDE = """
 # XSOAR Playbook Operations Guide
 
-## Running Playbooks on Alerts/Incidents
+## Running Playbooks on Issues/Alerts
+
+### CRITICAL: In XSIAM, Playbooks Run on ISSUES (Alerts), NOT Cases
+
+**XSIAM Architecture:**
+- **Cases** = Containers for related issues (no War Room)
+- **Issues** = Individual alerts (have War Rooms where playbooks execute)
+
+**Therefore:**
+- ✅ Run playbooks on: **Issue ID** (alert ID like 3993)
+- ❌ Cannot run on: **Case ID** (case ID like 1093)
 
 ### Prerequisites
 
-The alert/incident must have an **active War Room investigation**. If none exists, first add any entry:
+The issue/alert must have an **active War Room investigation**. If none exists, first add any entry:
 
 ```python
 # Using MCP tool - creates War Room if it doesn't exist
-add_war_room_entry(id="<alert_id>", data="Initializing investigation")
+add_war_room_entry(id="<issue_id>", data="Initializing investigation")
 ```
 
 ---
@@ -2146,11 +2156,14 @@ add_war_room_entry(id="<alert_id>", data="Initializing investigation")
 ### Method 1: setPlaybook Command (Recommended)
 
 ```bash
-!setPlaybook incidentId=<alert_or_incident_id> name="<playbook_name>"
+!setPlaybook incidentId=<issue_id> name="<playbook_name>"
 ```
+
+**IMPORTANT:** Despite the parameter name "incidentId", in XSIAM you MUST provide an **ISSUE ID** (alert ID), not a case ID.
 
 **Example:**
 ```bash
+# Running on issue 9648
 !setPlaybook incidentId=9648 name="my_triage_playbook"
 ```
 
@@ -2158,7 +2171,7 @@ add_war_room_entry(id="<alert_id>", data="Initializing investigation")
 ```python
 run_xsoar_automation(
     command='!setPlaybook incidentId=9648 name="my_triage_playbook"',
-    alert_id="9648"
+    alert_id="9648"  # Issue ID, not case ID
 )
 ```
 

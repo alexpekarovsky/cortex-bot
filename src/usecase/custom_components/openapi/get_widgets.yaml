@@ -1,47 +1,109 @@
-name: get_widgets
-description: |
-  Retrieves XQL widgets by filtering on title and creator.
+openapi: 3.0.0
+paths:
+  /public_api/v1/widgets/get:
+    post:
+      summary: Get XQL Widgets
+      description: |-
+        Retrieves XQL widgets by filtering on title and creator.
 
-  Use this to:
-  - List all custom XQL widgets
-  - Find widgets by title
-  - Find widgets created by specific users
-  - Get widget details for dashboards/reports
+        Use this to:
+        - List all custom XQL widgets
+        - Find widgets by title
+        - Find widgets created by specific users
+        - Get widget details for dashboards/reports
 
-  Note: Only returns custom XQL widgets, not predefined widgets.
-  Requires Instance Administrator permissions.
+        Note: Only returns custom XQL widgets, not predefined widgets.
+        Requires Instance Administrator permissions.
 
-  Widget Structure:
-  - widget_key: Unique identifier (e.g., "xql_1646052681403")
-  - title: Widget name
-  - data.phrase: XQL query
-  - data.time_frame: Time range configuration
-  - data.viewOptions: Chart type (table, pie, bar, line, single)
+        Widget Structure:
+        - widget_key: Unique identifier (e.g., "xql_1646052681403")
+        - title: Widget name
+        - data.phrase: XQL query
+        - data.time_frame: Time range configuration
+        - data.viewOptions: Chart type (table, pie, bar, line, single)
 
-  Use insert_widgets to create new widgets or update existing ones.
+        Use insert_widgets to create new widgets or update existing ones.
+      operationId: get_widgets
+      tags:
+        - Widgets
+      requestBody:
+        description: JSON object with optional filters. Leave empty to get all widgets.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetWidgetsRequest'
+            examples:
+              get_all:
+                summary: Get all widgets
+                value:
+                  request_data:
+                    filters: []
+              filter_by_title:
+                summary: Find widget by title
+                value:
+                  request_data:
+                    filters:
+                      - field: "title"
+                        operator: "CONTAINS"
+                        value: "Security"
+              filter_by_creator:
+                summary: Find widgets by creator
+                value:
+                  request_data:
+                    filters:
+                      - field: "created_by"
+                        operator: "EQ"
+                        value: "admin@example.com"
+      responses:
+        '200':
+          description: Successful response with widget list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reply:
+                    type: object
+                    properties:
+                      widgets:
+                        type: array
+                        items:
+                          type: object
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '500':
+          description: Internal server error
 
-request:
-  url: ${CORTEX_MCP_PAPI_URL}/public_api/v1/widgets/get
-  method: POST
-  headers:
-    Authorization: ${CORTEX_MCP_PAPI_AUTH_HEADER}
-    x-xdr-auth-id: ${CORTEX_MCP_PAPI_AUTH_ID}
-    Content-Type: application/json
-
-  body:
-    request_data:
-      filters:
-        type: array
-        description: |
-          Array of filter objects. Each filter has:
-          - field: "title" or "created_by"
-          - value: String to match
-          - operator: "EQ", "NEQ", "CONTAINS"
-
-          Leave empty to get all widgets.
-        default: []
-        items:
+components:
+  schemas:
+    GetWidgetsRequest:
+      type: object
+      properties:
+        request_data:
           type: object
+          properties:
+            filters:
+              type: array
+              description: |-
+                Array of filter objects. Each filter has:
+                - field: "title" or "created_by"
+                - value: String to match
+                - operator: "EQ", "NEQ", "CONTAINS"
 
-response:
-  $: reply
+                Leave empty to get all widgets.
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                    enum: ["title", "created_by"]
+                  operator:
+                    type: string
+                    enum: ["EQ", "NEQ", "CONTAINS"]
+                  value:
+                    type: string
