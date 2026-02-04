@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 async def restore_file(
     ctx: Context,
     file_hash: Annotated[str, Field(description="SHA256 hash of the quarantined file to restore")],
+    endpoint_id: Annotated[str | None, Field(description="Optional: Endpoint ID. If not specified, restores on ALL endpoints with this file.")] = None,
+    file_path: Annotated[str | None, Field(description="Optional: File path for pre-validation check")] = None,
 ) -> str:
     """
     Restores previously quarantined files with pre-validation.
@@ -85,70 +87,80 @@ async def restore_file(
                 is_error=True
             )
 
-        # Step 2: Check if file is actually quarantined
-        logger.info(f"Checking quarantine status for file {file_hash}")
+        # Step 2: Check if file is actually quarantined (optional - only if endpoint details provided)
+        if endpoint_id and file_path:
+            logger.info(f"Checking quarantine status for file {file_hash} on endpoint {endpoint_id}")
 
-        status_payload = {
-            "request_data": {
-                "files": [{
-                    "file_hash": file_hash
-                }]
-            }
-        }
-
-        status_response = await fetcher.send_request(
-            "/public_api/v1/quarantine/status/",
-            data=status_payload
-        )
-
-        # Parse quarantine status response
-        reply = status_response.get("reply", {})
-        files = reply.get("files", [])
-
-        # Check if our file appears in response and is quarantined
-        is_quarantined = False
-        quarantine_info = None
-
-        for file_status in files:
-            if file_status.get("file_hash", "").lower() == file_hash.lower():
-                quarantine_info = file_status
-                # Check quarantine status - API may use different field names
-                # Try common field patterns
-                if file_status.get("is_quarantined") or file_status.get("quarantine_status") == "QUARANTINED":
-                    is_quarantined = True
-                break
-
-        if not is_quarantined:
-            error_data = {
-                "error": "File is not currently quarantined",
-                "file_hash": file_hash,
-                "status": "not_quarantined",
-                "message": (
-                    "Only files that are currently quarantined can be restored. "
-                    "This file does not appear in the quarantine list."
-                ),
-                "next_steps": [
-                    "1. Verify the file hash is correct (must be SHA256)",
-                    "2. Use get_quarantine_status to check current quarantine state",
-                    "3. If file needs quarantining, use quarantine_files first",
-                    "4. Then retry restore_file"
-                ]
+            status_payload = {
+                "request_data": {
+                    "files": [{
+                        "endpoint_id": endpoint_id,
+                        "file_path": file_path,
+                        "file_hash": file_hash
+                    }]
+                }
             }
 
-            # Include quarantine info if file was found but not quarantined
-            if quarantine_info:
-                error_data["quarantine_details"] = quarantine_info
+            status_response = await fetcher.send_request(
+                "/public_api/v1/quarantine/status/",
+                data=status_payload
+            )
 
-            return create_response(data=error_data, is_error=True)
+            # Parse quarantine status response
+            reply = status_response.get("reply", {})
+            files = reply.get("files", [])
 
-        # Step 3: File is quarantined, proceed with restore
-        logger.info(f"File {file_hash} is quarantined, proceeding with restore")
+            # Check if our file appears in response and is quarantined
+            is_quarantined = False
+            quarantine_info = None
+
+            for file_status in files:
+                if file_status.get("file_hash", "").lower() == file_hash.lower():
+                    quarantine_info = file_status
+                    # Check quarantine status - API may use different field names
+                    # Try common field patterns
+                    if file_status.get("is_quarantined") or file_status.get("quarantine_status") == "QUARANTINED":
+                        is_quarantined = True
+                    break
+
+            if not is_quarantined:
+                error_data = {
+                    "error": "File is not currently quarantined",
+                    "file_hash": file_hash,
+                    "status": "not_quarantined",
+                    "message": (
+                        "Only files that are currently quarantined can be restored. "
+                        "This file does not appear in the quarantine list."
+                    ),
+                    "next_steps": [
+                        "1. Verify the file hash is correct (must be SHA256)",
+                        "2. Use get_quarantine_status to check current quarantine state",
+                        "3. If file needs quarantining, use quarantine_files first",
+                        "4. Then retry restore_file"
+                    ]
+                }
+
+                # Include quarantine info if file was found but not quarantined
+                if quarantine_info:
+                    error_data["quarantine_details"] = quarantine_info
+
+                return create_response(data=error_data, is_error=True)
+
+            logger.info(f"File {file_hash} is quarantined on endpoint {endpoint_id}, proceeding with restore")
+        else:
+            logger.info(f"Skipping pre-validation (no endpoint details). Restoring {file_hash} on all endpoints.")
+
+        # Step 3: Proceed with restore
 
         restore_payload = {
             "request_data": {
                 "file_hash": file_hash
             }
         }
+
+        # Optionally include endpoint_id to restore on specific endpoint only
+        if endpoint_id:
+            restore_payload["request_data"]["endpoint_id"] = endpoint_id
 
         restore_response = await fetcher.send_request(
             "/public_api/v1/endpoints/restore/",
