@@ -429,9 +429,21 @@ async def sdk_unify(
     Combines the directory structure (Python code, YAML config, etc.)
     into a single unified YAML file for upload.
 
+    **SETUP REQUIRED:**
+    This tool requires a content repository with Packs/ directory.
+
+    1. Create content directory: `mkdir -p ~/projects/content/Packs`
+    2. Set environment variable (optional):
+       ```bash
+       export DEMISTO_SDK_CONTENT_PATH=~/projects/content
+       # or
+       export CONTENT_PATH=~/projects/content
+       ```
+    3. The tool automatically uses ~/projects/content if it exists
+
     Args:
         ctx: The FastMCP context.
-        path: Path to the content directory.
+        path: Path to content directory (e.g., "Packs/MyPack").
         output_file: Output file path for the unified YAML.
 
     Returns:
