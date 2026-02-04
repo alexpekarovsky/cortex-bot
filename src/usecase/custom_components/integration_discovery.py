@@ -6,15 +6,15 @@ This is critical for knowing what threat intelligence and automation capabilitie
 are available in the XSIAM environment.
 """
 
-from mcp.server.fastmcp import FastMCP
 from typing import Optional
 
-mcp = FastMCP("Cortex XSIAM Integration Discovery")
+from fastmcp import Context
+
+from usecase.base_module import BaseModule
 
 
-@mcp.tool()
 async def list_integrations(
-    ctx,
+    ctx: Context,
     integration_filter: Optional[str] = None,
     only_enabled: bool = True
 ) -> dict:
@@ -47,7 +47,7 @@ async def list_integrations(
     Returns:
         JSON response containing list of integrations with their commands and capabilities.
     """
-    from src.pkg.openapi_client import call_openapi_endpoint
+    from usecase.fetcher import get_fetcher
 
     # Call the /settings/integration-search endpoint
     endpoint = "/settings/integration-search"
@@ -56,11 +56,11 @@ async def list_integrations(
     if integration_filter:
         request_data["query"] = integration_filter
 
-    response = await call_openapi_endpoint(
-        ctx=ctx,
-        endpoint=endpoint,
+    fetcher = await get_fetcher(ctx)
+    response = await fetcher.send_request(
+        path=endpoint,
         method="POST",
-        request_data=request_data
+        data=request_data
     )
 
     # Parse and filter the response
@@ -116,9 +116,8 @@ async def list_integrations(
     return response
 
 
-@mcp.tool()
 async def get_integration_commands(
-    ctx,
+    ctx: Context,
     integration_name: str
 ) -> dict:
     """
@@ -149,15 +148,14 @@ async def get_integration_commands(
     Returns:
         JSON response with detailed command information for the integration.
     """
-    from src.pkg.openapi_client import call_openapi_endpoint
+    fetcher = await get_fetcher(ctx)
 
     # First get all integrations
     endpoint = "/settings/integration-search"
-    response = await call_openapi_endpoint(
-        ctx=ctx,
-        endpoint=endpoint,
+    response = await fetcher.send_request(
+        path=endpoint,
         method="POST",
-        request_data={"query": integration_name}
+        data={"query": integration_name}
     )
 
     if isinstance(response, dict) and "integrations" in response:
@@ -197,3 +195,30 @@ async def get_integration_commands(
             }
 
     return response
+
+
+class IntegrationDiscoveryModule(BaseModule):
+    """
+    MCP module for discovering XSOAR integrations and their capabilities.
+
+    Provides tools to discover what threat intelligence sources, automation integrations,
+    and security tools are configured in the XSIAM instance.
+
+    Essential for:
+    - Understanding available enrichment capabilities
+    - Finding automation commands for investigations
+    - Discovering what integrations are enabled
+    - Learning command syntax and parameters
+
+    Tools provided:
+        - list_integrations: List all available XSOAR integrations
+        - get_integration_commands: Get detailed command info for specific integration
+    """
+
+    def register_tools(self):
+        self._add_tool(list_integrations)
+        self._add_tool(get_integration_commands)
+
+    def register_resources(self):
+        """Integration discovery module doesn't register resources."""
+        pass
