@@ -1,9 +1,100 @@
 """
-Comprehensive testing framework for all 83 Cortex XSIAM MCP tools.
+Comprehensive testing framework for all 90 Cortex XSIAM MCP tools.
 
-This module provides an interactive testing tool that systematically tests
-all MCP tools and provides detailed results. Supports category filtering,
-destructive action control, and comprehensive result reporting.
+=====================================================================
+🤖 LLM TESTING INSTRUCTIONS - For Manual Comprehensive Testing
+=====================================================================
+
+**When user requests "test all tools" or comprehensive testing:**
+
+1. **Test in batches of 10 tools** (not all at once)
+2. **After each batch, STOP and ask user:** "Satisfied? Continue to next batch?"
+3. **Create detailed table** with columns: #, Tool Name, Status, Notes
+4. **Ask questions** when needed (e.g., "which endpoint to isolate?")
+5. **Don't skip or assume** - test each tool individually
+6. **At the end, provide comprehensive summary table** of all 90 tools
+
+**Batch Structure:**
+- Batch 1 (1-10): Case Management + Issue Management
+- Batch 2 (11-20): Response Actions
+- Batch 3 (21-30): Threat Hunting + Scripts
+- Batch 4 (31-40): SDK Tools
+- Batch 5 (41-50): Development Guides
+- Batch 6 (51-60): Content Generators
+- Batch 7 (61-70): Widget + Playbook + Integration Discovery
+- Batch 8 (71-80): IOC + War Room + Assets
+- Batch 9 (81-90): Utilities
+
+**For each tool:**
+- Call the tool with appropriate test parameters
+- Document result (PASS/FAIL/SKIP)
+- Note any errors or issues
+- Fix critical bugs immediately
+- Mark non-critical issues for later
+
+**Final Deliverable:**
+Complete table with all 90 tools showing:
+| # | Tool | Category | Status | Notes |
+
+This ensures thorough testing before production GitHub release.
+
+=====================================================================
+
+This module also provides an automated testing tool that can test multiple
+tools programmatically. Supports category filtering, destructive action
+control, and comprehensive result reporting.
+
+## Implementation Notes
+
+### XSIAM Public API Integration Patterns
+
+This testing framework directly calls XSIAM Public API endpoints. Key patterns:
+
+**Request Structure:**
+Most XSIAM Public API v1/v2 endpoints expect parameters wrapped in request_data:
+```python
+data = {
+    "request_data": {
+        "filters": [...],
+        "search_from": 0,
+        "search_to": 10
+    }
+}
+```
+
+**Response Validation:**
+Different APIs use different response structures:
+- Cases/Incidents: `response["reply"]["DATA"]`
+- Issues/Alerts: `response["reply"]["DATA"]`
+- Assets: `response["reply"]["data"]` (lowercase)
+- Widgets: `response["reply"]["widgets"]` or `response["reply"]["DATA"]`
+- Scripts: `response["reply"]["scripts"]`
+
+Always validate actual data field existence, not just reply object.
+
+**Path Conventions:**
+Use relative paths for send_request (base_url is auto-prepended):
+- Correct: `/public_api/v1/incidents/search/`
+- Incorrect: Full URL or double path
+
+### Verbose Mode
+
+When verbose=True:
+- Logs request payloads before sending
+- Logs response structure keys
+- Logs parsing/validation logic
+- Helps troubleshoot API integration issues
+- Useful for understanding different API response formats
+
+### Safety Controls
+
+**Destructive Actions (11 tools):**
+Isolated, terminate, quarantine, scan, script execution tools are skipped by default.
+Require explicit skip_destructive=False + endpoint_id parameter.
+
+**Test Workspace:**
+Creates temporary alert with tags: ["ai-workspace", "tool-testing", "automated"]
+Auto-deleted after testing or can be reused across test runs.
 """
 
 import asyncio
@@ -36,7 +127,7 @@ TOOL_CATEGORIES = {
     "playbook_tracking": 2,
 }
 
-TOTAL_TOOLS = sum(TOOL_CATEGORIES.values())  # 83
+TOTAL_TOOLS = sum(TOOL_CATEGORIES.values())  # Should be 90 - update categories if needed
 
 # Destructive tools that require endpoint_id
 DESTRUCTIVE_TOOLS = [
