@@ -169,10 +169,11 @@ async def sdk_lint(
     Returns:
         JSON response with linting results and issues found.
     """
-    args = ["lint", "-i", path]
+    # Use 'format' command instead of 'lint' (lint doesn't exist in current SDK)
+    args = ["format", "-i", path]
 
     if fix:
-        args.append("--fix")
+        args.append("--assume-yes")  # Auto-confirm formatting
 
     result = await DemistoSDKRunner.run_sdk_command(args, timeout=180)
 
@@ -245,8 +246,10 @@ async def sdk_download(
     """
     args = ["download", "-i", content_name]
 
-    if output_dir:
-        args.extend(["--output", output_dir])
+    # Output is required, use current directory if not specified
+    if not output_dir:
+        output_dir = "."
+    args.extend(["-o", output_dir])
 
     result = await DemistoSDKRunner.run_sdk_command(args, timeout=120)
 
