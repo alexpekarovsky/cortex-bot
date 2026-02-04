@@ -719,8 +719,8 @@ async def create_playbook(
             "version": -1,
             "contentitemexportablefields": {
                 "contentitemfields": {
-                    "packID": "NetworkTools",
-                    "packName": "Network Tools",
+                    "packID": "CustomPlaybooks",
+                    "packName": "Custom Playbooks",
                     "itemVersion": "1.0.0",
                     "fromServerVersion": "6.5.0",
                     "toServerVersion": "",

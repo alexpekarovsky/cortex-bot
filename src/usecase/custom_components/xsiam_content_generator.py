@@ -36,11 +36,11 @@ from usecase.base_module import BaseModule
 
 logger = logging.getLogger(__name__)
 
-# Path to .env file for SDK credentials
-ENV_FILE = os.path.expanduser("~/projects/cortex-mcp/.env")
+# Path to .env file for SDK credentials - use env var or fall back to default
+ENV_FILE = os.path.expanduser(os.getenv("CORTEX_MCP_ENV_FILE", "~/.cortex-mcp/.env"))
 
-# Default content repository path
-CONTENT_REPO = os.path.expanduser("~/projects/content/Packs")
+# Default content repository path - use env var or fall back to default
+CONTENT_REPO = os.path.expanduser(os.getenv("CONTENT_REPO", "~/content/Packs"))
 
 # Directory names for each content type
 CONTENT_DIRS = {

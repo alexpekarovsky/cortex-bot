@@ -95,10 +95,7 @@ async def async_main(transport: Transport):
     api_key_id = config.papi_auth_id_key
     papi_url = config.papi_url_env_key
 
-    # DEBUG: Log loaded configuration
-    logger.info(f"🔍 DEBUG - Loaded PAPI URL: {papi_url}")
-    logger.info(f"🔍 DEBUG - Loaded Auth ID: {api_key_id}")
-    logger.info(f"🔍 DEBUG - Auth Key (first 20 chars): {api_key[:20] if api_key else 'EMPTY'}...")
+    # Configuration loaded successfully
 
     mcp = await initialize_mcp_server(api_key, api_key_id, papi_url)
 

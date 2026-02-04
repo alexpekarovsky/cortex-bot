@@ -148,6 +148,8 @@ async def get_integration_commands(
     Returns:
         JSON response with detailed command information for the integration.
     """
+    from usecase.fetcher import get_fetcher
+
     fetcher = await get_fetcher(ctx)
 
     # First get all integrations
