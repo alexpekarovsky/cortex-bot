@@ -49,10 +49,18 @@ class DemistoSDKRunner:
         """
         env = os.environ.copy()
 
-        # Map MCP variables to SDK variables
-        papi_url = os.getenv("CORTEX_MCP_PAPI_URL", "")
-        papi_auth = os.getenv("CORTEX_MCP_PAPI_AUTH_HEADER", "")
-        papi_auth_id = os.getenv("CORTEX_MCP_PAPI_AUTH_ID", "")
+        # Try to import config first (from main MCP server)
+        try:
+            from config.config import get_config
+            config = get_config()
+            papi_url = config.papi_url_env_key or os.getenv("CORTEX_MCP_PAPI_URL", "")
+            papi_auth = config.papi_auth_header_key or os.getenv("CORTEX_MCP_PAPI_AUTH_HEADER", "")
+            papi_auth_id = config.papi_auth_id_key or os.getenv("CORTEX_MCP_PAPI_AUTH_ID", "")
+        except:
+            # Fallback to environment variables only
+            papi_url = os.getenv("CORTEX_MCP_PAPI_URL", "")
+            papi_auth = os.getenv("CORTEX_MCP_PAPI_AUTH_HEADER", "")
+            papi_auth_id = os.getenv("CORTEX_MCP_PAPI_AUTH_ID", "")
 
         if papi_url:
             env["DEMISTO_BASE_URL"] = papi_url
@@ -60,6 +68,18 @@ class DemistoSDKRunner:
             env["DEMISTO_API_KEY"] = papi_auth
         if papi_auth_id:
             env["XSIAM_AUTH_ID"] = papi_auth_id
+
+        # Set content path for SDK operations (from env or default)
+        content_path = os.getenv("DEMISTO_SDK_CONTENT_PATH") or os.getenv("CONTENT_PATH")
+        if not content_path:
+            # Try common default location
+            default_path = os.path.expanduser("~/projects/content")
+            if os.path.exists(default_path):
+                content_path = default_path
+
+        if content_path:
+            env["CONTENT_PATH"] = content_path
+            env["DEMISTO_SDK_CONTENT_PATH"] = content_path
 
         return env
 
