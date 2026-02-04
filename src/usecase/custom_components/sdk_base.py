@@ -73,7 +73,7 @@ class DemistoSDKRunner:
         content_path = os.getenv("DEMISTO_SDK_CONTENT_PATH") or os.getenv("CONTENT_PATH")
         if not content_path:
             # Try common default location
-            default_path = os.path.expanduser("~/projects/content")
+            default_path = os.path.expanduser("~/content")
             if os.path.exists(default_path):
                 content_path = default_path
 
@@ -120,7 +120,7 @@ class DemistoSDKRunner:
 
         # Use shared content directory if not specified
         if cwd is None:
-            cwd = os.path.expanduser("~/projects/content")
+            cwd = os.path.expanduser("~/content")
             logger.info(f"Using default content directory: {cwd}")
 
         # Get environment with SDK variables

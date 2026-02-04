@@ -2,7 +2,7 @@
 XSIAM Content Generator Tools
 
 Tools for creating XSIAM-specific content types with correct schemas.
-Auto-saves to ~/projects/content/Packs/{PackName}/
+Auto-saves to $CONTENT_REPO/{PackName}/ (default: ~/content/Packs/)
 
 Supported content types:
 - CaseLayout: UI layout for Cases (group: "case")
@@ -103,7 +103,7 @@ DEMISTO_SDK_IGNORE_CONTENT_WARNING=1 uvx demisto-sdk upload -i {path} --marketpl
             capture_output=True,
             text=True,
             timeout=120,
-            cwd=os.path.expanduser("~/projects/content/Packs")
+            cwd=CONTENT_REPO
         )
 
         # Combine stdout and stderr

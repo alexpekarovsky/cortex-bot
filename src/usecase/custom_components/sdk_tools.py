@@ -432,14 +432,14 @@ async def sdk_unify(
     **SETUP REQUIRED:**
     This tool requires a content repository with Packs/ directory.
 
-    1. Create content directory: `mkdir -p ~/projects/content/Packs`
+    1. Create content directory: `mkdir -p ~/content/Packs`
     2. Set environment variable (optional):
        ```bash
-       export DEMISTO_SDK_CONTENT_PATH=~/projects/content
+       export DEMISTO_SDK_CONTENT_PATH=~/content
        # or
-       export CONTENT_PATH=~/projects/content
+       export CONTENT_PATH=~/content
        ```
-    3. The tool automatically uses ~/projects/content if it exists
+    3. The tool automatically uses ~/content if it exists
 
     Args:
         ctx: The FastMCP context.
