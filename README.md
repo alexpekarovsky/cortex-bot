@@ -109,20 +109,20 @@ Follow the [official PANW installation guide](https://docs-cortex.paloaltonetwor
 ```bash
 # Clone Cortex Bot repository
 git clone <GITHUB_REPO_URL>
-cd cortex-mcp
+cd cortex-bot-custom-tools
 
-# Install Poetry and dependencies
-pip install poetry
-poetry install
-
-# Copy custom tools to your official MCP installation
-cp -r src/usecase/custom_components/* /path/to/official-mcp/src/usecase/custom_components/
+# Copy custom tools to your official PANW Cortex MCP installation
+cp -r custom_components/* /path/to/official-cortex-mcp/src/usecase/custom_components/
 
 # Restart your MCP server
-# Verify: You should now see 90 total tools
+pkill -f "cortex.*main.py"  # Server will auto-restart
+
+# Verify: You should now see 90 total tools (6 base + 84 custom)
+claude
+# Test: "List all available MCP tools"
+# Expected: You should see 90 cortex-xsiam tools
 
 # Try it!
-claude
 # Ask: "Create a phishing investigation playbook"
 ```
 
@@ -185,36 +185,29 @@ This guide shows how to add Cortex Bot enhancements to your existing official Co
 ### Step 2: Clone Cortex Bot Repository
 
 ```bash
-git clone https://github.com/PaloAltoNetworks/cortex-mcp.git
-cd cortex-mcp
+git clone https://github.com/YourOrg/cortex-bot-custom-tools.git
+cd cortex-bot-custom-tools
 ```
 
-### Step 3: Install Dependencies
+### Step 3: Copy Custom Tools to Official MCP Installation
 
 ```bash
-pip install poetry
-poetry install  # Installs fastmcp, mcp, requests, aiohttp, pydantic 2.x, etc.
-```
-
-> **Note:** Do NOT install `demisto-sdk` in this virtual environment. Use `uvx demisto-sdk` instead to avoid pydantic version conflicts. See [XSOAR Development Tools](#xsoar-development-tools).
-
-### Step 4: Copy Custom Tools to Official MCP Installation
-
-```bash
-# Find your official MCP installation directory
+# Find your official PANW Cortex MCP installation directory
 # Common locations:
 # - Docker: /opt/cortex-mcp
-# - Poetry: ~/.local/share/cortex-mcp
-# - Manual: wherever you extracted it
+# - Poetry: ~/.local/share/cortex-mcp or ~/cortex-mcp
+# - Manual: wherever you installed it
 
-# Copy custom tools
-cp -r src/usecase/custom_components/* /path/to/official-mcp/src/usecase/custom_components/
+# Copy the custom_components folder
+cp -r custom_components/* /path/to/official-cortex-mcp/src/usecase/custom_components/
 
-# Example for Docker installation:
-# cp -r src/usecase/custom_components/* /opt/cortex-mcp/src/usecase/custom_components/
+# Example for typical installation:
+# cp -r custom_components/* ~/cortex-mcp/src/usecase/custom_components/
 ```
 
-### Step 5: Restart MCP Server
+**That's it!** No dependencies to install - these are pure Python tools that use the official server's environment.
+
+### Step 4: Restart MCP Server
 
 ```bash
 # For Docker installations
@@ -225,7 +218,7 @@ pkill -f "cortex-mcp.*main.py"
 # Then restart via your MCP client (Claude Desktop/Code)
 ```
 
-### Step 6: Verify Installation
+### Step 5: Verify Installation
 
 Open Claude Desktop or Claude Code and verify:
 
