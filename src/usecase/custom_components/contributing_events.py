@@ -30,8 +30,8 @@ async def get_contributing_events(
     WARNING: This tool ONLY works with XSIAM-NATIVE CORRELATION alerts!
 
     IMPORTANT LIMITATION:
-    - ✅ Works for: Correlation alerts created by XSIAM's analytics engine
-    - ❌ Fails for: External correlation alerts (Wiz, third-party integrations)
+    - Works for: Correlation alerts created by XSIAM's analytics engine
+    - Fails for: External correlation alerts (Wiz, third-party integrations)
     - Error: Returns 500 Internal Server Error for external correlations
     - Reason: External correlation alerts don't have internal contributing event data
 

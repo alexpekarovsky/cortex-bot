@@ -136,20 +136,18 @@ async def run_playbook(
     Runs an XSOAR playbook on an issue using the !setPlaybook command.
 
     =====================================================================
-    🤖 LLM INSTRUCTIONS - READ THIS FIRST
+    IMPORTANT WORKFLOW FOR NEW ISSUES
     =====================================================================
 
-    **CRITICAL WORKFLOW FOR NEW ISSUES:**
+    **CRITICAL: When creating a new issue (no issue_id provided), follow this exact sequence:**
 
-    When creating a new issue (no issue_id provided), follow this exact sequence:
-
-    1. ✅ Call run_playbook(playbook_name="X") - Tool creates issue
-    2. ✅ Tool returns issue_url and issue_id
-    3. ❌ STOP - Playbook has NOT started yet!
-    4. 🗣️ TELL THE USER: "I created issue {issue_id}. Please open this URL to activate the investigation: {issue_url}"
-    5. ⏸️ WAIT for user to confirm they opened the link
-    6. ✅ RETRY: run_playbook(playbook_name="X", issue_id="{issue_id}")
-    7. ✅ Now playbook runs successfully
+    1. Call run_playbook(playbook_name="X") - Tool creates issue
+    2. Tool returns issue_url and issue_id
+    3. STOP - Playbook has NOT started yet!
+    4. TELL THE USER: "I created issue {issue_id}. Please open this URL to activate the investigation: {issue_url}"
+    5. WAIT for user to confirm they opened the link
+    6. RETRY: run_playbook(playbook_name="X", issue_id="{issue_id}")
+    7. Now playbook runs successfully
 
     **WHY THIS MATTERS:**
     XSIAM requires a human to open the issue in the UI before the War Room
@@ -157,15 +155,15 @@ async def run_playbook(
     will fail with "Could not find investigation" error.
 
     **DO NOT:**
-    - ❌ Assume playbook started after creating issue
-    - ❌ Skip telling user to open the URL
-    - ❌ Continue without user confirmation
+    - Assume playbook started after creating issue
+    - Skip telling user to open the URL
+    - Continue without user confirmation
 
     =====================================================================
     HOW TO USE THIS TOOL
     =====================================================================
 
-    **OPTION 1: Run on existing issue** ✅ RECOMMENDED
+    **OPTION 1: Run on existing issue** RECOMMENDED
     ─────────────────────────────────────────────────────────────────────
     When: Issue already exists and was opened by a human
 
@@ -173,7 +171,7 @@ async def run_playbook(
 
     Result: Playbook starts immediately (War Room already active)
 
-    **OPTION 2: Create new issue** ⚠️ REQUIRES USER ACTION
+    **OPTION 2: Create new issue** REQUIRES USER ACTION
     ─────────────────────────────────────────────────────────────────────
     When: Testing a playbook or no existing issue available
 
@@ -326,7 +324,7 @@ async def run_playbook(
 
                     if created_issue:
                         result["created_issue"] = created_issue
-                        result["note"] = "⚠️ IMPORTANT: A new issue was created but the playbook has NOT started yet"
+                        result["note"] = "IMPORTANT: A new issue was created but the playbook has NOT started yet"
                         result["user_action_required"] = "Please open the issue URL in your browser to activate the War Room investigation"
                         result["next_step"] = f"After opening the URL, retry with: run_playbook(playbook_name='{playbook_name}', issue_id='{investigation_id}')"
 

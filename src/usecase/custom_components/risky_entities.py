@@ -43,7 +43,7 @@ async def _check_itdr_license(ctx: Context) -> tuple[bool, str]:
 
         if itdr_expiration == 0:
             error_msg = (
-                "⚠️ ITDR License Required\n\n"
+                "ITDR License Required\n\n"
                 "This tool requires Identity Threat Detection and Response (ITDR) licensing.\n\n"
                 "**What is ITDR?**\n"
                 "ITDR provides behavioral analytics to identify compromised accounts and insider threats "

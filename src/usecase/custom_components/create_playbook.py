@@ -583,16 +583,16 @@ async def create_playbook(
     Create an XSOAR/XSIAM playbook programmatically with smart content discovery.
 
     =====================================================================
-    🤖 LLM WORKFLOW - AFTER CREATING PLAYBOOK
+    LLM WORKFLOW - AFTER CREATING PLAYBOOK
     =====================================================================
 
     **PREFERRED: Use insert_playbook (REST API)**
 
     After this tool generates the YAML file:
-    1. ✅ Tool creates YAML file and ZIP file automatically
-    2. ✅ Tool returns both yaml_path and zip_path
+    1. Tool creates YAML file and ZIP file automatically
+    2. Tool returns both yaml_path and zip_path
     3. 🚀 USE insert_playbook(file="{zip_path}") to upload to XSIAM
-    4. ✅ Verify upload was successful
+    4. Verify upload was successful
 
     **FALLBACK: Use sdk_upload (SDK) only if API fails**
 
@@ -601,10 +601,10 @@ async def create_playbook(
     - SDK requires proper pack structure with metadata
 
     **Why prefer insert_playbook:**
-    - ✅ Faster (direct API vs SDK overhead)
-    - ✅ Simpler (just upload ZIP, no pack structure needed)
-    - ✅ Returns immediate feedback
-    - ✅ No pydantic version conflicts
+    - Faster (direct API vs SDK overhead)
+    - Simpler (just upload ZIP, no pack structure needed)
+    - Returns immediate feedback
+    - No pydantic version conflicts
 
     =====================================================================
 
@@ -621,7 +621,7 @@ async def create_playbook(
 
     This ensures generated playbooks follow best practices and use correct patterns.
 
-    ⚠️ IMPORTANT - SEARCHES PANW CONTENT FIRST! ⚠️
+    IMPORTANT - SEARCHES PANW CONTENT FIRST!
 
     By DEFAULT (skip_discovery=False), this tool will:
     1. Search the PANW content repository on GitHub for existing playbooks

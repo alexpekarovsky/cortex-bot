@@ -136,19 +136,19 @@ Start → Supporting → Core → Conditions → Advanced → Final Summary → 
 **This phase is your production deliverable**
 
 ### Why This Process Works:
-- ✅ Phase 1 validates structural correctness with minimal complexity
-- ✅ Phase 2 confirms all core logic executes properly
-- ✅ Phase 3 integrates supporting features safely
-- ✅ Phase 4 adds advanced automation
-- ✅ Each phase is validated independently
-- ✅ Final playbook is fully tested and production-ready
+- Phase 1: Validates structural correctness with minimal complexity
+- Phase 2: Confirms all core logic executes properly
+- Phase 3: Integrates supporting features safely
+- Phase 4: Adds advanced automation
+- Each phase is validated independently
+- Final playbook is fully tested and production-ready
 
 **CRITICAL RULES:**
-1. ✅ Test ALL XQL queries with `run_xql_query` tool BEFORE adding to ANY phase
-2. ✅ Upload and test AFTER EACH phase
-3. ✅ Fix errors before proceeding to next phase
-4. ✅ COMPLETE ALL 4 PHASES - don't stop at Phase 1!
-5. ✅ Phase 4 is the deliverable - Phases 1-3 are building blocks
+1. Test ALL XQL queries with `run_xql_query` tool BEFORE adding to ANY phase
+2. Upload and test AFTER EACH phase
+3. Fix errors before proceeding to next phase
+4. COMPLETE ALL 4 PHASES - don't stop at Phase 1!
+5. Phase 4 is the deliverable - Phases 1-3 are building blocks
 
 **Important:** Complete ALL 4 phases. Phase 1 is a checkpoint, not a final deliverable. Phase 4 is your production playbook.
 
@@ -483,9 +483,9 @@ scriptarguments:
 description: "Update case metadata"
 ```
 
-### Update Issue Fields (Issue-Level) - ⚠️ CRITICAL DISTINCTION
+### Update Issue Fields (Issue-Level) - CRITICAL DISTINCTION
 
-**⚠️ BREAKING CHANGE IN XSIAM:**
+**BREAKING CHANGE IN XSIAM:**
 - Old Demisto: Used `setIncident` for everything
 - Modern XSIAM: Must use `setIssue` for alerts/issues, `setIncident` only for cases
 
@@ -502,16 +502,16 @@ description: "Document findings on the ISSUE"
 ```
 
 **Working Issue Fields:**
-- ✅ `closeNotes` - Investigation summary (RECOMMENDED - always works)
-- ✅ `severity` - Update severity level (1=low, 2=medium, 3=high, 4=critical)
-- ✅ `customFields` - Update custom fields (if field exists in schema)
-- ❌ `investigationsummary` - Does NOT exist in XSIAM (will fail)
+- `closeNotes` - Investigation summary (RECOMMENDED - always works)
+- `severity` - Update severity level (1=low, 2=medium, 3=high, 4=critical)
+- `customFields` - Update custom fields (if field exists in schema)
+- NOT SUPPORTED: `investigationsummary` - Does NOT exist in XSIAM (will fail)
 
 **CRITICAL RULES:**
-- ❌ **DO NOT use setIncident in alert playbooks** - Updates parent case, not the alert
-- ✅ **USE setIssue in alert playbooks** - Updates the alert/issue itself
-- ✅ **USE closeNotes field** - Most reliable for documentation
-- ❌ **AVOID investigationsummary** - Field doesn't exist, causes failures
+- DO NOT use setIncident in alert playbooks - Updates parent case, not the alert
+- USE setIssue in alert playbooks - Updates the alert/issue itself
+- USE closeNotes field - Most reliable for documentation
+- AVOID investigationsummary - Field doesn't exist, causes failures
 
 **Why This Matters:**
 XSIAM has two-level structure: Cases (parent containers) and Issues (individual alerts).
@@ -671,26 +671,26 @@ This prevents runtime errors from invalid field names or syntax issues.
 
 ### Error Handling: skipunavailable Parameter
 
-**⚠️ CRITICAL PARAMETER - Controls Whether Tasks Execute or Skip**
+**CRITICAL PARAMETER - Controls Whether Tasks Execute or Skip**
 
 **Default Behavior:** `skipunavailable: false` (task MUST execute)
 
 **When to use skipunavailable: true (Explicitly Skip if Unavailable):**
-✅ **Optional sub-playbooks** - Playbook might not be installed
+**Optional sub-playbooks** - Playbook might not be installed
    ```yaml
    type: playbook
    playbookName: Optional External Enrichment
    skipunavailable: true  # OK - playbook is optional
    ```
 
-✅ **Optional integrations** - Integration might not be configured
+**Optional integrations** - Integration might not be configured
    ```yaml
    type: regular
    script: '|||optional-integration-command'
    skipunavailable: true  # OK - integration is optional
    ```
 
-✅ **Non-critical enrichment** - Nice-to-have, not required for workflow
+**Non-critical enrichment** - Nice-to-have, not required for workflow
    ```yaml
    type: playbook
    playbookName: VirusTotal File Enrichment
@@ -698,21 +698,21 @@ This prevents runtime errors from invalid field names or syntax issues.
    ```
 
 **When to use skipunavailable: false (DEFAULT - Task Must Run):**
-✅ **ALL XQL queries** - Queries should execute, never skip
-✅ **ALL regular commands** - Commands must run for proper workflow
-✅ **ALL scripts** - Scripts are part of core logic
-✅ **Critical tasks** - Required for investigation/remediation
+**ALL XQL queries** - Queries should execute, never skip
+**ALL regular commands** - Commands must run for proper workflow
+**ALL scripts** - Scripts are part of core logic
+**Critical tasks** - Required for investigation/remediation
 
-**⚠️ CRITICAL WARNING:**
+**CRITICAL WARNING:**
 Setting `skipunavailable: true` on regular/command tasks causes them to **SKIP ENTIRELY** - they will NOT execute!
 
 **Common Mistake - XQL Query Skipping:**
 ```yaml
-# ❌ WRONG - Query will SKIP, not execute!
+# WRONG - Query will SKIP, not execute!
 script: '|||xdr-xql-generic-query'
 skipunavailable: true  # Query skips entirely!
 
-# ✅ CORRECT - Query executes
+# CORRECT - Query executes
 script: '|||xdr-xql-generic-query'
 skipunavailable: false  # Query runs
 ```
@@ -721,7 +721,7 @@ skipunavailable: false  # Query runs
 
 ### Error Paths: Handling Task Failures Gracefully (XSOAR 6.8+)
 
-**⚠️ CRITICAL FEATURE - Prevents Playbook Halting on Errors**
+**CRITICAL FEATURE - Prevents Playbook Halting on Errors**
 
 By default, when a task fails (command returns error), the playbook **STOPS**.
 Error paths allow you to handle failures gracefully and continue execution.
@@ -787,7 +787,7 @@ scriptarguments:
 
 **When to Use Error Paths:**
 
-✅ **Containment actions** - Endpoints may be offline
+**Containment actions** - Endpoints may be offline
 ```yaml
 script: '|||core-isolate-endpoint'
 continueonerror: true
@@ -795,7 +795,7 @@ nexttasks:
   '#error#': ["log_isolation_failure"]
 ```
 
-✅ **File operations** - Files may be locked or missing
+**File operations** - Files may be locked or missing
 ```yaml
 script: '|||core-quarantine-files'
 continueonerror: true
@@ -803,7 +803,7 @@ nexttasks:
   '#error#': ["log_quarantine_failure"]
 ```
 
-✅ **Process termination** - Process may have already exited
+**Process termination** - Process may have already exited
 ```yaml
 script: '|||core-terminate-causality'
 continueonerror: true
@@ -811,7 +811,7 @@ nexttasks:
   '#error#': ["continue_anyway"]
 ```
 
-✅ **External API calls** - Services may be unavailable
+**External API calls** - Services may be unavailable
 ```yaml
 script: '|||external-enrichment-api'
 continueonerror: true
@@ -819,7 +819,7 @@ nexttasks:
   '#error#': ["skip_enrichment"]
 ```
 
-✅ **Recovery/cleanup actions** - Final steps that shouldn't block completion
+**Recovery/cleanup actions** - Final steps that shouldn't block completion
 ```yaml
 script: '|||core-unisolate-endpoint'
 continueonerror: true
@@ -838,7 +838,7 @@ nexttasks:
 
 **Common Mistakes:**
 
-❌ **Missing continueonerror:**
+**Missing continueonerror:**
 ```yaml
 # ERROR: Playbook stops if task fails!
 nexttasks:
@@ -847,7 +847,7 @@ nexttasks:
 script: '|||core-isolate-endpoint'
 ```
 
-✅ **Correct - include continueonerror:**
+**Correct - include continueonerror:**
 ```yaml
 continueonerror: true   # REQUIRED for #error# to work
 nexttasks:
@@ -856,7 +856,7 @@ nexttasks:
 script: '|||core-isolate-endpoint'
 ```
 
-❌ **Error handler stops playbook:**
+**Error handler stops playbook:**
 ```yaml
 # Task 7 - Error handler that doesn't continue
 "7":
@@ -866,7 +866,7 @@ script: '|||core-isolate-endpoint'
   # No nexttasks! Playbook stops here
 ```
 
-✅ **Error handler continues:**
+**Error handler continues:**
 ```yaml
 # Task 7 - Error handler that continues
 "7":
@@ -901,12 +901,12 @@ Task 21 (Blocklist) → Success → Completion
 
 **Best Practice Summary:**
 
-1. ✅ Always add `continueonerror: true` when using `#error#` paths
-2. ✅ Error handlers should continue to next stage (not dead-end)
-3. ✅ Use error paths for actions that may legitimately fail
-4. ✅ Log errors for audit trail before continuing
-5. ✅ Consider whether failure should block subsequent stages
-6. ❌ Don't use error paths for critical validation that MUST succeed
+1. Always add `continueonerror: true` when using `#error#` paths
+2. Error handlers should continue to next stage (not dead-end)
+3. Use error paths for actions that may legitimately fail
+4. Log errors for audit trail before continuing
+5. Consider whether failure should block subsequent stages
+6. Don't use error paths for critical validation that MUST succeed
 
 ---
 
@@ -1129,16 +1129,16 @@ SlackBlockBuilder is the recommended approach for stunning Block Kit messages th
 dropdown selections, user pickers, and other form inputs - NOT just button clicks.
 
 **When to use SlackBlockBuilder:**
-- ✅ Need user pickers (users_select)
-- ✅ Need dropdowns (static_select)
-- ✅ Need multi-select, date pickers, time pickers
-- ✅ Want professional Block Kit visuals
-- ✅ Need to capture ALL form values (not just which button)
+- Need user pickers (users_select)
+- Need dropdowns (static_select)
+- Need multi-select, date pickers, time pickers
+- Want professional Block Kit visuals
+- Need to capture ALL form values (not just which button)
 
 **When to use SlackAskV2 instead:**
-- ✅ Simple button choices (Yes/No, Approve/Reject)
-- ✅ Don't need form inputs
-- ✅ Button text directly routes playbook
+- Simple button choices (Yes/No, Approve/Reject)
+- Don't need form inputs
+- Button text directly routes playbook
 
 ### CRITICAL: No API Key Needed!
 
@@ -1282,11 +1282,11 @@ ${SlackBlockState.xsoar-button-submit}  # Returns "Successful"
 
 | Feature | SlackAskV2 | SlackBlockBuilder |
 |---------|-----------|-------------------|
-| Button clicks | ✅ Captured | ✅ Captured |
-| User picker | ❌ Display only | ✅ Captured |
-| Dropdowns | ❌ Display only | ✅ Captured |
-| Multi-select | ❌ Not supported | ✅ Captured |
-| Date picker | ❌ Not supported | ✅ Captured |
+| Button clicks | Captured | Captured |
+| User picker | Display only | Captured |
+| Dropdowns | Display only | Captured |
+| Multi-select | Not supported | Captured |
+| Date picker | Not supported | Captured |
 | Routing | Button text = nexttask | Use #default# |
 | Parse script | Not needed | GetSlackBlockBuilderResponse |
 | Complexity | Simpler | More powerful |
@@ -1401,7 +1401,7 @@ tasks:
     script: '|||send-notification'
     scriptarguments:
       message:
-        simple: "✅ Marked as false positive"
+        simple: "Marked as false positive"
 
   "20":
     # Handle real threat
@@ -1414,7 +1414,7 @@ tasks:
 
 **Common Mistakes:**
 
-❌ **Missing tag entirely:**
+**Missing tag entirely:**
 ```yaml
 type: condition
 task:
@@ -1424,7 +1424,7 @@ nexttasks:
   "Yes": ["10"]
 ```
 
-❌ **Tag doesn't match task parameter:**
+**Tag doesn't match task parameter:**
 ```yaml
 scriptarguments:
   task:
@@ -1434,14 +1434,14 @@ tags:
   - "my-playbook-wait-4"  # Different name - ERROR!
 ```
 
-❌ **Using task ID instead of tag:**
+**Using task ID instead of tag:**
 ```yaml
 scriptarguments:
   task:
     simple: "4"  # Just the task ID - works in main, fails in sub!
 ```
 
-✅ **Correct pattern:**
+**Correct pattern:**
 ```yaml
 scriptarguments:
   task:
@@ -1540,7 +1540,7 @@ skipunavailable: false
 quietmode: 0
 ```
 
-### War Room Documentation (Updated)
+### War Room Documentation
 ```yaml
 type: regular
 script: '|||addEntries'
@@ -1573,13 +1573,13 @@ entries:
 
 | Old Demisto (Deprecated) | Modern XSOAR/XSIAM (2025) | Status |
 |--------------------------|---------------------------|--------|
-| N/A | `core-isolate-endpoint` | ✅ XSIAM 2.4+ |
-| N/A | `core-quarantine-files-quick-action` | ✅ XSIAM 2.4+ |
-| N/A | `core-terminate-causality-quick-action` | ✅ XSIAM 2.4+ |
-| `closeCase` | `closeCase` | ✅ Still Current |
-| `setIncident` | `setIncident` | ✅ Still Current |
-| N/A | `xdr-xql-generic-query` | ✅ Modern |
-| `getDemistoVersion` | `core-api-get` | ✅ Migrated |
+| N/A | `core-isolate-endpoint` | XSIAM 2.4+ |
+| N/A | `core-quarantine-files-quick-action` | XSIAM 2.4+ |
+| N/A | `core-terminate-causality-quick-action` | XSIAM 2.4+ |
+| `closeCase` | `closeCase` | Still Current |
+| `setIncident` | `setIncident` | Still Current |
+| N/A | `xdr-xql-generic-query` | Modern |
+| `getDemistoVersion` | `core-api-get` | Migrated |
 
 **Key Takeaway**: `closeCase` and `setIncident` are **CURRENT** commands, still used in XSIAM 2025!
 """

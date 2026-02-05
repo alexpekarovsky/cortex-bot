@@ -1,0 +1,341 @@
+id: Multi-Condition Test Playbook
+version: -1
+contentitemexportablefields:
+  contentitemfields:
+    packID: CustomPlaybooks
+    packName: Custom Playbooks
+    itemVersion: 1.0.0
+    fromServerVersion: 6.5.0
+    toServerVersion: ''
+    definitionid: ''
+    prevname: ''
+    isoverridable: false
+vcShouldKeepItemLegacyProdMachine: false
+name: Multi-Condition Test Playbook
+description: 'A test playbook demonstrating multiple conditional branches for severity-based
+  routing and IOC type detection
+
+
+  Created by Cortex Bot'
+starttaskid: '0'
+tasks:
+  '0':
+    id: '0'
+    taskid: 66a530e0-14af-49b9-a901-09ce12857ad1
+    type: start
+    task:
+      id: 44a59ec4-2691-4c2f-a55f-8ee5cf734109
+      version: -1
+      name: ''
+      iscommand: false
+      brand: ''
+    nexttasks:
+      '#none#':
+      - '1'
+    separatecontext: false
+    view: '{"position": {"x": 450, "y": 50}}'
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+  '1':
+    id: '1'
+    taskid: ec005d87-3a3d-402c-839e-ad2fea244f03
+    type: title
+    task:
+      id: 01422388-431f-49d9-824d-e0779ff62582
+      version: -1
+      name: Check Alert Severity
+      type: title
+      iscommand: false
+      brand: ''
+      playbooktaskmissingcomponent: null
+      istaskmissingcomponenterrordismissed: false
+    nexttasks:
+      '#none#':
+      - '2'
+    separatecontext: false
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 340}}'
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  '2':
+    id: '2'
+    taskid: 5d542629-5315-48c1-aea0-f740e856702b
+    type: condition
+    task:
+      id: 99af3af5-0e5c-49a4-abec-c4a35a66a641
+      version: -1
+      name: Is High or Critical Severity?
+      description: ''
+      type: condition
+      iscommand: false
+      brand: ''
+      playbooktaskmissingcomponent: null
+      istaskmissingcomponenterrordismissed: false
+    nexttasks:
+      else:
+      - '5'
+      '#default#':
+      - '3'
+    separatecontext: false
+    conditions: []
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 485}}'
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  '3':
+    id: '3'
+    taskid: efc26fb2-57db-4bd2-99ca-12acbc857884
+    type: regular
+    task:
+      id: 56e9db89-8092-4f33-84ec-663d06f7bacb
+      version: -1
+      name: High Priority Alert
+      description: ''
+      type: regular
+      iscommand: false
+      brand: ''
+      playbooktaskmissingcomponent: null
+      istaskmissingcomponenterrordismissed: false
+      scriptName: Print
+    nexttasks:
+      '#none#':
+      - '7'
+    scriptarguments:
+      value:
+        simple: 'HIGH PRIORITY: This is a high or critical severity alert requiring
+          immediate attention'
+    separatecontext: false
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 630}}'
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  '5':
+    id: '5'
+    taskid: 6f0e629f-d024-4b67-adbd-548224bc1fe4
+    type: regular
+    task:
+      id: 5749c4a2-910e-4187-9f3e-eb219aa24602
+      version: -1
+      name: Normal Priority Alert
+      description: ''
+      type: regular
+      iscommand: false
+      brand: ''
+      playbooktaskmissingcomponent: null
+      istaskmissingcomponenterrordismissed: false
+      scriptName: Print
+    nexttasks:
+      '#none#':
+      - '7'
+    scriptarguments:
+      value:
+        simple: 'NORMAL PRIORITY: This is a low or medium severity alert for standard
+          investigation'
+    separatecontext: false
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 775}}'
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  '7':
+    id: '7'
+    taskid: 70783db0-79e1-4c30-80dc-a763bc9fbe6b
+    type: title
+    task:
+      id: d0cf0bfd-78ee-4d38-b155-be5ecb7a7903
+      version: -1
+      name: Check IOC Type
+      type: title
+      iscommand: false
+      brand: ''
+      playbooktaskmissingcomponent: null
+      istaskmissingcomponenterrordismissed: false
+    nexttasks:
+      '#none#':
+      - '8'
+    separatecontext: false
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 920}}'
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  '8':
+    id: '8'
+    taskid: 7be97da8-dec8-4119-bade-f97e625d61c9
+    type: condition
+    task:
+      id: 0dfed9b8-bd71-4c0a-a9b8-6c75401fa865
+      version: -1
+      name: Has IP Indicators?
+      description: ''
+      type: condition
+      iscommand: false
+      brand: ''
+      playbooktaskmissingcomponent: null
+      istaskmissingcomponenterrordismissed: false
+    nexttasks:
+      else:
+      - '10'
+      '#default#':
+      - '9'
+    separatecontext: false
+    conditions: []
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 1065}}'
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  '9':
+    id: '9'
+    taskid: 7c97e32f-2747-435d-88f2-c71bbc392965
+    type: regular
+    task:
+      id: a2d2a036-0d89-4135-9232-a697ca214d4e
+      version: -1
+      name: IP Detected
+      description: ''
+      type: regular
+      iscommand: false
+      brand: ''
+      playbooktaskmissingcomponent: null
+      istaskmissingcomponenterrordismissed: false
+      scriptName: Print
+    nexttasks:
+      '#none#':
+      - '12'
+    scriptarguments:
+      value:
+        simple: IP indicators detected - route to network investigation team
+    separatecontext: false
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 1210}}'
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  '10':
+    id: '10'
+    taskid: b3dcb0f6-743a-47ce-96ad-ae6803337651
+    type: condition
+    task:
+      id: e3842f99-2f18-47f5-a36e-c42f992d016f
+      version: -1
+      name: Has File Hash Indicators?
+      description: ''
+      type: condition
+      iscommand: false
+      brand: ''
+      playbooktaskmissingcomponent: null
+      istaskmissingcomponenterrordismissed: false
+    nexttasks:
+      else:
+      - '12'
+      '#default#':
+      - '11'
+    separatecontext: false
+    conditions: []
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 1355}}'
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  '11':
+    id: '11'
+    taskid: 277391b7-2c5a-4a4b-88b3-d591b7bd043e
+    type: regular
+    task:
+      id: 3445d171-9ccd-43d2-a71a-a46e81499aa9
+      version: -1
+      name: File Hash Detected
+      description: ''
+      type: regular
+      iscommand: false
+      brand: ''
+      playbooktaskmissingcomponent: null
+      istaskmissingcomponenterrordismissed: false
+      scriptName: Print
+    nexttasks:
+      '#none#':
+      - '12'
+    scriptarguments:
+      value:
+        simple: File hash indicators detected - route to malware analysis team
+    separatecontext: false
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 1500}}'
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+  '12':
+    id: '12'
+    taskid: b5393fff-74dc-4446-81f5-0e5219960cc7
+    type: title
+    task:
+      id: c65e997d-7166-4c06-b3b0-9c1c2b823b3e
+      version: -1
+      name: Investigation Complete
+      type: title
+      iscommand: false
+      brand: ''
+      playbooktaskmissingcomponent: null
+      istaskmissingcomponenterrordismissed: false
+    nexttasks: {}
+    separatecontext: false
+    continueonerrortype: ''
+    view: '{"position": {"x": 450, "y": 1645}}'
+    note: false
+    timertriggers: []
+    ignoreworker: false
+    skipunavailable: false
+    quietmode: 0
+    isoversize: false
+    isautoswitchedtoquietmode: false
+system: true
+view: '{"linkLabelsPosition": {}, "paper": {"dimensions": {"height": 1745, "width":
+  1000, "x": 50, "y": 50}}}'
+inputs: []
+outputs: []
+fromversion: 6.5.0
+tests:
+- No tests

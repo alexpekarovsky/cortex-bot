@@ -54,13 +54,13 @@ script:
 ```
 
 **ARCHITECTURE REQUIREMENTS:**
-- ✅ `while True` loop in `long_running_execution_command()`
-- ✅ ALL logic runs in MAIN THREAD (no background threads for main work)
-- ✅ Use `demisto.setIntegrationContext()` for state persistence
-- ✅ Use `demisto.createIncidents()` to create alerts/incidents
-- ❌ NEVER use background threading for main monitoring logic
-- ❌ NEVER use `demisto.executeCommand()` (integrations only)
-- ❌ NEVER exit the while loop
+-  `while True` loop in `long_running_execution_command()`
+-  ALL logic runs in MAIN THREAD (no background threads for main work)
+-  Use `demisto.setIntegrationContext()` for state persistence
+-  Use `demisto.createIncidents()` to create alerts/incidents
+-  NEVER use background threading for main monitoring logic
+-  NEVER use `demisto.executeCommand()` (integrations only)
+-  NEVER exit the while loop
 
 **EXAMPLES:** Ping monitor, webhook receiver, service health checker, real-time log listener
 
@@ -89,12 +89,12 @@ script:
 ```
 
 **ARCHITECTURE REQUIREMENTS:**
-- ✅ Implement `fetch-incidents` or `fetch-events` command
-- ✅ Use `send_events_to_xsiam(events, vendor='X', product='Y')`
-- ✅ Use `demisto.getLastRun()` / `demisto.setLastRun()` for tracking last fetch
-- ✅ Handle pagination for large datasets
-- ✅ Implement deduplication to avoid sending duplicates
-- ✅ Use `params.get('first_fetch')` for initial fetch time range
+-  Implement `fetch-incidents` or `fetch-events` command
+-  Use `send_events_to_xsiam(events, vendor='X', product='Y')`
+-  Use `demisto.getLastRun()` / `demisto.setLastRun()` for tracking last fetch
+-  Handle pagination for large datasets
+-  Implement deduplication to avoid sending duplicates
+-  Use `params.get('first_fetch')` for initial fetch time range
 
 **EXAMPLES:** ServiceNow ticket fetcher, Splunk log collector, Jira issue importer, Syslog collector
 
@@ -123,10 +123,10 @@ script:
 ```
 
 **ARCHITECTURE:**
-- ✅ Implement commands as individual functions
-- ✅ Each command executes once and returns
-- ✅ No continuous running, no periodic fetching
-- ✅ Can have multiple commands
+-  Implement commands as individual functions
+-  Each command executes once and returns
+-  No continuous running, no periodic fetching
+-  Can have multiple commands
 
 **EXAMPLES:** IP enrichment, domain lookup, one-time data queries, REST API wrappers
 
@@ -214,27 +214,27 @@ def long_running_execution_command(params: dict):
 
 ---
 
-## ❌ CRITICAL MISTAKES (From Real Debugging)
+##  CRITICAL MISTAKES (From Real Debugging)
 
-### ❌ MISTAKE #1: Using Background Threads
+###  MISTAKE #1: Using Background Threads
 
 **DON'T DO THIS (WILL FAIL):**
 ```python
-import threading  # ❌ Remove this!
+import threading  #  Remove this!
 
 def long_running_execution_command(params):
-    # ❌ Creating background thread
+    #  Creating background thread
     thread = threading.Thread(target=monitor_loop, args=(params,))
     thread.daemon = True
     thread.start()
 
     # Main loop just sleeps
     while True:
-        time.sleep(60)  # ❌ Main thread does nothing!
+        time.sleep(60)  #  Main thread does nothing!
 
 def monitor_loop(params):
     while True:
-        demisto.info('Checking...')  # ❌ FAILS WITH: NameError: name 'SERVER_ERROR_MARKER' is not defined
+        demisto.info('Checking...')  #  FAILS WITH: NameError: name 'SERVER_ERROR_MARKER' is not defined
         do_work()
 ```
 
@@ -248,11 +248,11 @@ XSOAR's containerized environment does NOT support calling `demisto.info()`, `de
 
 **THE FIX:**
 ```python
-# ✅ DO THIS - No threading, all in main loop
+#  DO THIS - No threading, all in main loop
 def long_running_execution_command(params):
     while True:
         try:
-            demisto.info('Checking...')  # ✅ Works from main thread!
+            demisto.info('Checking...')  #  Works from main thread!
             do_work()
             time.sleep(60)
         except Exception as e:
@@ -261,12 +261,12 @@ def long_running_execution_command(params):
 
 ---
 
-### ❌ MISTAKE #2: Using demisto.executeCommand()
+###  MISTAKE #2: Using demisto.executeCommand()
 
 **DON'T DO THIS (WILL FAIL):**
 ```python
 def send_alert_email(subject, body):
-    # ❌ executeCommand ONLY works in SCRIPTS, NOT integrations!
+    #  executeCommand ONLY works in SCRIPTS, NOT integrations!
     demisto.executeCommand('send-mail', {
         'to': 'admin@company.com',
         'subject': subject,
@@ -282,7 +282,7 @@ Error: executeCommand is not available in integrations
 **THE FIX - Option 1: Create Incidents (Recommended)**
 ```python
 def send_alert(message):
-    # ✅ Create incident that can trigger playbooks for email
+    #  Create incident that can trigger playbooks for email
     demisto.createIncidents([{
         'name': f'Alert: {message}',
         'type': 'Monitoring Alert',
@@ -295,13 +295,13 @@ def send_alert(message):
 **THE FIX - Option 2: Just Log**
 ```python
 def send_alert(message):
-    # ✅ Log to XSOAR server logs (visible in UI)
+    #  Log to XSOAR server logs (visible in UI)
     demisto.info(f'ALERT: {message}')
 ```
 
 ---
 
-### ❌ MISTAKE #3: Exiting the Loop
+###  MISTAKE #3: Exiting the Loop
 
 **DON'T DO THIS:**
 ```python
@@ -310,10 +310,10 @@ def long_running_execution_command(params):
         try:
             result = check_service()
             if not result:
-                return_error('Service down!')  # ❌ Container exits!
+                return_error('Service down!')  #  Container exits!
 
         except Exception as e:
-            raise e  # ❌ Container exits!
+            raise e  #  Container exits!
 ```
 
 **THE FIX:**
@@ -323,11 +323,11 @@ def long_running_execution_command(params):
         try:
             result = check_service()
             if not result:
-                demisto.error('Service down!')  # ✅ Log and continue
+                demisto.error('Service down!')  #  Log and continue
                 demisto.createIncidents([{...}])  # Create incident
 
         except Exception as e:
-            demisto.error(f'Error: {e}')  # ✅ Log and continue
+            demisto.error(f'Error: {e}')  #  Log and continue
             # NEVER exit!
 
         time.sleep(60)
@@ -335,11 +335,11 @@ def long_running_execution_command(params):
 
 ---
 
-### ❌ MISTAKE #4: Using Global State Without Persistence
+###  MISTAKE #4: Using Global State Without Persistence
 
 **DON'T DO THIS:**
 ```python
-# ❌ Global state - lost on container restart
+#  Global state - lost on container restart
 STATE = {
     'last_check': None,
     'total_checks': 0
@@ -348,21 +348,21 @@ STATE = {
 def long_running_execution_command(params):
     global STATE
     while True:
-        STATE['total_checks'] += 1  # ❌ Lost if container restarts!
+        STATE['total_checks'] += 1  #  Lost if container restarts!
 ```
 
 **THE FIX:**
 ```python
 def long_running_execution_command(params):
     while True:
-        # ✅ Load state from integration context (persists!)
+        #  Load state from integration context (persists!)
         ctx = demisto.getIntegrationContext()
         total_checks = int(ctx.get('total_checks', '0'))
 
         # Do work
         total_checks += 1
 
-        # ✅ Save state (survives container restarts)
+        #  Save state (survives container restarts)
         ctx = {
             'total_checks': str(total_checks),  # Must be strings!
             'last_check': datetime.now().isoformat()
@@ -545,9 +545,9 @@ ctx = demisto.getIntegrationContext()
 
 # Save state
 ctx = {
-    'last_check': datetime.now().isoformat(),  # ✅ String
-    'total_checks': '42',  # ✅ String, not int!
-    'is_running': 'true'  # ✅ String, not boolean!
+    'last_check': datetime.now().isoformat(),  #  String
+    'total_checks': '42',  #  String, not int!
+    'is_running': 'true'  #  String, not boolean!
 }
 demisto.setIntegrationContext(ctx)
 ```
@@ -555,10 +555,10 @@ demisto.setIntegrationContext(ctx)
 **CRITICAL RULE:** All values MUST be strings. Convert numbers/booleans before saving.
 
 ```python
-# ❌ WRONG
+#  WRONG
 ctx = {'count': 42, 'active': True}  # Will cause errors!
 
-# ✅ CORRECT
+#  CORRECT
 ctx = {'count': '42', 'active': 'true'}  # All strings
 ```
 
@@ -566,14 +566,14 @@ ctx = {'count': '42', 'active': 'true'}  # All strings
 
 ## Testing Checklist
 
-✅ **Before Upload:**
+ **Before Upload:**
 1. No `import threading` for main logic
 2. No background threads in long_running_execution
 3. No `demisto.executeCommand()` calls
 4. No `return_error()` or `sys.exit()` in while loop
 5. Integration context values are all strings
 
-✅ **After Upload:**
+ **After Upload:**
 1. Enable "Long running instance" checkbox in XSIAM UI
 2. Check container status (should be "Running")
 3. Run status command, verify state updates
@@ -584,14 +584,14 @@ ctx = {'count': '42', 'active': 'true'}  # All strings
 
 ## Summary: Quick Checklist
 
-✅ **Required:**
+ **Required:**
 - `longRunning: true` in YAML
 - `while True` in `long_running_execution_command()`
 - All logic in MAIN THREAD
 - Use `demisto.setIntegrationContext()` for state
 - Catch all exceptions, never exit
 
-❌ **Forbidden:**
+ **Forbidden:**
 - Background threads for main work
 - `demisto.executeCommand()`
 - `return_error()` or `sys.exit()` in loop
@@ -906,7 +906,7 @@ def fetch_all_incidents(client, since):
 
 ## Summary: Event Collector Checklist
 
-✅ **Required:**
+ **Required:**
 - `isfetch: true` and `isFetchEvents: true` in YAML
 - Implement `fetch-incidents` command
 - Use `send_events_to_xsiam()` to send data
@@ -914,7 +914,7 @@ def fetch_all_incidents(client, since):
 - Handle pagination for large datasets
 - Implement deduplication
 
-✅ **Best Practices:**
+ **Best Practices:**
 - Transform external format to XSIAM-friendly format
 - Include `_time` field in events
 - Handle API rate limits
@@ -929,7 +929,7 @@ def fetch_all_incidents(client, since):
 THREADING_BEST_PRACTICES = """
 # XSOAR Threading Best Practices
 
-## ❌ THE RULE: No Background Threads for Main Logic
+##  THE RULE: No Background Threads for Main Logic
 
 **From real debugging experience:**
 
@@ -938,7 +938,7 @@ THREADING_BEST_PRACTICES = """
 import threading
 
 def long_running_execution_command(params):
-    # ❌ Background thread for main work
+    #  Background thread for main work
     thread = threading.Thread(target=worker)
     thread.start()
 
@@ -947,7 +947,7 @@ def long_running_execution_command(params):
 
 def worker():
     while True:
-        demisto.info('Working...')  # ❌ NameError: SERVER_ERROR_MARKER not defined
+        demisto.info('Working...')  #  NameError: SERVER_ERROR_MARKER not defined
 ```
 
 ### What Works
@@ -955,19 +955,19 @@ def worker():
 # NO threading import needed!
 
 def long_running_execution_command(params):
-    # ✅ All work in main thread
+    #  All work in main thread
     while True:
-        demisto.info('Working...')  # ✅ Works perfectly
+        demisto.info('Working...')  #  Works perfectly
         do_work()
         time.sleep(60)
 ```
 
 ## When Threading is Acceptable
 
-✅ **OK for:** HTTP server management (Flask/WSGI)
-✅ **OK for:** Short-lived helper threads
-❌ **NOT OK for:** Main monitoring/polling logic
-❌ **NOT OK for:** Calling demisto functions from threads
+ **OK for:** HTTP server management (Flask/WSGI)
+ **OK for:** Short-lived helper threads
+ **NOT OK for:** Main monitoring/polling logic
+ **NOT OK for:** Calling demisto functions from threads
 
 ## Summary
 Run everything in the main thread's `while True` loop. No background threads.
@@ -1014,7 +1014,7 @@ last_fetch = last_run.get('last_fetch')
 **Use for:** Temporary data within single execution
 
 ```python
-# Local variables in functions - OK for temporary state
+# Local variables in functions - acceptable for temporary state
 last_state = None
 
 while True:
@@ -1022,7 +1022,7 @@ while True:
     if last_state != current_state:
         # Detected change
         pass
-    last_state = current_state  # ✅ OK - resets on restart
+    last_state = current_state  #  OK - resets on restart
 ```
 
 ## Summary
@@ -1198,13 +1198,13 @@ def scan_file_command(args, client):
 
 ## Summary: Scheduled Commands Checklist
 
-✅ **Required:**
+ **Required:**
 - `polling: true` in YAML
 - `@polling_function` decorator or manual ScheduledCommand implementation
 - Return `PollResult` objects
 - Handle first call vs subsequent polls differently
 
-✅ **Best Practices:**
+ **Best Practices:**
 - Set reasonable `interval` (minimum 10 seconds)
 - Set appropriate `timeout` based on operation
 - Pass operation ID via `args_for_next_run`
@@ -1385,7 +1385,7 @@ commands:
 
 ## Summary: Mirroring Checklist
 
-✅ **Required:**
+ **Required:**
 - `ismappable: true` in YAML
 - Implement all 4 commands (get-remote-data, update-remote-system, get-modified-remote-data, get-mapping-fields)
 - Set dbotMirrorId, dbotMirrorDirection, dbotMirrorInstance in incidents
@@ -1420,8 +1420,8 @@ Feed integrations ingest **threat intelligence indicators** (IOCs) from external
 
 **CRITICAL:** Integration name MUST end with "Feed"
 
-✅ **Correct:** ThreatStreamFeed, AlienVaultFeed, CustomIOCFeed
-❌ **Wrong:** ThreatStream, AlienVault, CustomIOC
+ **Correct:** ThreatStreamFeed, AlienVaultFeed, CustomIOCFeed
+ **Wrong:** ThreatStream, AlienVault, CustomIOC
 
 ---
 
@@ -1585,7 +1585,7 @@ def fetch_indicators_command(client, params):
 
 ## Summary: Feed Integration Checklist
 
-✅ **Required:**
+ **Required:**
 - Name ends with "Feed"
 - `isFeed: true` in YAML
 - 6 required parameters (reputation, reliability, expiration, etc.)
@@ -1593,7 +1593,7 @@ def fetch_indicators_command(client, params):
 - Use `demisto.createIndicators()` with batching (~2000 per batch)
 - Provide manual `[vendor]-get-indicators` command
 
-✅ **Best Practices:**
+ **Best Practices:**
 - Batch indicators to avoid memory issues
 - Support incremental feeds when possible
 - Set appropriate fetch interval (default: 240 min)
@@ -1710,7 +1710,7 @@ https://raw.githubusercontent.com/demisto/content/master/Packs/Core/Layouts/
 
 ## Button Configuration (CRITICAL)
 
-### ❌ WRONG - Simple String Interpolation (WILL NOT WORK)
+###  WRONG - Simple String Interpolation (WILL NOT WORK)
 
 ```json
 {
@@ -1719,13 +1719,13 @@ https://raw.githubusercontent.com/demisto/content/master/Packs/Core/Layouts/
   "scriptId": "CrowdstrikeFalcon|||cs-falcon-contain-host",
   "args": {
     "ids": {
-      "simple": "${issue.agentid}"    // ❌ WRONG SYNTAX
+      "simple": "${issue.agentid}"    //  WRONG SYNTAX
     }
   }
 }
 ```
 
-### ✅ CORRECT - Complex Accessor Syntax
+###  CORRECT - Complex Accessor Syntax
 
 ```json
 {
@@ -1896,18 +1896,18 @@ Without a Layout Rule, the layout exists but won't be applied to any alerts.
 
 ## Summary: Layout Development Checklist
 
-✅ **Required:**
+ **Required:**
 - `"group": "incident"` (for SDK compatibility)
 - Unique `id` and `name`
 - `fromServerVersion: "8.0.0"` or higher
 - Use `complex` accessor syntax for button args
 
-❌ **Avoid:**
+ **Avoid:**
 - `"group": "alert"` or `"group": "issue"` (SDK rejects these)
 - `{"simple": "${...}"}` syntax (doesn't work)
 - Missing Layout Rules (layout won't be applied)
 
-✅ **Best Practices:**
+ **Best Practices:**
 - Use descriptive section names
 - Group related fields together
 - Use appropriate button colors (`error`=red, `success`=green)
@@ -1956,7 +1956,7 @@ async def get_xsoar_long_running_guide(ctx: Context) -> str:
 
     Covers:
     - Complete architecture pattern (while True in main thread)
-    - ❌ Critical mistakes: background threading, executeCommand, exiting loop
+    -  Critical mistakes: background threading, executeCommand, exiting loop
     - State management with integration context
     - Creating incidents for alerts
     - Complete working example (PingMonitor)
@@ -2139,8 +2139,8 @@ PLAYBOOK_OPERATIONS_GUIDE = """
 - **Issues** = Individual alerts (have War Rooms where playbooks execute)
 
 **Therefore:**
-- ✅ Run playbooks on: **Issue ID** (alert ID like 3993)
-- ❌ Cannot run on: **Case ID** (case ID like 1093)
+-  Run playbooks on: **Issue ID** (alert ID like 3993)
+-  Cannot run on: **Case ID** (case ID like 1093)
 
 ### Prerequisites
 
@@ -2256,16 +2256,16 @@ Then reference fields as `${MyData.field_name}` in subsequent tasks.
 
 ## Summary: Playbook Operations Checklist
 
-✅ **Before running playbook:**
+ **Before running playbook:**
 - Verify War Room exists (or create with `add_war_room_entry`)
 - Use `setPlaybook` command with correct incident ID
 
-✅ **For correlation rule alerts:**
+ **For correlation rule alerts:**
 - Don't rely on `${incident.custom_field}` - it won't exist
 - Query raw dataset via `xdr-xql-generic-query` in playbook
 - Extract data from XQL results context (`${PaloAltoNetworksXQL.GenericQuery.results}`)
 
-✅ **XQL query requirements:**
+ **XQL query requirements:**
 - Must include `query_name` argument
 - Must include `query` argument with XQL syntax
 - Must include `time_frame` argument (e.g., "24 hours")

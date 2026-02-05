@@ -2,7 +2,7 @@
 Comprehensive testing framework for all 90 Cortex XSIAM MCP tools.
 
 =====================================================================
-🤖 LLM TESTING INSTRUCTIONS - For Manual Comprehensive Testing
+TESTING WORKFLOW - Comprehensive Tool Validation
 =====================================================================
 
 **When user requests "test all tools" or comprehensive testing:**
@@ -882,8 +882,8 @@ async def test_all_tools(
         "# XSIAM MCP Tool Testing Results\n",
         f"**Total Tools:** {results['total_tools']}",
         f"**Tested:** {results['tools_tested']}",
-        f"**Passed:** {results['tools_passed']} ✅",
-        f"**Failed:** {results['tools_failed']} ❌",
+        f"**Passed:** {results['tools_passed']} ",
+        f"**Failed:** {results['tools_failed']} ",
         f"**Skipped:** {results['tools_skipped']} ⏭️",
         f"**Success Rate:** {results.get('summary', {}).get('success_rate', 'N/A')}\n",
         "---\n"

@@ -162,9 +162,9 @@ This incident exhibits characteristics of an Advanced Persistent Threat (APT) op
 
 This case triggered **{case_data.get('issue_count', 0)} correlated security alerts** across multiple severity levels:
 
-- **🔴 Critical:** {case_data.get('critical_severity_issue_count', 0)} alerts - Active threats with confirmed impact
+- **CRITICAL Critical:** {case_data.get('critical_severity_issue_count', 0)} alerts - Active threats with confirmed impact
 - **🟠 High:** {case_data.get('high_severity_issue_count', 0)} alerts - Serious security violations requiring immediate attention
-- **🟡 Medium:** {case_data.get('med_severity_issue_count', 0)} alerts - Suspicious activity warranting investigation
+- **MEDIUM Medium:** {case_data.get('med_severity_issue_count', 0)} alerts - Suspicious activity warranting investigation
 - **🟢 Low:** {case_data.get('low_severity_issue_count', 0)} alerts - Minor anomalies and informational events
 
 The concentration of critical and high-severity alerts indicates a significant security event with confirmed malicious activity and measurable impact to confidentiality, integrity, or availability.
@@ -322,7 +322,7 @@ Based on observed TTPs, this threat demonstrates:
 
 ---
 
-## ✅ SUCCESS CRITERIA
+##  SUCCESS CRITERIA
 
 **Containment Complete:**
 - [ ] All affected hosts isolated or remediated
@@ -347,10 +347,10 @@ Based on observed TTPs, this threat demonstrates:
 ## 📞 STAKEHOLDER COMMUNICATION
 
 ### Internal Notifications
-- ✅ Security Operations Center
-- ✅ Incident Response Team
-- ✅ IT Infrastructure
-- ✅ Security Leadership
+-  Security Operations Center
+-  Incident Response Team
+-  IT Infrastructure
+-  Security Leadership
 
 ### Pending Actions
 - Legal & Compliance review

@@ -1396,7 +1396,7 @@ async def get_xsiam_content_guide(ctx: Context) -> str:
 | IncidentField | **CaseField** | Custom fields on Cases |
 | IncidentLayout | **CaseLayout** | UI layout for Cases |
 | Alert | **Issue** | Individual security event |
-| (none) | IssueField | ❌ Doesn't exist - issues use alert schema from integrations |
+| (none) | IssueField | NOT SUPPORTED: Doesn't exist - issues use alert schema from integrations |
 
 ---
 

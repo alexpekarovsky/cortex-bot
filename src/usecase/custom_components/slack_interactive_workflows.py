@@ -34,7 +34,7 @@ SLACK_INTERACTIVE_WORKFLOWS_GUIDE = """
 
 ## Critical Requirements
 
-### ⚠️ REQUIREMENT 1: Sleep Between Multiple SlackAskV2 Calls
+###  REQUIREMENT 1: Sleep Between Multiple SlackAskV2 Calls
 
 **If you have multiple SlackAskV2 calls in one playbook:**
 
@@ -61,7 +61,7 @@ Task 21: SlackAskV2 #3
 
 **Recommended Sleep Duration:** 10 seconds (tested and working on XSIAM SaaS)
 
-### ⚠️ REQUIREMENT 2: Slack Message Size Limit
+###  REQUIREMENT 2: Slack Message Size Limit
 
 **HARD LIMIT: 3000 characters (Slack API)**
 
@@ -75,18 +75,15 @@ The total message size includes:
 Custom Block Kit:        2467 chars
 + Entitlement metadata:  ~300 chars
 + 3 buttons × 150 chars: ~450 chars
-= Total:                 ~3217 chars ❌ EXCEEDS LIMIT
+= Total:                 ~3217 chars - EXCEEDS LIMIT
 ```
 
 **Symptom if exceeded:**
-- Message sends successfully to Slack ✅
-- Message displays correctly ✅
-- But button clicks don't respond ❌
-- Task hangs indefinitely
+- Message sends successfully to Slack - Message displays correctly - But button clicks don't respond - Task hangs indefinitely
 
 **Solution:** Keep your Block Kit content under 1500 characters to leave room for entitlement metadata
 
-### ⚠️ REQUIREMENT 3: DeleteContext Before SlackAskV2CustomBlocks
+###  REQUIREMENT 3: DeleteContext Before SlackAskV2CustomBlocks
 
 **Always call DeleteContext BEFORE SlackAskV2CustomBlocks:**
 
@@ -223,7 +220,7 @@ This guide explains how to create fully interactive Slack workflows in Cortex XS
 **9. reply** (string, default: "Thank you for your response")
 - Message posted in Slack after button click
 - Can include markdown
-- Example: `"✅ Response recorded. XSOAR is processing..."`
+- Example: `" Response recorded. XSOAR is processing..."`
 
 **10. persistent** (string, default: "false")
 - `"false"` = One-time entitlement (button disabled after first click)
@@ -323,11 +320,7 @@ nexttasks:
 - Sub-playbooks: Tags are lookup mechanism
 
 **Without tags in sub-playbooks:**
-- Message sends ✅
-- Buttons appear ✅
-- User clicks ✅
-- Task never closes ❌
-
+- Message sends - Buttons appear - User clicks - Task never closes 
 ### 4. Response Flow
 
 ```
@@ -379,7 +372,7 @@ tasks:
     scriptarguments:
       channel: "alerts"
       message: |
-        ✅ You chose YES
+         You chose YES
 
         What XSOAR did:
         - Marked as resolved
@@ -395,7 +388,7 @@ tasks:
     scriptarguments:
       channel: "alerts"
       message: |
-        🔴 You chose NO
+         You chose NO
 
         What XSOAR did:
         - Escalating to security
@@ -456,15 +449,15 @@ SlackBlockBuilder is the recommended approach for capturing form data including 
 multi-selects, and other interactive elements beyond simple buttons.
 
 **When to use:**
-- ✅ Need user pickers (users_select) - returns Slack user ID
-- ✅ Need dropdown selections (static_select)
-- ✅ Need multi-select inputs
-- ✅ Need date picker values
-- ✅ Complex forms with multiple input types
-- ✅ Want stunning Block Kit visuals
+-  Need user pickers (users_select) - returns Slack user ID
+-  Need dropdown selections (static_select)
+-  Need multi-select inputs
+-  Need date picker values
+-  Complex forms with multiple input types
+-  Want stunning Block Kit visuals
 
 **When NOT to use:**
-- ❌ Simple button choices (use SlackAskV2 instead - simpler)
+-  Simple button choices (use SlackAskV2 instead - simpler)
 
 ### Prerequisites - UPDATED (No API Key Needed!)
 
@@ -472,10 +465,10 @@ multi-selects, and other interactive elements beyond simple buttons.
 SlackBlockBuilder v3.3.0+ changed to use war room entries instead of API callbacks.
 
 **Required Configuration in SlackV3:**
-- ✅ App Token (xapp-...) - enables Socket Mode
-- ✅ Long Running Instance enabled
-- ✅ Bot Token (xoxb-...) - for sending messages
-- ❌ XSOAR API Key - NOT actually needed (parameter exists but unused in code)
+-  App Token (xapp-...) - enables Socket Mode
+-  Long Running Instance enabled
+-  Bot Token (xoxb-...) - for sending messages
+-  XSOAR API Key - NOT actually needed (parameter exists but unused in code)
 
 ### SlackBlockBuilder Parameters
 
@@ -680,10 +673,10 @@ For custom Block Kit WITHOUT capturing dropdown values:
 ```
 
 **Limitations:**
-- ✅ Button clicks captured perfectly
-- ❌ Dropdown selections NOT captured (display only)
-- ✅ Beautiful UX with custom Block Kit
-- ⚠️ Must stay under 1500 chars for content (3000 total with entitlements)
+-  Button clicks captured perfectly
+-  Dropdown selections NOT captured (display only)
+-  Beautiful UX with custom Block Kit
+-  Must stay under 1500 chars for content (3000 total with entitlements)
 
 ---
 
@@ -724,8 +717,7 @@ An **entitlement** is a unique identifier that links a Slack button to an XSOAR 
 ```
 
 **Behavior:**
-1. User clicks "Approve" → Button disables ✅
-2. Task 4 closes with result "Approve"
+1. User clicks "Approve" → Button disables 2. Task 4 closes with result "Approve"
 3. Playbook continues
 4. Other users see button as disabled
 5. Entitlement expires
@@ -751,8 +743,7 @@ An **entitlement** is a unique identifier that links a Slack button to an XSOAR 
 ```
 
 **Behavior:**
-1. User clicks "Working on it" → Button STAYS enabled ✅
-2. Task 4 closes with result "Working on it"
+1. User clicks "Working on it" → Button STAYS enabled 2. Task 4 closes with result "Working on it"
 3. Another user can click same/different button
 4. Task 4 closes again with new result
 5. Process repeats until lifetime expires
@@ -820,10 +811,10 @@ When `lifetime` expires without any click:
 ### Entitlement Security
 
 **Built-in protections:**
-- ✅ GUID prevents guessing valid entitlements
-- ✅ Investigation ID scopes to specific case
-- ✅ Task ID prevents closing wrong tasks
-- ✅ Lifetime limits exposure window
+-  GUID prevents guessing valid entitlements
+-  Investigation ID scopes to specific case
+-  Task ID prevents closing wrong tasks
+-  Lifetime limits exposure window
 
 **Manual security considerations:**
 - Ensure Slack users are authorized (use private channels)
@@ -999,7 +990,7 @@ Always send confirmation back to Slack showing:
 
 ```yaml
 message: |
-  ✅ You chose: "${response}"
+   You chose: "${response}"
 
   What XSOAR did:
   - Action 1
@@ -1057,8 +1048,8 @@ nexttasks:
 Settings → Integrations → SlackV3
 - App Token: xapp-... (for Socket Mode)
 - Bot Token: xoxb-... (for sending)
-- Long Running: ✅ Enabled
-- Trust any certificate: ✅ Enabled
+- Long Running:  Enabled
+- Trust any certificate:  Enabled
 ```
 
 ### 2. Test Flow
@@ -1177,7 +1168,6 @@ SlackBlockBuilder v3.3.0+ writes responses to war room, GetSlackBlockBuilderResp
 ---
 
 **Documentation Version:** 2.0
-**Last Updated:** 2026-01-23
 **Tested On:** Cortex XSIAM SaaS
 **SlackV3 Version:** 3.5.37
 """
