@@ -617,14 +617,20 @@ When using the MCP SDK tools (`sdk_upload`, `sdk_validate`, etc.), the Python ve
 
 No special configuration needed - just call the SDK tools normally.
 
-**Environment Variables Required:**
+**Automatic Credential Syncing:**
 
-```bash
-# Set these in your .env file or export them
-export DEMISTO_BASE_URL=$CORTEX_MCP_PAPI_URL
-export DEMISTO_API_KEY=$CORTEX_MCP_PAPI_AUTH_HEADER
-export XSIAM_AUTH_ID=$CORTEX_MCP_PAPI_AUTH_ID
-```
+SDK tools automatically inherit credentials from the MCP server - **no manual configuration needed!**
+
+When installed into the official PANW MCP server, SDK tools:
+1. Import `config.config` from the PANW base installation
+2. Read MCP server credentials automatically
+3. Map them to SDK environment variables:
+   - `CORTEX_MCP_PAPI_URL` → `DEMISTO_BASE_URL`
+   - `CORTEX_MCP_PAPI_AUTH_HEADER` → `DEMISTO_API_KEY`
+   - `CORTEX_MCP_PAPI_AUTH_ID` → `XSIAM_AUTH_ID`
+4. Pass to `uvx demisto-sdk` subprocess
+
+**Result:** Configure credentials once for the MCP server (following PANW's installation guide), and all SDK tools work automatically.
 
 ### Shared Content Repository
 
