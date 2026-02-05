@@ -87,3 +87,18 @@ temp/
 # Claude Code personal settings (contains secrets)
 .claude/settings.local.json
 CLAUDE.local.md
+
+# Build/test artifacts (should not be in repo)
+*.html
+*.zip
+*.tar.gz
+*.yml
+!.github/workflows/*.yml
+create_installation_pack.sh
+start-mcp-clean.sh
+test_smart_discovery.py
+cortex-mcp*.zip
+content/
+Example/
+Dockerfile
+
