@@ -578,6 +578,24 @@ test_all_tools(categories="case_management,threat_hunting")
 
 Build, test, and deploy custom XSOAR integrations and scripts directly from your AI assistant.
 
+### Installing Demisto SDK
+
+**REQUIRED:** Install uv package manager to use SDK tools.
+
+**Quick Installation:**
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+**Verify:**
+```bash
+which uvx
+# Expected: ~/.cargo/bin/uvx or ~/.local/bin/uvx
+
+uvx demisto-sdk --version
+# Expected: Downloads and shows demisto-sdk version
+```
+
 ### Prerequisites & Python Version Compatibility
 
 **IMPORTANT:** The MCP server and Demisto SDK have **incompatible Python dependency requirements**:
@@ -587,7 +605,7 @@ Build, test, and deploy custom XSOAR integrations and scripts directly from your
 | **MCP Server** | 3.12+ | 2.11.0+ | Required by FastMCP and MCP libraries |
 | **Demisto SDK** | 3.9-3.11 | 1.10.x | Legacy requirement, not compatible with Pydantic 2.x |
 
-### Solution: Use `uvx` to Run Demisto SDK
+### How uvx Solves This
 
 The SDK tools in this MCP server use `uvx` (from the `uv` package manager) to run `demisto-sdk` in an isolated environment. This automatically handles the version conflict.
 
