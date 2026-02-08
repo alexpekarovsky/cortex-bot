@@ -189,25 +189,53 @@ git clone https://github.com/YourOrg/cortex-bot-custom-tools.git
 cd cortex-bot-custom-tools
 ```
 
-### Step 3: Copy Custom Tools to Official MCP Installation
+### Step 3: Find Your MCP Installation Directory
+
+Before copying files, locate where the official PANW MCP server is installed:
 
 ```bash
-# Find your official PANW Cortex MCP installation directory
-# Common locations:
-# - Docker: /opt/cortex-mcp
-# - Poetry: ~/.local/share/cortex-mcp or ~/cortex-mcp
-# - Manual: wherever you installed it
+# Search for the MCP server installation
+find ~ -name "main.py" -path "*/cortex*/src/main.py" 2>/dev/null | head -1
 
-# Copy the custom_components folder
-cp -r custom_components/* /path/to/official-cortex-mcp/src/usecase/custom_components/
+# Expected output (one of these):
+# /Users/yourname/cortex-mcp/src/main.py
+# /Users/yourname/.local/share/cortex-mcp/src/main.py
+# /opt/cortex-mcp/src/main.py
+```
 
-# Example for typical installation:
+**Common installation locations:**
+- Poetry installation: `~/cortex-mcp/`
+- Alternative Poetry: `~/.local/share/cortex-mcp/`
+- Docker: `/opt/cortex-mcp/`
+
+**Verify you found the right directory:**
+```bash
+ls ~/cortex-mcp/src/main.py  # Replace with your actual path
+# Expected: File exists (no error)
+```
+
+### Step 4: Copy Custom Tools
+
+Now copy the `custom_components/` folder to the official installation:
+
+```bash
+# Replace /path/to/cortex-mcp with your actual path from Step 3
+cp -r custom_components/* /path/to/cortex-mcp/src/usecase/custom_components/
+
+# Example (if your MCP is at ~/cortex-mcp):
 # cp -r custom_components/* ~/cortex-mcp/src/usecase/custom_components/
 ```
 
-**That's it!** No dependencies to install - these are pure Python tools that use the official server's environment.
+**Verify files were copied:**
+```bash
+ls ~/cortex-mcp/src/usecase/custom_components/*.py | wc -l
+# Expected: 28 (or more)
+```
 
-### Step 4: Restart MCP Server
+**About Credentials:**
+Our custom tools automatically inherit credentials from the official PANW MCP server. However you configured the official server (Poetry .env file, Docker environment variables, or Claude config JSON), our tools will use the same credentials automatically. **No additional credential configuration needed!**
+
+### Step 5: Restart MCP Server
 
 ```bash
 # For Docker installations
@@ -218,7 +246,7 @@ pkill -f "cortex-mcp.*main.py"
 # Then restart via your MCP client (Claude Desktop/Code)
 ```
 
-### Step 5: Verify Installation
+### Step 6: Verify Installation
 
 Open Claude Desktop or Claude Code and verify:
 
