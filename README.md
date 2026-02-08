@@ -580,20 +580,57 @@ Build, test, and deploy custom XSOAR integrations and scripts directly from your
 
 ### Installing Demisto SDK
 
-**REQUIRED:** Install uv package manager to use SDK tools.
+**REQUIRED for SDK tools:** Install demisto-sdk to use XSOAR development tools.
 
-**Quick Installation:**
+**Official Installation:**
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
+pip3 install demisto-sdk
 ```
 
-**Verify:**
-```bash
-which uvx
-# Expected: ~/.cargo/bin/uvx or ~/.local/bin/uvx
+**Requirements:**
+- Python 3.9, 3.10, 3.11, or 3.12 (NOT 3.13+)
+- Git installed on your system
+- macOS, Linux, or WSL2 (Windows requires WSL2)
 
+**Verify installation:**
+```bash
+demisto-sdk --version
+# Expected: demisto-sdk 1.x.x
+```
+
+**⚠️ Python Version Conflict:**
+
+The MCP server requires Python 3.12+, but demisto-sdk supports Python 3.9-3.12. To handle this:
+
+**Option 1: Use uvx (Recommended - Automatic Isolation)**
+```bash
+# Install uv package manager
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Use demisto-sdk through uvx (no separate venv needed)
 uvx demisto-sdk --version
-# Expected: Downloads and shows demisto-sdk version
+uvx demisto-sdk upload -i Packs/MyPack
+```
+
+Our MCP SDK tools use uvx automatically - no configuration needed.
+
+**Option 2: Separate Virtual Environment (Manual)**
+```bash
+# Create dedicated venv with compatible Python version
+python3.11 -m venv ~/demisto-sdk-env
+source ~/demisto-sdk-env/bin/activate
+
+# Install demisto-sdk
+pip3 install demisto-sdk
+
+# Verify
+demisto-sdk --version
+
+# Use it
+demisto-sdk upload -i Packs/MyPack
+
+# When done
+deactivate
 ```
 
 ### Prerequisites & Python Version Compatibility
