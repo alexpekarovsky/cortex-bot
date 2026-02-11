@@ -20,9 +20,9 @@ The foundation for **Cortex Bot**, an AI-powered security operations assistant f
 
 - [Features](#features)
 - [Quick Start](#quick-start)
+- [Getting Started - Credentials & Configuration](#getting-started---credentials--configuration)
 - [Architecture](#architecture)
 - [Installation Guide](#installation-guide)
-- [Client Configuration](#client-configuration)
 - [Available Tools](#available-tools)
 - [XSOAR Development Tools](#xsoar-development-tools)
 - [Testing Your Installation](#testing-your-installation)
@@ -113,10 +113,91 @@ The INSTALL.md guide provides:
 1. Install official PANW Cortex MCP Server ([guide](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools))
 2. Download this repository
 3. Copy `custom_components/` to PANW installation
-4. Restart MCP server
-5. Verify 90 tools appear
+4. **Configure credentials** (see next section)
+5. Restart MCP server
+6. Verify 90 tools appear
 
 **Security-conscious?** Review SECURITY.md and verify checksums before installation.
+
+---
+
+## Getting Started - Credentials & Configuration
+
+**After installation, configure your XSIAM credentials BEFORE using the tools.**
+
+### Step 1: Get Your XSIAM API Credentials
+
+You need three pieces of information from your XSIAM instance:
+
+| Credential | Where to Find It | Example |
+|------------|------------------|---------|
+| **API Key** | XSIAM UI → Settings → API Keys → Create | `veryLongBase64String...` |
+| **API Key ID** | Same page, numeric ID column | `14` |
+| **XSIAM URL** | Your XSIAM tenant URL | `https://api-yourinstance.xdr.us.paloaltonetworks.com` |
+
+**API Key Requirements:**
+- Security Level: `Standard`
+- Role: `Instance Administrator` (for full functionality)
+- Permissions: Read access to incidents, alerts, endpoints; Write for response actions
+
+### Step 2: Configure Credentials
+
+The Cortex Bot tools automatically inherit credentials from the official PANW MCP server. Configure them once using the PANW installation method:
+
+**For Poetry installations** (most common):
+```bash
+# Edit the .env file in your PANW MCP installation
+nano ~/cortex-mcp/.env
+
+# Add these three lines:
+CORTEX_MCP_PAPI_URL=https://api-yourinstance.xdr.us.paloaltonetworks.com
+CORTEX_MCP_PAPI_AUTH_HEADER=your_api_key_here
+CORTEX_MCP_PAPI_AUTH_ID=14
+```
+
+**For Docker installations:**
+```bash
+# Pass as environment variables when running the container
+docker run \
+  -e CORTEX_MCP_PAPI_URL=https://api-yourinstance.xdr.us.paloaltonetworks.com \
+  -e CORTEX_MCP_PAPI_AUTH_HEADER=your_api_key_here \
+  -e CORTEX_MCP_PAPI_AUTH_ID=14 \
+  cortex-mcp
+```
+
+**For Claude Desktop/Code global config:**
+```json
+{
+  "mcpServers": {
+    "cortex-xsiam": {
+      "command": "python",
+      "args": ["/path/to/cortex-mcp/src/main.py"],
+      "env": {
+        "CORTEX_MCP_PAPI_URL": "https://api-yourinstance.xdr.us.paloaltonetworks.com",
+        "CORTEX_MCP_PAPI_AUTH_HEADER": "your_api_key_here",
+        "CORTEX_MCP_PAPI_AUTH_ID": "14"
+      }
+    }
+  }
+}
+```
+
+### Step 3: Restart and Verify
+
+```bash
+# Restart the MCP server
+pkill -f "cortex-mcp.*main.py"
+
+# In Claude Code, reconnect
+/mcp
+
+# Expected: "Connected to cortex-xsiam (90 tools)"
+
+# Test connectivity
+get_tenant_info()
+```
+
+**For multi-tenant setups, credential priority, and advanced configuration:** See [docs/CREDENTIAL_CONFIGURATION.md](docs/CREDENTIAL_CONFIGURATION.md)
 
 ---
 
@@ -252,102 +333,15 @@ If you see 90 tools, installation is complete! The 6 official tools + 84 Cortex 
 
 ---
 
-## Client Configuration
-
-### Option A: Claude Desktop
-
-**Configuration file location:**
-| Platform | Path |
-|----------|------|
-| macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
-| Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
-
-**Recommended Configuration:**
-
-```json
-{
-  "mcpServers": {
-    "cortex-xsiam": {
-      "command": "python",
-      "args": ["/absolute/path/to/cortex-mcp/src/main.py"]
-    }
-  }
-}
-```
-
-> **IMPORTANT:**
-> - Replace `/absolute/path/to/cortex-mcp` with the actual full path
-> - Credentials are loaded from `cortex-mcp/.env` automatically
-> - **DO NOT** add credentials to this JSON file for security reasons
-> - Restart Claude Desktop after saving
-
-**To use a different tenant:** Export environment variables before starting Claude Desktop:
-```bash
-export CORTEX_MCP_PAPI_URL=https://api-dev.xdr.eu.paloaltonetworks.com
-export CORTEX_MCP_PAPI_AUTH_HEADER=dev_api_key
-export CORTEX_MCP_PAPI_AUTH_ID=27
-open -a "Claude"
-```
-
-### Option B: Claude Code CLI
-
-**Recommended Configuration:**
-
-```bash
-# From your project directory
-claude mcp add cortex-xsiam -- python /absolute/path/to/cortex-mcp/src/main.py
-```
-
-**Credentials** are loaded from `cortex-mcp/.env` automatically.
-
-**For different tenant:** Export environment variables before starting Claude Code:
-```bash
-export CORTEX_MCP_PAPI_URL=https://api-dev.xdr.eu.paloaltonetworks.com
-export CORTEX_MCP_PAPI_AUTH_HEADER=dev_api_key
-export CORTEX_MCP_PAPI_AUTH_ID=27
-cd ~/projects/my-project
-claude
-```
-
-**Verify installation:**
-```bash
-claude mcp list
-```
-
-**Expected result:** `cortex-xsiam` appears in the list of configured servers.
-
-### Option C: Gemini (Google AI Studio with MCP)
-
-Create `settings.local.json` in your project directory:
-
-```json
-{
-  "mcpServers": {
-    "cortex-xsiam": {
-      "command": "python",
-      "args": ["/absolute/path/to/cortex-mcp/src/main.py"]
-    }
-  }
-}
-```
-
-**Credentials** are loaded from `cortex-mcp/.env` automatically.
-
-### Option D: Docker
-
-```bash
-# Build the image
-docker build -t cortex-mcp .
-
-# Run with .env file (secure)
-docker run --env-file /absolute/path/to/cortex-mcp/.env -it cortex-mcp
-```
-
----
-
 ## Available Tools
 
 ### Case Management (5 tools)
+
+**When to use these tools:**
+- You need to investigate security incidents
+- You want to see what cases are currently open
+- You need to assign cases to analysts or update their status
+- You want AI-generated investigation summaries or visual timelines
 
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
@@ -441,6 +435,12 @@ Or check if they're already configured (most XSIAM instances have them pre-confi
 
 ### Issue Management (4 tools)
 
+**When to use these tools:**
+- You need to triage individual alerts/detections
+- You want deep forensic details (process trees, network connections) for an alert
+- You need to mark alerts as false positives
+- You're investigating correlation alerts to see what triggered them
+
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
 | `get_issues` | List and filter security issues | `filters`, `search_from`, `search_to` |
@@ -449,6 +449,12 @@ Or check if they're already configured (most XSIAM instances have them pre-confi
 | `update_issue` | Update issue severity/status | `issue_id`, `severity`, `status` |
 
 ### Response Actions (6 tools)
+
+**When to use these tools:**
+- You need to contain a compromised endpoint immediately
+- You want to stop malicious processes
+- You need to scan endpoints for malware
+- You're performing active incident response
 
 | Tool | Description | Risk Level | Reversal |
 |------|-------------|------------|----------|
@@ -460,6 +466,12 @@ Or check if they're already configured (most XSIAM instances have them pre-confi
 | `terminate_causality` | Kill entire process tree | HIGH | None (permanent) |
 
 ### Threat Hunting & Intelligence (6 tools)
+
+**When to use these tools:**
+- You're hunting for threats across your environment
+- You need to check if an IP, domain, file, or URL is malicious
+- You want to search historical security data with XQL
+- You need threat intelligence context for indicators
 
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
@@ -984,54 +996,185 @@ update_case_ai_summary(case_id="350")
 
 ## What Can You Ask Claude?
 
-Once installed, try these prompts to explore capabilities:
+Once installed, try these prompts to see the AI security assistant in action. Each example shows what you ask, which tools Claude uses, and what you get back.
 
-**Investigation & Triage:**
-- "Show me all critical severity cases from the last 24 hours"
-- "Investigate case 350 and summarize the attack"
-- "What are the top 5 risky users right now?"
-- "Generate an AI summary for case 350"
-- "Create a visual timeline for case 350"
+### Example 1: Investigate a High-Severity Case
 
-**Threat Hunting:**
-- "Hunt for PowerShell execution on domain controllers in the last hour"
-- "Find all processes connecting to suspicious IPs"
-- "Search for lateral movement patterns"
-- "Show me all failed authentication attempts from external IPs"
+**You say:** *"Show me all critical severity cases from the last 24 hours and investigate the most recent one"*
 
-**Response Actions:**
-- "Isolate endpoint Server-DC-1"
-- "Terminate the malicious process on endpoint XYZ"
-- "Quarantine the suspicious file with hash abc123..."
-- "Scan endpoint for malware"
+**Claude uses:**
+1. `get_cases(filters=[{"field": "severity", "operator": "in", "value": ["critical"]}])`
+2. `get_incident_extra_data(incident_id="350")`
+3. `update_case_ai_summary(case_id="350")`
 
-**Intelligence & Enrichment:**
-- "Check if IP 45.33.32.156 is malicious"
-- "Enrich this file hash: d41d8cd98f00b204e9800998ecf8427e"
-- "What's the reputation of domain evil.com?"
-- "Look up this URL: http://suspicious-site.com/payload"
+**You get:**
+- List of 3 critical cases with alert counts
+- Full forensic details: 5 affected hosts, 3 users, 12 alerts
+- AI-generated investigation report with attack narrative, MITRE ATT&CK mapping, response plan
+- "This appears to be a multi-stage ransomware attack. Initial access via phishing → lateral movement via RDP → credential dumping → ransomware deployment."
 
-**Detection Engineering:**
-- "Create a correlation rule to detect SSH brute force attacks"
-- "Show me all my custom correlation rules"
-- "Build a detection for credential dumping from LSASS"
+### Example 2: Hunt for Suspicious PowerShell Activity
 
-**Development:**
-- "Create a new XSOAR integration for ServiceNow"
-- "Validate my custom playbook"
-- "Generate a playbook for phishing investigation"
-- "Create an XQL widget showing top attacking IPs"
+**You say:** *"Hunt for PowerShell execution on domain controllers in the last hour"*
 
-**Discovery & Testing:**
-- "What integrations are available in my XSIAM instance?"
-- "Show me all commands for the VirusTotal integration"
-- "Test all MCP tools in safe mode"
-- "Create a dashboard widget for failed authentication attempts"
+**Claude uses:**
+1. `run_xql_query(query="dataset = xdr_data | filter event_type = ENUM.PROCESS | filter action_process_image_name ~= 'powershell' | filter agent_hostname contains 'DC' | filter _time > current_time() - 3600000 | fields _time, agent_hostname, actor_effective_username, action_process_image_command_line | limit 100", time_frame="1 hour")`
 
-**Content Generation:**
-- "Create a case layout with custom fields"
-- "Generate a parsing rule for Cisco firewall logs"
-- "Build an AgentIX action for IP enrichment"
+**You get:**
+- 3 PowerShell executions found
+- Details: Server-DC-1 (DOMAIN\admin, 14:32:01) ran `powershell.exe -ExecutionPolicy Bypass`
+- "Found 3 PowerShell executions. One is suspicious - admin account using Bypass execution policy. Recommend investigating further."
+
+### Example 3: Check if an IP is Malicious
+
+**You say:** *"Is IP address 45.33.32.156 malicious?"*
+
+**Claude uses:**
+1. `create_issue(name="IP Investigation Workspace")` → Creates workspace for enrichment
+2. `enrich_ip_address(ip_address="45.33.32.156", alert_id="workspace_id")`
+
+**You get:**
+- Reputation: **Suspicious** (DBotScore: 2/3)
+- 3 out of 89 threat engines flagged it
+- Tags: Scanner, Malware C2
+- Geo: US, New York (Linode AS20473)
+- "This IP is flagged as suspicious by 3 threat intelligence sources. Associated with scanning activity and potential malware C2 infrastructure. Recommend blocking."
+
+### Example 4: Isolate a Compromised Endpoint
+
+**You say:** *"Isolate endpoint Server-DC-1 immediately, it's compromised"*
+
+**Claude uses:**
+1. `get_endpoints(filters=[{"field": "hostname", "operator": "contains", "value": "Server-DC-1"}])` → Gets endpoint ID
+2. `isolate_endpoint(endpoint_id="abc123...")` → Performs isolation
+3. `get_action_status(group_action_id=114)` → Monitors status
+
+**You get:**
+- "Endpoint Server-DC-1 (ID: abc123...) is now isolated from the network."
+- "Isolation status: COMPLETED_SUCCESSFULLY"
+- "The endpoint can only communicate with Cortex agents. Users cannot access network resources."
+- "To restore connectivity later, use: unisolate_endpoint"
+
+### Example 5: Create a Custom Detection Rule
+
+**You say:** *"Create a correlation rule to detect SSH brute force attacks"*
+
+**Claude uses:**
+1. `insert_correlation_rule(rule_id=10001, name="SSH Brute Force Detection", xql_query="dataset = xdr_data | filter event_type = ENUM.AUTHENTICATION and action_service_name = 'SSH' and outcome = ENUM.FAILED | comp count() by source_ip, user | filter count > 5", severity="SEV_040_HIGH", alert_name="SSH Brute Force Attempt Detected", alert_category="CREDENTIAL_ACCESS", description="Detects multiple failed SSH attempts", search_window="5 minutes")`
+
+**You get:**
+- "Created correlation rule 'SSH Brute Force Detection' (Rule ID: 10001)"
+- "The rule monitors for 5+ failed SSH login attempts from the same IP within 5 minutes"
+- "Severity: HIGH | Category: CREDENTIAL_ACCESS"
+- "Rule is currently DISABLED for testing. Enable it when ready."
+
+### Example 6: Investigate Multiple Alerts in a Case
+
+**You say:** *"Investigate case 350, show me all the alerts and create a timeline"*
+
+**Claude uses:**
+1. `get_incident_extra_data(incident_id="350", alerts_limit=100)`
+2. `update_case_timeline(case_id="350")`
+
+**You get:**
+- Case overview: 12 alerts across 5 hosts, 3 users
+- Alert breakdown: 2 critical, 5 high, 3 medium, 2 low
+- Visual HTML timeline showing chronological attack progression
+- "Attack started at 14:23 with phishing email → escalated to lateral movement at 14:45 → ransomware deployment at 15:12"
+
+### Example 7: Build a ServiceNow Integration
+
+**You say:** *"Create a new XSOAR integration for ServiceNow incident management"*
+
+**Claude uses:**
+1. `get_xsoar_pattern_guide()` → Learns "fetch incidents" = event collector pattern
+2. `get_xsoar_event_collector_guide()` → Gets implementation patterns
+3. `sdk_init(name="ServiceNow", content_type="integration", pack_name="ServiceNow")`
+4. Writes Python code following the guide
+5. `sdk_validate(path="Packs/ServiceNow")`
+6. `sdk_upload(path="Packs/ServiceNow")`
+
+**You get:**
+- Complete ServiceNow integration with 10 commands
+- fetch-incidents command to pull tickets
+- Commands: servicenow-create-ticket, servicenow-update-ticket, servicenow-get-ticket
+- Integration uploaded and ready to configure in XSIAM
+
+### Example 8: Enrich a Suspicious File Hash
+
+**You say:** *"Check this file hash: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"*
+
+**Claude uses:**
+1. `create_issue(name="File Hash Investigation")`
+2. `enrich_file_hash(file_hash="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", alert_id="workspace_id")`
+
+**You get:**
+- Reputation: **Malicious** (DBotScore: 3/3)
+- Detected by 45 out of 70 antivirus engines
+- Malware family: Emotet Trojan
+- First seen: 2025-12-15
+- "This file is confirmed malware - Emotet trojan variant. Detected by 45 AV engines. Recommend immediate quarantine."
+
+### Example 9: Terminate a Malicious Process Tree
+
+**You say:** *"Terminate the entire process tree for causality ID xyz789 on endpoint abc123"*
+
+**Claude uses:**
+1. `terminate_causality(agent_id="abc123", causality_id="xyz789")`
+2. `get_action_status(group_action_id=127)`
+
+**You get:**
+- "Initiated termination of process tree (causality ID: xyz789)"
+- "This will kill the target process, all parent processes, and all child processes"
+- "Status: COMPLETED_SUCCESSFULLY"
+- "3 processes terminated: malware.exe, cmd.exe, powershell.exe"
+
+### Example 10: Test All Tools Safely
+
+**You say:** *"Test all MCP tools in safe mode to verify my installation"*
+
+**Claude uses:**
+1. `test_all_tools(skip_destructive=True)`
+
+**You get:**
+- "Testing 90 tools across 13 categories..."
+- Results: 85 tools tested, 82 passed, 1 failed, 2 skipped
+- Success rate: 96.5%
+- Detailed breakdown by category with pass/fail status
+- "Installation verified! All critical tools working correctly."
+
+### Example 11: Multi-Step Ransomware Response
+
+**You say:** *"We have a ransomware infection on Server-Web-1. Contain it now."*
+
+**Claude uses:**
+1. `get_endpoints(filters=[{"field": "hostname", "value": "Server-Web-1"}])`
+2. `isolate_endpoint(endpoint_id="def456")`
+3. `get_alert_multi_events(filters=[{"field": "agent_hostname", "value": "Server-Web-1"}])`
+4. `terminate_causality(agent_id="def456", causality_id="ransomware_process_id")`
+5. `scan_endpoint(endpoint_id="def456")`
+6. `update_case_ai_summary(case_id="ransomware_case_id")`
+
+**You get:**
+- "Step 1: Isolated Server-Web-1 from network"
+- "Step 2: Identified ransomware process (ransomware.exe) and terminated entire process tree"
+- "Step 3: Initiated full malware scan"
+- "Step 4: Generated AI investigation summary"
+- "Server is contained. No lateral movement detected. Recommend forensic analysis before restoration."
+
+### Example 12: Create a Custom Dashboard Widget
+
+**You say:** *"Create an XQL dashboard widget showing top 10 attacking IPs from the last 7 days"*
+
+**Claude uses:**
+1. `create_xsiam_dashboard(pack_name="SecurityMetrics", dashboard_name="Top Attacking IPs", xql_query="dataset = xdr_data | filter event_type = ENUM.NETWORK | comp count() as total by action_remote_ip | sort desc total | limit 10", widget_title="Top 10 Attacking IPs (7 Days)", widget_type="bar")`
+2. `sdk_upload(path="Packs/SecurityMetrics")`
+
+**You get:**
+- Dashboard created with bar chart widget
+- Shows top 10 IPs by connection count
+- Widget uploaded to XSIAM
+- "Dashboard 'Top Attacking IPs' created and deployed. View it in XSIAM UI → Dashboards."
 
 ---
 
