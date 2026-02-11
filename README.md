@@ -93,40 +93,26 @@ The foundation for **Cortex Bot**, an AI-powered security operations assistant f
 
 **Prerequisites:** Python 3.12+, Cortex XSIAM API key, Claude Desktop or Claude Code
 
-### Step 1: Install Official Cortex MCP Server (Required)
+### Installation
 
-Follow the [official PANW installation guide](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools):
+**📦 For complete installation instructions, see [INSTALL.md](INSTALL.md)**
 
-1. Open your Cortex XSIAM tenant
-2. Navigate to Settings → Integrations → Cortex MCP Server
-3. Download the MCP server package
-4. Extract and install via Docker or Poetry (Python 3.13+)
-5. Configure your MCP client (Claude Desktop/Code)
-6. **Verify:** You should see 6 base tools available (get_cases, get_issues, get_assets, etc.)
+The INSTALL.md guide provides:
+- Step-by-step installation with verification
+- Pre-installation checks
+- Expected outputs at each step
+- Troubleshooting
+- Success criteria checklist
+- Optional automated installer (reviewable install.sh)
 
-### Step 2: Add Cortex Bot Enhancements (This Repo)
+**Quick Summary:**
+1. Install official PANW Cortex MCP Server ([guide](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools))
+2. Download this repository
+3. Copy `custom_components/` to PANW installation
+4. Restart MCP server
+5. Verify 90 tools appear
 
-```bash
-# Clone Cortex Bot repository
-git clone <GITHUB_REPO_URL>
-cd cortex-bot-custom-tools
-
-# Copy custom tools to your official PANW Cortex MCP installation
-cp -r custom_components/* /path/to/official-cortex-mcp/src/usecase/custom_components/
-
-# Restart your MCP server
-pkill -f "cortex.*main.py"  # Server will auto-restart
-
-# Verify: You should now see 90 total tools (6 base + 84 custom)
-claude
-# Test: "List all available MCP tools"
-# Expected: You should see 90 cortex-xsiam tools
-
-# Try it!
-# Ask: "Create a phishing investigation playbook"
-```
-
-**Next steps:** See [Installation Guide](#installation-guide) for detailed configuration, multi-tenant setup, and troubleshooting.
+**Security-conscious?** Review SECURITY.md and verify checksums before installation.
 
 ---
 
