@@ -304,50 +304,69 @@ Ask Claude: "List available XSOAR integration scripts"
 
 ---
 
-## Step 7: Install Demisto SDK (REQUIRED for SDK Tools)
+## Step 7: Install Demisto SDK (REQUIRED)
 
-**IMPORTANT:** 10 SDK tools (sdk_upload, sdk_validate, sdk_init, etc.) will NOT work without demisto-sdk.
+**MANDATORY:** The following 10 SDK tools will NOT work without demisto-sdk:
+- sdk_upload, sdk_validate, sdk_lint
+- sdk_init, sdk_download, sdk_run
+- sdk_run_playbook, sdk_generate_docs
+- sdk_split, sdk_unify
 
-If you plan to use SDK tools for XSOAR content development, you MUST install demisto-sdk.
+**Install demisto-sdk now.** The other 80 tools work without it, but you'll want SDK tools for creating/uploading content.
 
-The SDK tools (sdk_upload, sdk_validate, etc.) are for XSOAR content development. They **automatically use your MCP credentials** - no separate configuration needed.
+SDK tools **automatically use your MCP credentials** - no separate configuration needed.
 
-### If SDK Tools Don't Work:
+### Step 7.1: Choose Installation Method
 
-**Method 1: Using uvx (Recommended - Automatic)**
+**Method A: Using uvx (Recommended)**
 
 Install uv package manager:
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
-# Or: pip install uv
 ```
 
-**Method 2: Direct Installation (Manual)**
+Verify:
+```bash
+which uvx
+# Expected: /Users/yourname/.cargo/bin/uvx
 
-Or install demisto-sdk directly:
+uvx demisto-sdk --version
+# Expected: demisto-sdk 1.x.x
+```
+
+**Method B: Direct Installation**
+
+Install demisto-sdk directly:
 ```bash
 pip3 install demisto-sdk
 demisto-sdk --version
+# Expected: demisto-sdk 1.x.x
 ```
 
-**Note:** Requires Python 3.9-3.12 (may conflict with MCP's Python 3.12+). uvx method is recommended.
+**Note:** Requires Python 3.9-3.12. May conflict with MCP's Python 3.12+. Method A (uvx) handles this automatically.
 
-### Content Repository Setup
+### Step 7.2: Setup Content Repository
 
-Create content directory:
+Create content directory (REQUIRED):
 ```bash
 mkdir -p ~/content/Packs
-# Or set custom path:
+```
+
+Or use custom location:
+```bash
 export CONTENT_PATH=/your/custom/path
+mkdir -p $CONTENT_PATH/Packs
 ```
 
-**3. Test SDK tool:**
+### Step 7.3: Test SDK Tools
+
+In Claude:
 ```
-Ask Claude: "Initialize a new XSOAR integration called TestIntegration"
+Ask Claude: "List available XSOAR scripts"
 ```
 
-✅ **Expected:** Creates Pack structure with integration files
-❌ **If fails:** Check uv is installed: `which uvx`
+✅ **Expected:** List of scripts from script library
+❌ **If fails:** Run `which uvx` or `demisto-sdk --version` to verify installation
 
 ---
 
