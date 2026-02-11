@@ -1,0 +1,42 @@
+openapi: 3.0.0
+paths:
+  /public_api/v1/assets/{asset_id}/:
+    get:
+      summary: Get Asset by ID
+      description: Retrieve detailed information about the asset specified by asset ID.
+      operationId: get_asset_by_id
+      tags:
+        - Assets
+      parameters:
+        - name: asset_id
+          in: path
+          description: Unique identifier for the asset.
+          required: true
+          schema:
+            type: string
+          example: "fffd007cff1c15f3a0d132ae630df9630fe00e39bc66813a9fa9b6457a786afc"
+      responses:
+        '200':
+          description: Successful response containing the asset details.
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized. The API key is missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden. The API key does not have the required permissions.
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Not Found. The asset with the specified ID does not exist.
+          content:
+            application/json:
+              schema:
+                type: object

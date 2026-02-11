@@ -1,0 +1,89 @@
+openapi: 3.0.0
+paths:
+  /public_api/v1/compliance/get_assessment_results/:
+    post:
+      summary: Get assessment profile results
+      description: Retrieve assessment profile results with optional filtering based on the last successful evaluation.
+      operationId: get_assessment_profile_results
+      tags:
+        - Assessment Profiles
+      requestBody:
+        description: JSON object containing filters. An empty request_data object returns all results.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssessmentProfileRequest'
+            examples:
+              filtered_request:
+                summary: Example request with filters
+                value:
+                  request_data:
+                    filters:
+                      - field: "labels"
+                        operator: "contains"
+                        value: "aws"
+      responses:
+        '200':
+          description: Successful response containing a list of assessment profile results.
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request - invalid input parameters.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Bad Request"
+        '401':
+          description: Unauthorized. The API key is missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Unauthorized"
+        '403':
+          description: Forbidden. The API key does not have the required permissions.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Forbidden"
+components:
+  schemas:
+    AssessmentProfileRequest:
+      type: object
+      properties:
+        request_data:
+          $ref: '#/components/schemas/AssessmentProfileRequestPayload'
+
+    AssessmentProfileRequestPayload:
+      type: object
+      properties:
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/Filter'
+
+    Filter:
+      type: object
+      properties:
+        field:
+          type: string
+          enum: [labels]
+        operator:
+          type: string
+          enum: [contains, not_contains]
+        value:
+          type: string

@@ -1,0 +1,111 @@
+openapi: 3.0.0
+paths:
+  /public_api/v1/endpoints/terminate_causality:
+    post:
+      summary: Terminate Process and Entire Causality Chain (RECOMMENDED for Malware)
+      description: |-
+        DESTRUCTIVE ACTION - Risk Level: HIGH
+        This action CANNOT be reversed. All terminated processes are gone permanently.
+
+        Terminates a process and its entire causality chain (all parent and child processes).
+        This is more aggressive than terminate_process and ensures complete eradication
+        of malicious process trees.
+
+        RECOMMENDED: This is the preferred tool for most malware remediation scenarios.
+        For killing processes by name, use run_script with the process_kill_name script.
+
+        A causality chain includes:
+        - The target process
+        - All parent processes that spawned it
+        - All child processes it spawned
+        - The entire process tree/family
+
+        Use this when:
+        - You need to completely eliminate a malware infection
+        - A process has spawned multiple malicious child processes
+        - You want to ensure no related malicious processes remain running
+        - The threat involves a complex process tree (e.g., script-based attacks)
+        - You're unsure whether child processes exist (this is the safe choice)
+
+        To kill by process name instead of causality ID:
+        - Use run_script with script_uid 'fd0a544a99a9421222b4f57a11839481' (process_kill_name)
+        - This allows terminating processes without needing the causality ID
+      operationId: terminate_causality
+      tags:
+        - Endpoint Response
+      requestBody:
+        description: JSON object containing the endpoint and causality identifiers
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TerminateCausalityRequest'
+            examples:
+              terminate_causality_chain:
+                summary: Terminate entire process causality chain
+                value:
+                  request_data:
+                    agent_id: "a1b2c3d4e5f6g7h8"
+                    causality_id: "12345678:90abcdef"
+      responses:
+        '200':
+          description: Successful response - causality termination action initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reply:
+                    type: object
+                    properties:
+                      action_id:
+                        type: integer
+                        description: Unique ID for tracking this termination action
+        '400':
+          description: Bad request - invalid parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Bad Request"
+        '401':
+          description: Unauthorized - invalid API credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Unauthorized"
+        '403':
+          description: Forbidden - insufficient permissions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Forbidden"
+
+components:
+  schemas:
+    TerminateCausalityRequest:
+      type: object
+      properties:
+        request_data:
+          type: object
+          required:
+            - agent_id
+            - causality_id
+          properties:
+            agent_id:
+              type: string
+              description: The endpoint agent ID where the process is running
+            causality_id:
+              type: string
+              description: The causality ID identifying the process tree to terminate

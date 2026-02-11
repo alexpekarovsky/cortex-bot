@@ -1,0 +1,182 @@
+{
+  "reply": {
+    "total_count": 0,
+    "result_count": 0,
+    "issues": [
+      {
+        "_insert_time": "2023-05-15T10:30:00Z",
+        "owner": "CWP",
+        "external_id": "EXT-12345",
+        "name": "Suspicious Network Activity",
+        "description": "Unusual outbound traffic detected from internal server",
+        "observation_time": 1621234567890,
+        "domain": "SECURITY",
+        "detection_method": "CSPM_SCANNER",
+        "detection_rule_id": "RULE-9876",
+        "category": "CONFIGURATION",
+        "finding_ids": [
+          "013543ea00ea9893bcde59cbfdc5992f"
+        ],
+        "asset_ids": [
+          "123"
+        ],
+        "mitre_tactics": [
+          "COLLECTION"
+        ],
+        "mitre_techniques": [
+          "ABUSE_ELEVATION_CONTROL_MECHANISM"
+        ],
+        "type": "Identity Security",
+        "remediation": "Isolate affected system and investigate traffic patterns",
+        "extended_description": "Detailed analysis of the network traffic patterns and potential impact",
+        "impact": "Potential data exfiltration or command and control activity",
+        "issue_id": 123,
+        "last_modified": 1621235678901,
+        "tags": [
+          "critical",
+          "investigation_required"
+        ],
+        "is_excluded": false,
+        "is_starred": true,
+        "assigned_to": "alice.smith@example.com",
+        "assigned_to_pretty": "Alice Smith",
+        "status": "Resolved",
+        "status_resolution_reason": "RESOLVED_OTHER",
+        "status_resolution_comment": "Investigating the source of suspicious traffic",
+        "severity": "HIGH",
+        "resolution_time": 1621240000000,
+        "normalized_fields": {
+          "xdm.source.location.country": "US",
+          "xdm.source.ipv4": "192.168.1.1",
+          "xdm.source.host.ipv4_addresses": [
+            "192.168.1.2",
+            "192.168.1.3"
+          ],
+          "xdm.source.identity.username": "admin",
+          "xdm.source.process.causality_id": "abc123",
+          "xdm.source.process.command_line": "/usr/bin/process -arg1 -arg2",
+          "xdm.source.process.executable.filename": "process_executable",
+          "xdm.source.process.name": "process_name",
+          "xdm.source.process.executable.path": "/usr/bin/process_executable",
+          "xdm.source.process.executable.sha256": "f9c7b6e24f7e93d8d3e5c76f8b1b88cd8f17b34a7a4a2e3d5b2dbf09f5b8fdc2",
+          "xdm.source.host.hostname": "hostname1",
+          "xdm.source.host.os_family": "Linux",
+          "xdm.source.agent.identifier": "agent123",
+          "xdm.source.agent.installation_id": "installation123",
+          "xdm.source.host.fqdn": "hostname1.domain.com",
+          "xdm.source.process.executable.signature_status": "Valid",
+          "xdm.target.file.filename": "target_file.txt",
+          "xdm.target.module.filename": "target_module.so",
+          "xdm.target.file.sha256": "d4bfc6fabe8d6d1b76e5b441dc8d01758276281f56c929b282ac5c3ee704c431",
+          "xdm.target.module.sha256": "7f4eafdad74bfedabf370a3725a5077c",
+          "xdm.target.process.command_line": "/usr/bin/target_process -option",
+          "xdm.target.process.executable.sha256": "7b21d50d6270f95b5a2cf582bf94b315cd75a034dd9478c0e5b4089bbd9b59ac",
+          "xdm.target.process.executable.signature_status": "Signed",
+          "xdm.target.process.executable.signer": [
+            "example"
+          ],
+          "xdm.target.process.executable.path": [
+            "example"
+          ],
+          "xdm.target.ipv4": [
+            "example"
+          ],
+          "xdm.target.host.ipv4_addresses": [
+            "10.0.0.2",
+            "10.0.0.3"
+          ],
+          "xdm.target.host.ipv6_addresses": [
+            "example"
+          ],
+          "xdm.target.ipv6": [
+            "10.0.0.2",
+            "10.0.0.3"
+          ],
+          "xdm.target.port": 8080,
+          "xdm.target.location.country": "US",
+          "xdm.target.host.hostname": "hostname",
+          "xdm.target.identity.username": "user1",
+          "xdm.target.url": "https://example.com",
+          "xdm.target.process.executable.filename": "target_process",
+          "xdm.target.process.name": "target_process",
+          "xdm.target.agent.identifier": "target_agent",
+          "xdm.target.registry.value": "registry_value",
+          "xdm.target.registry.data": "registry_data",
+          "xdm.target.registry.key": "registry_key",
+          "xdm.email.attachment.sha256": "a1b2c3d4e5f6789abcde1234567890f2",
+          "xdm.email.attachment.filename": "attachment.pdf",
+          "xdm.email.sender": "sender@example.com",
+          "xdm.event.type": "Intrusion",
+          "xdm.cloud.provider": "AWS",
+          "xdm.cloud.project": "CloudProject1",
+          "xdm.cloud.project_id": "cloud_project_id_123",
+          "xdm.cloud.region": "us-east-1",
+          "xdm.cloud.function.id": "cloud_func_123",
+          "xdm.cloud.function.name": "cloud_function",
+          "xdm.cloud.function.version": "v1.0.0",
+          "xdm.cloud.function.request_id": "req_123",
+          "xdm.cloud.function.runtime": "nodejs",
+          "xdm.observer.unique_identifier": "observer123",
+          "xdm.observer.type": "Server",
+          "xdm.observer.sub_type": "Linux",
+          "xdm.observer.name": "Observer 1",
+          "xdm.vulnerability.cve_id": "CVE-2021-12345",
+          "xdm.vulnerability.severity": "HIGH",
+          "xdm.vulnerability.fix_versions": [
+            "1.0.1",
+            "1.0.2"
+          ],
+          "xdm.vulnerability.cve_risk_factors": [
+            "Exploitability",
+            "Impact"
+          ],
+          "xdm.vulnerability.cvss_score": 7.8,
+          "xdm.vulnerability.cvss_vector": "AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+          "xdm.software_package.version": "1.0.0",
+          "xdm.software_package.purl": "pkg:maven/com.example/software@1.0.0",
+          "xdm.software_package.layer_id": "layer123",
+          "xdm.software_package.type": "Library",
+          "xdm.software_package.installation_type": "Automatic",
+          "xdm.software_package.package_manager": "npm",
+          "xdm.software_package.dependency_type": "Direct",
+          "xdm.software_package.language": "JavaScript",
+          "xdm.malware.verdict": "Malicious",
+          "xdm.malware.virus_total_link": "https://www.virustotal.com/gui/file/abcd1234",
+          "xdm.malware.layer_id": "malware_layer123",
+          "xdm.secret.secret_type": "API Key",
+          "xdm.secret.unique_identifier": "secret_id_123",
+          "xdm.secret.snippet": "API Key: 12345",
+          "xdm.secret.layer_id": "secret_layer123",
+          "xdm.file.filename": "file.txt",
+          "xdm.file.path": "/path/to/file.txt",
+          "xdm.file.sha256": "abc1234567890def0987654321",
+          "xdm.file.size": 1024,
+          "xdm.file.last_modified": 1615465123,
+          "xdm.file.metadata_change_time": 1615465000,
+          "xdm.file.owner_id": "user1",
+          "xdm.file.owner_name": "fileowner",
+          "xdm.file.group_id": "group1",
+          "xdm.file.group_name": "groupname",
+          "xdm.file.permissions.owner": [
+            "read",
+            "write"
+          ],
+          "xdm.file.permissions.group": [
+            "read"
+          ],
+          "xdm.file.permissions.others": [
+            "read"
+          ],
+          "xdm.file.position.start.line": 1,
+          "xdm.file.position.start.character": 0,
+          "xdm.file.position.end.line": 100,
+          "xdm.file.position.end.character": 80,
+          "xdm.url": "https://example.com",
+          "xdm.domain": "example.com",
+          "xdm.application_protocol": "HTTPS"
+        },
+        "custom_fields": {}
+      }
+    ]
+  }
+}

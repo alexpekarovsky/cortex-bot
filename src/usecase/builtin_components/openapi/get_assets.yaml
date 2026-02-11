@@ -1,0 +1,134 @@
+openapi: 3.0.0
+paths:
+  /public_api/v1/assets/:
+    post:
+      summary: Get All or Filtered Assets
+      description: |-
+        Retrieve a list of all your assets or a filtered list based on specified criteria.
+        The maximum result limit is 1000 assets per request.
+      operationId: get_assets
+      tags:
+        - Assets
+      requestBody:
+        description: JSON object containing filters, sorting, and pagination settings under a 'request_data' key.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssetRequest'
+            examples:
+              filtered_request:
+                summary: Example request with filters and sorting
+                value:
+                  request_data:
+                    filters:
+                      AND:
+                        - SEARCH_FIELD: "xdm.asset.type.class"
+                          SEARCH_TYPE: "NEQ"
+                          SEARCH_VALUE: "Other"
+                    sort:
+                      - FIELD: "xdm.asset.name"
+                        ORDER: "DESC"
+                    search_from: 0
+                    search_to: 100
+      responses:
+        '200':
+          description: Successful response containing a list of assets.
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized. The API key is missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden. The API key does not have the required permissions.
+          content:
+            application/json:
+              schema:
+                type: object
+components:
+  schemas:
+    AssetRequest:
+      type: object
+      properties:
+        request_data:
+          $ref: '#/components/schemas/AssetRequestPayload'
+
+    AssetRequestPayload:
+      type: object
+      properties:
+        filters:
+          $ref: '#/components/schemas/FilterGroup'
+        on_demand_fields:
+          type: array
+          items:
+            type: string
+        sort:
+          type: array
+          items:
+            $ref: '#/components/schemas/SortItem'
+        search_from:
+          type: integer
+          default: 0
+        search_to:
+          type: integer
+          default: 1000
+
+    FilterGroup:
+      type: object
+      description: A logical grouping of filter clauses.
+      properties:
+        AND:
+          type: array
+          items:
+            $ref: '#/components/schemas/FilterClause'
+        OR:
+          type: array
+          items:
+            $ref: '#/components/schemas/FilterClause'
+      additionalProperties: false
+
+    FilterClause:
+      type: object
+      description: A specific filter criterion.
+      required:
+        - SEARCH_FIELD
+        - SEARCH_TYPE
+        - SEARCH_VALUE
+      properties:
+        SEARCH_FIELD:
+          type: string
+          description: The field to search on (e.g. xdm.asset.type.class)
+        SEARCH_TYPE:
+          type: string
+          description: The comparison operator.
+          enum:
+            - EQ
+            - NEQ
+            - GT
+            - GTE
+            - LT
+            - LTE
+            - LIKE
+            - CONTAINS
+            - IN
+            - NOT_IN
+        SEARCH_VALUE:
+          type: string
+          description: The value to compare against. If using IN/NOT_IN, provide a comma-separated string or handle as a stringified array.
+      additionalProperties: false
+
+    SortItem:
+      type: object
+      properties:
+        FIELD:
+          type: string
+        ORDER:
+          type: string
+          enum:
+            - ASC
+            - DESC

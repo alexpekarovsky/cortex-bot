@@ -1,0 +1,40 @@
+{
+  "reply": {
+    "TOTAL_COUNT": 0,
+    "FILTER_COUNT": 0,
+    "DATA": [
+      {
+        "case_id": "123",
+        "creation_time": "2024-02-26T12:34:56Z",
+        "owner": "CWP",
+        "case_domain": "SECURITY",
+        "auto_resolve_case": false,
+        "custom_fields": {
+          "priority": "High",
+          "incident_id": "INC98765"
+        },
+        "status_progress": "UNDER_INVESTIGATION",
+        "resolve_reason": "RESOLVED_OTHER",
+        "resolve_comment": "Case has been marked as a false positive.",
+        "last_modified": 1708950896000,
+        "score": 85,
+        "severity": "HIGH",
+        "description": "Unauthorized access detected",
+        "scoring_type": "Risk-Based",
+        "assigned_to": "U56789",
+        "assigned_to_name": "JaneSmith",
+        "is_cloud": true,
+        "is_automated": false,
+        "issues": [
+          "123"
+        ],
+        "assets": [
+          "6f1d9b9361f8a6964bf3e79e6667e5fe"
+        ],
+        "artifacts": [
+          "12345"
+        ]
+      }
+    ]
+  }
+}

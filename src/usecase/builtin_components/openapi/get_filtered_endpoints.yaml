@@ -1,0 +1,479 @@
+openapi: 3.0.0
+paths:
+  /public_api/v1/endpoints/get_endpoint/:
+    post:
+      summary: Get endpoints filtered by endpoint
+      description: This tool is used to retrieve a filtered list of endpoints managed by the XDR agents based on their ids, status and platform.
+      operationId: get_filtered_endpoints
+      tags:
+        - Endpoints
+      requestBody:
+        description: JSON object containing filters. An empty request_data object returns all results.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FilteredEndpointsRequest'
+            examples:
+              filtered_request:
+                summary: Example request with filters
+                value:
+                  request_data:
+                    filters:
+                      - field: "platform"
+                        operator: "in"
+                        value: [ "windows", "linux", "macos" ]
+                      - field: "endpoint_status"
+                        operator: "in"
+                        value: [ "connected", "disconnected" ]
+      responses:
+        '200':
+          description: Successful response containing a list of agents that match the given filters.
+          content:
+            application/json:
+              schema:
+                type: object
+              examples:
+                success_response:
+                  summary: Example successful response
+                  value:
+                    reply:
+                      total_count: 2
+                      result_count: 2
+                      endpoints:
+                        - endpoint_id: "1a2b3c4d5e6f7g8h9i0j"
+                          endpoint_name: "DESKTOP-ABC123"
+                          endpointTags: "production,critical"
+                          endpoint_type: "AGENT_TYPE_WORKSTATION"
+                          endpoint_status: "connected"
+                          os_type: "windows"
+                          os_version: "Windows 10 Pro"
+                          ip: ["192.168.1.100", "10.0.0.5"]
+                          ipv6: ["fe80::1"]
+                          public_ip: "203.0.113.10"
+                          users: ["john.doe", "admin"]
+                          domain: "CORP"
+                          alias: "John's Workstation"
+                          first_seen: 1704067200000
+                          last_seen: 1704153600000
+                          content_version: "350-98765"
+                          installation_package: "Windows Agent 7.9.0"
+                          active_directory: {"domain": "corp.example.com"}
+                          install_date: 1704067200000
+                          endpoint_version: "7.9.0.12345"
+                          is_isolated: "unisolated"
+                          isolated_date: null
+                          group_name: ["Production Servers", "Critical Assets"]
+                          operational_status: "OPERATIONAL"
+                          operational_status_description: "Endpoint is fully operational"
+                          scan_status: "success"
+                          content_release_timestamp: 1704153600000
+                          last_content_update_time: 1704153600000
+                          content_status: "UP_TO_DATE"
+                          operating_system: "Windows 10 Pro 64-bit"
+                          mac_address: ["00:1A:2B:3C:4D:5E"]
+                          assigned_prevention_policy: "Standard Prevention"
+                          assigned_extensions_policy: "Standard Extensions"
+                        - endpoint_id: "9z8y7x6w5v4u3t2s1r0q"
+                          endpoint_name: "LAPTOP-XYZ789"
+                          endpointTags: "remote,laptop"
+                          endpoint_type: "AGENT_TYPE_LAPTOP"
+                          endpoint_status: "disconnected"
+                          os_type: "macos"
+                          os_version: "macOS 14.0"
+                          ip: ["10.0.0.50"]
+                          ipv6: []
+                          public_ip: "198.51.100.25"
+                          users: ["jane.smith"]
+                          domain: "CORP"
+                          alias: "Jane's MacBook"
+                          first_seen: 1704240000000
+                          last_seen: 1704326400000
+                          content_version: "350-98766"
+                          installation_package: "macOS Agent 7.9.0"
+                          active_directory: null
+                          install_date: 1704240000000
+                          endpoint_version: "7.9.0.12345"
+                          is_isolated: "unisolated"
+                          isolated_date: null
+                          group_name: ["Remote Workers"]
+                          operational_status: "DISCONNECTED"
+                          operational_status_description: "Endpoint has not connected recently"
+                          scan_status: "none"
+                          content_release_timestamp: 1704326400000
+                          last_content_update_time: 1704326400000
+                          content_status: "UP_TO_DATE"
+                          operating_system: "macOS 14.0"
+                          mac_address: ["A1:B2:C3:D4:E5:F6"]
+                          assigned_prevention_policy: "Remote Worker Prevention"
+                          assigned_extensions_policy: "Remote Worker Extensions"
+        '400':
+          description: Bad request - invalid input parameters.
+          content:
+            application/json:
+              schema:
+                type: object
+
+        '401':
+          description: Unauthorized. The API key is missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+        '402':
+          description: Payment required.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden. The API key does not have the required permissions.
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                type: object
+components:
+  schemas:
+    FilteredEndpointsRequest:
+      type: object
+      properties:
+        request_data:
+          $ref: '#/components/schemas/FilteredEndpointsRequestPayload'
+      required:
+        - request_data
+
+    FilteredEndpointsRequestPayload:
+      type: object
+      properties:
+        search_from:
+          type: integer
+          format: int32
+          default: 0
+          description: |
+            Represents the start offset within the query result set from which you want endpoints returned.
+            Endpoints are returned as a zero-based list. Any endpoint indexed less than this value is not returned in the final result set and defaults to zero.
+        search_to:
+          type: integer
+          default: 100
+          format: int32
+          description: |
+            Represents the end offset within the result set after which you do not want endpoints returned.
+            Endpoint in the endpoint list that is indexed higher than this value is not returned in the final results set. 
+            Defaults to 100, which returns all endpoints to the end of the list.
+        sort:
+          $ref: '#/components/schemas/EndpointSort'
+        filters:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/EndpointIdsListFilter'
+              - $ref: '#/components/schemas/EndpointStatusFilter'
+              - $ref: '#/components/schemas/DistNameFilter'
+              - $ref: '#/components/schemas/FirstSeenFilter'
+              - $ref: '#/components/schemas/LastSeenFilter'
+              - $ref: '#/components/schemas/IpListFilter'
+              - $ref: '#/components/schemas/GroupNameFilter'
+              - $ref: '#/components/schemas/PlatformFilter'
+              - $ref: '#/components/schemas/AliasFilter'
+              - $ref: '#/components/schemas/IsolateFilter'
+              - $ref: '#/components/schemas/HostnameFilter'
+              - $ref: '#/components/schemas/UsernameFilter'
+              - $ref: '#/components/schemas/PublicIpListFilter'
+              - $ref: '#/components/schemas/ScanStatusFilter'
+
+    EndpointSort:
+      type: object
+      description: Identifies the sort order for the result set.
+      properties:
+        field:
+          type: string
+          default: first_seen
+          description: Identifies the field you want to sort by. Case-sensitive.
+          enum: [ endpoint_id, first_seen, last_seen, scan_status ]
+        keyword:
+          type: string
+          default: DESC
+          description: Whether you want to sort in ascending (ASC) or descending (DESC) order. Case-sensitive.
+          enum: [ ASC, DESC ]
+
+    EndpointIdsListFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        operator:
+          type: string
+          enum: [ in ]
+        field:
+          type: string
+          enum: [ endpoint_id_list ]
+        value:
+          type: array
+          items:
+            type: string
+          description: List of endpoint IDs.
+
+    EndpointStatusFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        operator:
+          type: string
+          enum: [ in ]
+        field:
+          type: string
+          enum: [ endpoint_status ]
+        value:
+          type: array
+          items:
+            type: string
+            enum: [ connected, disconnected, lost, uninstalled ]
+          description: Status of the endpoint ID.
+
+    DistNameFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        operator:
+          type: string
+          enum: [ in ]
+        field:
+          type: string
+          enum: [ dist_name ]
+        value:
+          type: array
+          items:
+            type: string
+          description: Distribution / Installation Package name.
+
+    FirstSeenFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        operator:
+          type: string
+          enum: [ in, gte, lte, eq ]
+        field:
+          type: string
+          enum: [ first_seen ]
+        value:
+          type: integer
+          format: int32
+          description: When the agent was first seen. Timestamp epoch milliseconds.
+
+    LastSeenFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        operator:
+          type: string
+          enum: [ in, gte, lte, eq ]
+        field:
+          type: string
+          enum: [ last_seen ]
+        value:
+          type: integer
+          format: int32
+          description: When the agent was last seen. Timestamp epoch milliseconds.
+
+    IpListFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        operator:
+          type: string
+          enum: [ in ]
+        field:
+          type: string
+          enum: [ ip_list ]
+        value:
+          type: array
+          items:
+            oneOf:
+              - type: string
+                format: ipv4
+              - type: string
+                format: ipv6
+          description: List of IP addresses. For example "192.168.5.12".
+
+    GroupNameFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        operator:
+          type: string
+          enum: [ in ]
+        field:
+          type: string
+          enum: [ group_name ]
+        value:
+          type: array
+          items:
+            type: string
+          description: Group name the agent belongs to.
+
+    PlatformFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        operator:
+          type: string
+          enum: [ in ]
+        field:
+          type: string
+          enum: [ platform ]
+        value:
+          type: array
+          items:
+            type: string
+            enum: [ windows, linux, macos, android ]
+          description: Platform name.
+
+    AliasFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        operator:
+          type: string
+          enum: [ in ]
+        field:
+          type: string
+          enum: [ alias ]
+        value:
+          type: array
+          items:
+            type: string
+          description: Alias name.
+
+    IsolateFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        operator:
+          type: string
+          enum: [ in ]
+        field:
+          type: string
+          enum: [ isolate ]
+        value:
+          type: array
+          items:
+            type: string
+            enum: [ isolated, unisolated ]
+          description: If the endpoint was isolated.
+
+    HostnameFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        operator:
+          type: string
+          enum: [ in ]
+        field:
+          type: string
+          enum: [ hostname ]
+        value:
+          type: array
+          items:
+            type: string
+          description: Host name.
+
+    UsernameFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        operator:
+          type: string
+          enum: [ in ]
+        field:
+          type: string
+          enum: [ username ]
+        value:
+          type: array
+          items:
+            type: string
+          description: Username.
+
+    PublicIpListFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        operator:
+          type: string
+          enum: [ in ]
+        field:
+          type: string
+          enum: [ public_ip_list ]
+        value:
+          type: array
+          items:
+            oneOf:
+              - type: string
+                format: ipv4
+              - type: string
+                format: ipv6
+          description: Public IP addresses that correlate to the last IPv4 address from which the XDR agent connected (known as Last Origin IP).
+
+    ScanStatusFilter:
+      type: object
+      required:
+        - field
+        - operator
+        - value
+      properties:
+        operator:
+          type: string
+          enum: [ in ]
+        field:
+          type: string
+          enum: [ scan_status ]
+        value:
+          type: array
+          items:
+            type: string
+            enum: [ none, pending, in_progress, canceled, aborted, pending_cancellation, success, error ]
+          description: Scan status of the endpoint.

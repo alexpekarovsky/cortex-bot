@@ -1,0 +1,47 @@
+openapi: 3.0.0
+paths:
+  /public_api/v1/system/get_tenant_info:
+    post:
+      summary: Get Tenant Info
+      description: |- 
+        This tool is used to retrieve your tenant license information, 
+        including details about your Cortex environment and license type. 
+        This tool helps verify license status and entitlements for operational visibility and compliance.
+      operationId: get_tenant_info
+      responses:
+        '200':
+          description: Successful response containing the tenant information.
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized. The API key is missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                additionalProperties: true
+        '403':
+          description: Forbidden. The API key does not have the required permissions to access tenant information.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                additionalProperties: true
+        '404':
+          description: Not Found. The tenant information could not be found or accessed.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                additionalProperties: true

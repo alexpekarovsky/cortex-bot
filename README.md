@@ -545,6 +545,14 @@ insert_correlation_rule(
 
 ### Playbook Management (3 tools)
 
+**When to use these tools:**
+- Migrating playbooks from another SOAR vendor (Splunk SOAR, ServiceNow, etc.) to XSIAM
+- Creating automated investigation workflows (phishing, malware, insider threat)
+- Building multi-step response playbooks (isolate → terminate → quarantine)
+- Deploying playbooks programmatically without manual UI upload
+- Version controlling playbooks (backup, restore, rollback)
+- Testing playbook logic before production deployment
+
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
 | `get_playbook` | Download playbook YAML (returns ZIP file) | `filter` (name or id) |
@@ -554,6 +562,15 @@ insert_correlation_rule(
 **Playbook management** via REST API enables direct playbook deployment without SDK. Use these tools to backup, deploy, and manage XSOAR playbooks programmatically.
 
 ### XSIAM Content Generators (11 tools)
+
+**When to use these tools:**
+- Migrating dashboards and reports from another SIEM (Splunk, QRadar, etc.) to XSIAM
+- Creating custom correlation rules for threat detection
+- Building log parsing rules for custom applications or third-party tools
+- Generating XDM data models for new log sources
+- Creating custom case layouts for specific investigation workflows
+- Building dashboards with XQL queries showing security KPIs
+- Automating content creation instead of manual UI work
 
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|

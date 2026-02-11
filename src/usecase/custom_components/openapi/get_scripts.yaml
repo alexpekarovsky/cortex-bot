@@ -1,0 +1,63 @@
+openapi: 3.0.0
+paths:
+  /public_api/v1/scripts/get_scripts:
+    post:
+      summary: Get Scripts from Library
+      description: |-
+        Get a list of scripts available in the scripts library.
+
+        Use this to:
+        - Browse available pre-built scripts
+        - Find script_uid needed for run_script command
+        - Discover scripts for specific OS platforms
+        - Identify high-risk scripts before execution
+      operationId: get_scripts
+      tags:
+        - Script Management
+      requestBody:
+        description: JSON object with optional filters
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetScriptsRequest'
+            examples:
+              get_all:
+                summary: Get all scripts
+                value:
+                  request_data: {}
+              filter_by_name:
+                summary: Filter scripts by name
+                value:
+                  request_data:
+                    filters:
+                      - field: "name"
+                        operator: "contains"
+                        value: "process"
+      responses:
+        '200':
+          description: Successful response with script list
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '402':
+          description: Payment required
+        '403':
+          description: Forbidden
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    GetScriptsRequest:
+      type: object
+      properties:
+        request_data:
+          type: object
+          properties:
+            filters:
+              type: array
+              description: Optional filters to narrow results
+              items:
+                type: object
