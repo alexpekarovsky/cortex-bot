@@ -82,11 +82,19 @@ def create_regular_task(task_id: str, name: str,
                        command: str = None,
                        brand: str = "",
                        arguments: dict = None,
-                       next_tasks: List[str] = None,
+                       next_tasks = None,  # Can be List[str] or dict for error handling
                        position: dict = None,
                        description: str = "",
-                       playbook_name: str = None) -> dict:
-    """Generate regular task (script/automation OR integration command)."""
+                       playbook_name: str = None,
+                       continueonerror: bool = False) -> dict:
+    """Generate regular task (script/automation OR integration command).
+
+    Args:
+        next_tasks: Either list of task IDs OR dict for error handling
+                   List: ["5"] -> nexttasks: {"#none#": ["5"]}
+                   Dict: {"#none#": ["5"], "#error#": ["3"]} -> used directly
+        continueonerror: Enable error path handling (default: False)
+    """
     if arguments is None:
         arguments = {}
     if next_tasks is None:
@@ -106,6 +114,19 @@ def create_regular_task(task_id: str, name: str,
             # Wrap in simple format
             wrapped_arguments[key] = {"simple": value}
 
+    # Handle nexttasks - support both list and dict formats
+    if isinstance(next_tasks, dict):
+        # Dict format for error handling
+        nexttasks_dict = next_tasks.copy()
+
+        # Ensure #none# exists when error handling is enabled
+        if continueonerror and "#none#" not in nexttasks_dict:
+            # If only #error# provided, add empty #none# (will be filled by auto-fix or user)
+            nexttasks_dict["#none#"] = []
+    else:
+        # List format: ["5"] -> {"#none#": ["5"]}
+        nexttasks_dict = {"#none#": next_tasks if next_tasks else []}
+
     task_dict = {
         "id": task_id,
         "taskid": generate_uuid(),
@@ -121,12 +142,11 @@ def create_regular_task(task_id: str, name: str,
             "playbooktaskmissingcomponent": None,
             "istaskmissingcomponenterrordismissed": False
         },
-        "nexttasks": {
-            "#none#": next_tasks
-        },
+        "nexttasks": nexttasks_dict,
+        "continueonerror": continueonerror,
+        "continueonerrortype": "" if continueonerror else "",
         "scriptarguments": wrapped_arguments,
         "separatecontext": False,
-        "continueonerrortype": "",
         "view": json.dumps({"position": position}),
         "note": False,
         "timertriggers": [],
@@ -670,6 +690,76 @@ async def create_playbook(
     ]
     ```
 
+    TASK FORMAT GUIDE:
+
+    Regular Task (simple):
+    ```json
+    {
+      "id": "2",
+      "type": "regular",
+      "name": "Enrich IP",
+      "script": "ip",
+      "arguments": {"ip": "${alert.src}"},
+      "next": ["3"]
+    }
+    ```
+
+    Regular Task with Error Handling:
+    ```json
+    {
+      "id": "2",
+      "type": "regular",
+      "name": "Isolate Endpoint",
+      "script": "core-isolate-endpoint",
+      "arguments": {"endpoint_id": "${alert.endpoint_id}"},
+      "continueonerror": true,
+      "next": {
+        "#none#": ["3"],
+        "#error#": ["5"]
+      }
+    }
+    ```
+
+    Condition Task (multi-branch):
+    ```json
+    {
+      "id": "3",
+      "type": "condition",
+      "name": "Check Severity",
+      "conditions": [
+        {
+          "label": "High",
+          "condition": [[{
+            "operator": "isEqualString",
+            "left": {"value": {"simple": "${alert.severity}"}},
+            "right": {"value": {"simple": "high"}}
+          }]]
+        }
+      ],
+      "next": {
+        "High": ["4"],
+        "#default#": ["5"]
+      }
+    }
+    ```
+
+    Sub-Playbook Call:
+    ```json
+    {
+      "id": "2",
+      "type": "playbook",
+      "name": "Enrich File",
+      "playbookName": "File Enrichment - Generic v2",
+      "arguments": {"SHA256": "${File.SHA256}"},
+      "next": ["3"]
+    }
+    ```
+
+    CRITICAL RULES:
+    - Condition format: Use operator/left/right dicts, NOT ["left", "op", "right"] lists
+    - Error handling: Set continueonerror: true AND use dict next with #none# + #error#
+    - Arguments: Simple values auto-wrap, complex values need full format
+
     Args:
         ctx: FastMCP context
         name: Playbook name (also used as ID)
@@ -768,6 +858,9 @@ async def create_playbook(
             position = calculate_position(idx + 1, len(tasks_list))
 
             if task_type == "regular":
+                # Handle next_tasks - can be list or dict for error handling
+                next_value = task_def.get("next", [])
+
                 playbook["tasks"][task_id] = create_regular_task(
                     task_id,
                     task_def["name"],
@@ -775,10 +868,11 @@ async def create_playbook(
                     command=task_def.get("command"),
                     brand=task_def.get("brand", ""),
                     arguments=task_def.get("arguments", {}),
-                    next_tasks=task_def.get("next", []),
+                    next_tasks=next_value,  # Pass as-is (list or dict)
                     position=position,
                     description=task_def.get("description", ""),
-                    playbook_name=name
+                    playbook_name=name,
+                    continueonerror=task_def.get("continueonerror", False)
                 )
             elif task_type == "title":
                 playbook["tasks"][task_id] = create_title_task(
