@@ -6,6 +6,10 @@
 
 The foundation for **Cortex Bot**, an AI-powered security operations assistant for [Cortex XSIAM](https://www.paloaltonetworks.com/cortex/cortex-xsiam). Built on the official Palo Alto Networks Cortex MCP Server, this repository adds 84 specialized tools, smart automation capabilities, and infrastructure for skills and sub-agents.
 
+> **⚠️ WORK IN PROGRESS:** This project is under active development. Tools and documentation are continuously improving based on user feedback.
+
+> **⚠️ TOKEN USAGE:** These tools can consume significant AI tokens due to comprehensive security data retrieval and analysis. **Recommended:** Use with Claude Pro (unlimited tokens) or local LLM deployments. Pay-per-token plans may incur substantial costs for heavy usage.
+
 > **⚠️ PREREQUISITES:** Install the [official Cortex MCP Server](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools) FIRST, then add Cortex Bot components from this repository.
 
 **Total Capabilities:** 90 tools (6 official base + 84 Cortex Bot custom) | Smart Tools | Skills (Coming Soon) | Sub-Agents (Coming Soon)
