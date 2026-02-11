@@ -294,29 +294,47 @@ Ask Claude: "List all my endpoints"
 ✅ **Expected:** List of endpoints with hostnames, IPs, and status
 ❌ **If fails:** Check API permissions include endpoint read access
 
-### Test 5: SDK Tools
+### Test 5: SDK Tools (If SDK Installed)
 ```
 Ask Claude: "List available XSOAR integration scripts"
 ```
 
 ✅ **Expected:** List of scripts from script library
-❌ **If fails:** SDK credentials may not be syncing (see troubleshooting below)
+❌ **If fails:** demisto-sdk not installed (see Step 7 below)
 
 ---
 
-## SDK Tools - Additional Setup (Optional)
+## Step 7: Install Demisto SDK (REQUIRED for SDK Tools)
+
+**IMPORTANT:** 10 SDK tools (sdk_upload, sdk_validate, sdk_init, etc.) will NOT work without demisto-sdk.
+
+If you plan to use SDK tools for XSOAR content development, you MUST install demisto-sdk.
 
 The SDK tools (sdk_upload, sdk_validate, etc.) are for XSOAR content development. They **automatically use your MCP credentials** - no separate configuration needed.
 
 ### If SDK Tools Don't Work:
 
-**1. Install uv package manager (required for SDK tools):**
+**Method 1: Using uvx (Recommended - Automatic)**
+
+Install uv package manager:
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 # Or: pip install uv
 ```
 
-**2. Create content directory:**
+**Method 2: Direct Installation (Manual)**
+
+Or install demisto-sdk directly:
+```bash
+pip3 install demisto-sdk
+demisto-sdk --version
+```
+
+**Note:** Requires Python 3.9-3.12 (may conflict with MCP's Python 3.12+). uvx method is recommended.
+
+### Content Repository Setup
+
+Create content directory:
 ```bash
 mkdir -p ~/content/Packs
 # Or set custom path:
