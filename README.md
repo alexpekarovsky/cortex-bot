@@ -1297,6 +1297,25 @@ poetry run ruff check --fix .
 poetry run mypy src/
 ```
 
+**Example 13: Find Non-Active Endpoints**
+
+*"Show me all non-active endpoints in my environment"*
+
+Claude calls `get_endpoints` with filters for disconnected, lost, and uninstalled endpoints:
+```python
+get_endpoints(filters=[
+  {"field": "endpoint_status", "operator": "in",
+   "value": ["disconnected", "lost", "uninstalled"]}
+])
+```
+
+You get:
+- List of endpoints not currently connected
+- Last seen timestamps
+- Endpoint types (Server, Workstation, Mobile)
+- Operational status
+- Use for: Asset hygiene, finding stale agents, compliance reporting
+
 ---
 
 ## FAQ
