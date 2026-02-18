@@ -87,3 +87,10 @@ temp/
 
 # Content and examples
 content/
+Example/
+
+# Local scripts and test files
+*.sh
+!install.sh
+*.yml
+Dockerfile
