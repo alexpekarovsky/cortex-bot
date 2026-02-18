@@ -1,0 +1,37 @@
+- action: ALERTS
+  alert_category: User Defined
+  alert_description: AnyDesk version $app_version found installed on $host_name
+  alert_domain: DOMAIN_SECURITY
+  alert_fields:
+    agent_hostname: host_name
+    followup: uninstall_cmd
+    vendorproduct: app_vendor
+  alert_name: AnyDesk found on endpoint
+  alert_type: null
+  crontab: 0 * * * *
+  dataset: alerts
+  description: this rule will trigger an alert when an AnyDesk application will pop
+    somewhere in the perimeter
+  drilldown_query_timeframe: ALERT
+  execution_mode: SCHEDULED
+  global_rule_id: 84fe4107-6fd7-4ecb-a124-90fa14e7573a
+  investigation_query_link: ''
+  lookup_mapping: null
+  mapping_strategy: CUSTOM
+  mitre_defs: {}
+  name: AnyDesk Installation on endpoint
+  search_window: 1 hours
+  severity: SEV_040_HIGH
+  suppression_duration: null
+  suppression_enabled: false
+  suppression_fields: null
+  user_defined_category: category_text
+  user_defined_severity: null
+  xql_query: "config case_sensitive = false | dataset = host_inventory |\n fields\
+    \ applications , host_name , os_type \n| filter applications != null and os_type\
+    \ = ENUM.OS_WINDOWS and applications contains \"google\"\n| arrayexpand applications\
+    \ \n| alter app_name = applications -> application_name, app_vendor = applications\
+    \ -> vendor, uninstall_cmd = applications -> uninstall_string , category_text\
+    \ = \"Risky Software\" , app_version = applications -> raw_version\n| filter app_name\
+    \ contains \"anydesk\" or app_vendor contains \"anydesk\"\n| fields host_name\
+    \ , app_name , app_vendor , uninstall_cmd , category_text "

@@ -23,7 +23,7 @@ paths:
         - Create audit trail of investigation steps
 
         ID Format:
-        - For cases: Prepend "CASE-" (e.g., "CASE-1093")
+        - For cases: Prepend "CASE-" (e.g., "CASE-100")
         - For alerts/issues: Use alert ID directly (e.g., "3890")
 
         You can add plain text notes or run War Room commands (starting with !)
@@ -41,7 +41,7 @@ paths:
               add_note_to_case:
                 summary: Add investigation note to case
                 value:
-                  id: "CASE-1093"
+                  id: "CASE-100"
                   data: "Investigation findings: All 20 alerts involve legitimately signed executables blocked from C:\\temp. Likely security testing scenario."
               add_note_to_alert:
                 summary: Add note to alert
@@ -51,7 +51,7 @@ paths:
               run_command:
                 summary: Run War Room command
                 value:
-                  id: "CASE-1093"
+                  id: "CASE-100"
                   data: "!Print value=Investigation started"
       responses:
         '200':
@@ -79,7 +79,7 @@ components:
           type: string
           description: |
             Case or alert ID.
-            - For cases: Use "CASE-{id}" format (e.g., "CASE-1093")
+            - For cases: Use "CASE-{id}" format (e.g., "CASE-100")
             - For alerts: Use alert ID directly (e.g., "3890")
         data:
           type: string

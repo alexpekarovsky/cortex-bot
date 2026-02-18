@@ -134,9 +134,9 @@ async def enrich_file_hash(
     ─────────────────────────────────────────────────────────────────
     When enriching file hashes found in a specific alert/case:
 
-    1. Get case details: case_data = get_incident_extra_data(incident_id="350")
-    2. Find an alert_id from the case's issues (e.g., "6126")
-    3. Run enrichment: enrich_file_hash(file_hash="abc123...", alert_id="6126")
+    1. Get case details: case_data = get_incident_extra_data(incident_id="100")
+    2. Find an alert_id from the case's issues (e.g., "12345")
+    3. Run enrichment: enrich_file_hash(file_hash="abc123...", alert_id="12345")
 
     Results appear in the specific issue's War Room, documenting your investigation.
     =====================================================================
@@ -158,8 +158,8 @@ async def enrich_file_hash(
     Args:
         ctx: The FastMCP context.
         file_hash: File hash to enrich - MD5, SHA1, or SHA256 (e.g., "44d88612fea8a8f36de82e1278abb02f").
-        alert_id: Alert ID to add enrichment to (e.g., "6126").
-        case_id: Case ID to add enrichment to (e.g., "350" or "CASE-350").
+        alert_id: Alert ID to add enrichment to (e.g., "12345").
+        case_id: Case ID to add enrichment to (e.g., "100" or "CASE-350").
 
     Returns:
         JSON response with enrichment data from all configured threat intel sources.

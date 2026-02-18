@@ -142,7 +142,7 @@ You need three pieces of information from your XSIAM instance:
 | Credential | Where to Find It | Example |
 |------------|------------------|---------|
 | **API Key** | XSIAM UI → Settings → API Keys → Create | `veryLongBase64String...` |
-| **API Key ID** | Same page, numeric ID column | `14` |
+| **API Key ID** | Same page, numeric ID column | `1` |
 | **XSIAM URL** | Your XSIAM tenant URL | `https://api-yourinstance.xdr.us.paloaltonetworks.com` |
 
 **API Key Requirements:**
@@ -162,7 +162,7 @@ nano ~/cortex-mcp/.env
 # Add these three lines:
 CORTEX_MCP_PAPI_URL=https://api-yourinstance.xdr.us.paloaltonetworks.com
 CORTEX_MCP_PAPI_AUTH_HEADER=your_api_key_here
-CORTEX_MCP_PAPI_AUTH_ID=14
+CORTEX_MCP_PAPI_AUTH_ID=1
 ```
 
 **For Docker installations:**
@@ -171,7 +171,7 @@ CORTEX_MCP_PAPI_AUTH_ID=14
 docker run \
   -e CORTEX_MCP_PAPI_URL=https://api-yourinstance.xdr.us.paloaltonetworks.com \
   -e CORTEX_MCP_PAPI_AUTH_HEADER=your_api_key_here \
-  -e CORTEX_MCP_PAPI_AUTH_ID=14 \
+  -e CORTEX_MCP_PAPI_AUTH_ID=1 \
   cortex-mcp
 ```
 
@@ -185,7 +185,7 @@ docker run \
       "env": {
         "CORTEX_MCP_PAPI_URL": "https://api-yourinstance.xdr.us.paloaltonetworks.com",
         "CORTEX_MCP_PAPI_AUTH_HEADER": "your_api_key_here",
-        "CORTEX_MCP_PAPI_AUTH_ID": "14"
+        "CORTEX_MCP_PAPI_AUTH_ID": "1"
       }
     }
   }
@@ -414,15 +414,15 @@ Creates a visual HTML timeline showing:
 
 ```python
 # Generate AI investigation summary
-update_case_ai_summary(case_id="350")
+update_case_ai_summary(case_id="100")
 # → Updates custom_fields.aisummary with comprehensive Markdown report
 
 # Generate visual timeline
-update_case_timeline(case_id="350")
+update_case_timeline(case_id="100")
 # → Updates custom_fields.timeline with HTML visualization
 
 # View results - fetch the case
-get_cases(filters=[{"field": "case_id", "operator": "in", "value": [350]}])
+get_cases(filters=[{"field": "case_id", "operator": "in", "value": [100]}])
 # → Check custom_fields.aisummary (Markdown) and custom_fields.timeline (HTML)
 ```
 
@@ -928,7 +928,7 @@ ENABLE_DESTRUCTIVE_TOOLS=true
 | Prompt | What Happens |
 |--------|--------------|
 | *"Show me all high severity cases from the last 24 hours"* | Lists cases, shows alert counts, affected hosts |
-| *"Investigate case 350 and generate an AI summary"* | Gets full case details, analyzes alerts, generates report |
+| *"Investigate case 100 and generate an AI summary"* | Gets full case details, analyzes alerts, generates report |
 | *"Hunt for PowerShell execution on domain controllers"* | Runs XQL query, shows process trees, identifies anomalies |
 | *"Isolate endpoint Server-DC-1 immediately"* | Confirms action, isolates endpoint, monitors status |
 | *"Enrich this IP: 45.33.32.156"* | Checks VirusTotal, shows reputation, related malware |
@@ -974,7 +974,7 @@ _time                | agent_hostname | actor_effective_username | action_proces
 
 **Prompt:** *"Check if IP 45.33.32.156 is malicious"*
 
-**Command:** `enrich_ip_address(ip_address="45.33.32.156", alert_id="6126")`
+**Command:** `enrich_ip_address(ip_address="45.33.32.156", alert_id="12345")`
 
 **Sample Output:**
 ```json
@@ -998,15 +998,15 @@ _time                | agent_hostname | actor_effective_username | action_proces
 
 ### Case Investigation
 
-**Prompt:** *"Investigate case 350 and generate an AI summary"*
+**Prompt:** *"Investigate case 100 and generate an AI summary"*
 
 **Commands Used:**
 ```python
 # 1. Get full case details
-get_incident_extra_data(incident_id="350")
+get_incident_extra_data(incident_id="100")
 
 # 2. Generate AI summary
-update_case_ai_summary(case_id="350")
+update_case_ai_summary(case_id="100")
 ```
 
 **AI Summary Includes:**
@@ -1031,8 +1031,8 @@ Once installed, try these prompts to see the AI security assistant in action. Ea
 
 **Claude uses:**
 1. `get_cases(filters=[{"field": "severity", "operator": "in", "value": ["critical"]}])`
-2. `get_incident_extra_data(incident_id="350")`
-3. `update_case_ai_summary(case_id="350")`
+2. `get_incident_extra_data(incident_id="100")`
+3. `update_case_ai_summary(case_id="100")`
 
 **You get:**
 - List of 3 critical cases with alert counts
@@ -1074,7 +1074,7 @@ Once installed, try these prompts to see the AI security assistant in action. Ea
 **Claude uses:**
 1. `get_endpoints(filters=[{"field": "hostname", "operator": "contains", "value": "Server-DC-1"}])` → Gets endpoint ID
 2. `isolate_endpoint(endpoint_id="abc123...")` → Performs isolation
-3. `get_action_status(group_action_id=114)` → Monitors status
+3. `get_action_status(group_action_id=1)` → Monitors status
 
 **You get:**
 - "Endpoint Server-DC-1 (ID: abc123...) is now isolated from the network."
@@ -1097,11 +1097,11 @@ Once installed, try these prompts to see the AI security assistant in action. Ea
 
 ### Example 6: Investigate Multiple Alerts in a Case
 
-**You say:** *"Investigate case 350, show me all the alerts and create a timeline"*
+**You say:** *"Investigate case 100, show me all the alerts and create a timeline"*
 
 **Claude uses:**
-1. `get_incident_extra_data(incident_id="350", alerts_limit=100)`
-2. `update_case_timeline(case_id="350")`
+1. `get_incident_extra_data(incident_id="100", alerts_limit=100)`
+2. `update_case_timeline(case_id="100")`
 
 **You get:**
 - Case overview: 12 alerts across 5 hosts, 3 users
@@ -1148,7 +1148,7 @@ Once installed, try these prompts to see the AI security assistant in action. Ea
 
 **Claude uses:**
 1. `terminate_causality(agent_id="abc123", causality_id="xyz789")`
-2. `get_action_status(group_action_id=127)`
+2. `get_action_status(group_action_id=2)`
 
 **You get:**
 - "Initiated termination of process tree (causality ID: xyz789)"
@@ -1545,7 +1545,8 @@ For security concerns, please see our [Security Policy](SECURITY.md). Do not rep
 
 ## License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+- **Custom tools** (`custom_components/`): Apache License 2.0 - free to use, modify, and distribute
+- **PANW MCP Server** (base server): [Palo Alto Networks Cortex License](LICENSE) - for use with Cortex XSIAM/XDR products only
 
 ## Support
 

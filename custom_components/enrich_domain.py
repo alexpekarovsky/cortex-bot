@@ -130,9 +130,9 @@ async def enrich_domain(
     ─────────────────────────────────────────────────────────────────
     When enriching domains found in a specific alert/case:
 
-    1. Get case details: case_data = get_incident_extra_data(incident_id="350")
-    2. Find an alert_id from the case's issues (e.g., "6126")
-    3. Run enrichment: enrich_domain(domain="example.com", alert_id="6126")
+    1. Get case details: case_data = get_incident_extra_data(incident_id="100")
+    2. Find an alert_id from the case's issues (e.g., "12345")
+    3. Run enrichment: enrich_domain(domain="example.com", alert_id="12345")
 
     Results appear in the specific issue's War Room, documenting your investigation.
     =====================================================================
@@ -155,8 +155,8 @@ async def enrich_domain(
     Args:
         ctx: The FastMCP context.
         domain: Domain name to enrich (e.g., "example.com", "malicious-site.net").
-        alert_id: Alert ID to add enrichment to (e.g., "6126").
-        case_id: Case ID to add enrichment to (e.g., "350" or "CASE-350").
+        alert_id: Alert ID to add enrichment to (e.g., "12345").
+        case_id: Case ID to add enrichment to (e.g., "100" or "CASE-350").
 
     Returns:
         JSON response with enrichment data from all configured threat intel sources.

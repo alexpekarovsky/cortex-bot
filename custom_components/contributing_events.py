@@ -63,7 +63,7 @@ async def get_contributing_events(
 
     Args:
         ctx: The FastMCP context.
-        alert_id: The ID of the correlation alert (e.g., "6126").
+        alert_id: The ID of the correlation alert (e.g., "12345").
 
     Returns:
         JSON response containing all individual events that contributed to the

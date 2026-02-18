@@ -42,13 +42,13 @@ paths:
               get_all_entries:
                 summary: Get all War Room entries for a case
                 value:
-                  id: "CASE-1093"
+                  id: "CASE-100"
                   filter:
                     pagesize: 100
               get_notes_only:
                 summary: Get only notes from War Room
                 value:
-                  id: "CASE-1093"
+                  id: "CASE-100"
                   filter:
                     categories: ["notes", "chats"]
                     pagesize: 50
@@ -83,7 +83,7 @@ components:
           type: string
           description: |
             Case or alert ID.
-            - For cases: Use "CASE-{id}" format (e.g., "CASE-1093")
+            - For cases: Use "CASE-{id}" format (e.g., "CASE-100")
             - For alerts: Use alert ID directly (e.g., "3890")
         filter:
           type: object

@@ -47,23 +47,23 @@ Connected to cortex-xsiam (6 tools)
 **Option A: From GitHub Release**
 ```bash
 # Download the latest release
-wget https://github.com/YourOrg/cortex-bot-custom-tools/releases/latest/download/cortex-bot-custom-tools.zip
+wget https://github.com/alexpekarovsky/cortex-bot/releases/latest/download/cortex-bot.zip
 
 # Extract
-unzip cortex-bot-custom-tools.zip
-cd cortex-bot-custom-tools
+unzip cortex-bot.zip
+cd cortex-bot
 ```
 
 **Option B: Clone Repository**
 ```bash
 # Clone from GitHub
-git clone https://github.com/YourOrg/cortex-bot-custom-tools.git
-cd cortex-bot-custom-tools
+git clone https://github.com/alexpekarovsky/cortex-bot.git
+cd cortex-bot
 ```
 
 **Expected after extraction:**
 ```
-cortex-bot-custom-tools/
+cortex-bot/
 ├── README.md
 ├── LICENSE
 ├── .env.example
@@ -506,7 +506,7 @@ Once installation is complete:
 **Installation Summary:**
 ```bash
 # 1. Download/clone
-git clone https://github.com/YourOrg/cortex-bot-custom-tools.git
+git clone https://github.com/alexpekarovsky/cortex-bot.git
 
 # 2. Copy
 cp -r custom_components/* ~/cortex-mcp/src/usecase/custom_components/

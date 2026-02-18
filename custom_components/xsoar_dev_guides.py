@@ -2170,8 +2170,8 @@ add_war_room_entry(id="<issue_id>", data="Initializing investigation")
 **Via MCP:**
 ```python
 run_xsoar_automation(
-    command='!setPlaybook incidentId=9648 name="my_triage_playbook"',
-    alert_id="9648"  # Issue ID, not case ID
+    command='!setPlaybook incidentId=12345 name="my_triage_playbook"',
+    alert_id="12345"  # Issue ID, not case ID
 )
 ```
 

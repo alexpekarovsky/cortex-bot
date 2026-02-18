@@ -762,7 +762,7 @@ async def test_all_tools(
                     "\nProvide endpoint_id parameter or set skip_destructive=True for safe mode."
                 ),
                 "required_parameter": "endpoint_id",
-                "example": "test_all_tools(endpoint_id='c708ec11ec124407b8a74d08dc0e85ca', skip_destructive=False)"
+                "example": "test_all_tools(endpoint_id='your_endpoint_id_here', skip_destructive=False)"
             },
             is_error=True
         )

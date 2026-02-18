@@ -171,9 +171,9 @@ async def enrich_ip_address(
     ─────────────────────────────────────────────────────────────────
     When enriching indicators found in a specific alert/case:
 
-    1. Get case details: case_data = get_incident_extra_data(incident_id="350")
-    2. Find an alert_id from the case's issues (e.g., "6126")
-    3. Run enrichment: enrich_ip_address(ip="8.8.8.8", alert_id="6126")
+    1. Get case details: case_data = get_incident_extra_data(incident_id="100")
+    2. Find an alert_id from the case's issues (e.g., "12345")
+    3. Run enrichment: enrich_ip_address(ip="8.8.8.8", alert_id="12345")
 
     Results appear in the specific issue's War Room, documenting your investigation.
     =====================================================================
@@ -199,8 +199,8 @@ async def enrich_ip_address(
     Args:
         ctx: The FastMCP context.
         ip_address: IP address to enrich (IPv4 or IPv6).
-        alert_id: Alert ID to run enrichment in (e.g., "6126") - PREFERRED.
-        case_id: Case ID alternative (e.g., "350") - use alert_id when possible.
+        alert_id: Alert ID to run enrichment in (e.g., "12345") - PREFERRED.
+        case_id: Case ID alternative (e.g., "100") - use alert_id when possible.
 
     Returns:
         JSON response with enrichment results and War Room entry ID.

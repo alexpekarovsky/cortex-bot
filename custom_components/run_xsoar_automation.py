@@ -170,9 +170,9 @@ async def run_xsoar_automation(
     ─────────────────────────────────────────────────────────────────
     When running commands in context of a specific alert/case:
 
-    1. Get case details: case_data = get_incident_extra_data(incident_id="350")
-    2. Find an alert_id from the case's issues (e.g., "6126")
-    3. Run command: run_xsoar_automation(command="!ip ip=8.8.8.8", alert_id="6126")
+    1. Get case details: case_data = get_incident_extra_data(incident_id="100")
+    2. Find an alert_id from the case's issues (e.g., "12345")
+    3. Run command: run_xsoar_automation(command="!ip ip=8.8.8.8", alert_id="12345")
 
     Results appear in the specific issue's War Room, documenting your investigation.
 
@@ -207,8 +207,8 @@ async def run_xsoar_automation(
     Args:
         ctx: The FastMCP context.
         command: Full XSOAR command starting with ! (e.g., "!GetInstances instance_status=\"both\"").
-        alert_id: Alert ID to run command in (e.g., "6126").
-        case_id: Case ID to run command in (e.g., "350").
+        alert_id: Alert ID to run command in (e.g., "12345").
+        case_id: Case ID to run command in (e.g., "100").
         wait_for_results: If True, wait for automation results (default: True).
         timeout_seconds: Maximum seconds to wait for results (default: 20).
 

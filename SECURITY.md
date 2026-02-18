@@ -101,7 +101,7 @@ Verify package integrity before installation:
 
 ```bash
 # Download CHECKSUMS.txt
-wget https://github.com/YourOrg/cortex-bot-custom-tools/releases/latest/download/CHECKSUMS.txt
+wget https://github.com/alexpekarovsky/cortex-bot/releases/latest/download/CHECKSUMS.txt
 
 # Verify ZIP file
 sha256sum -c CHECKSUMS.txt
@@ -170,7 +170,7 @@ All tool operations are logged:
 If you discover a security vulnerability:
 
 1. **DO NOT** open a public GitHub issue
-2. Email: security@yourorg.com (or your security contact)
+2. Open a private security advisory on GitHub
 3. Include:
    - Description of vulnerability
    - Steps to reproduce
@@ -218,17 +218,8 @@ Both are open source and auditable:
 
 ## License
 
-This project is licensed under Apache 2.0. See LICENSE file for details.
-
-**License allows:**
-- Commercial use
-- Modification
-- Distribution
-- Private use
-
-**License requires:**
-- License and copyright notice
-- State changes made
+- **Custom tools** (`custom_components/`): Apache License 2.0
+- **PANW MCP Server** (base server): Palo Alto Networks Cortex License - see LICENSE file
 
 ---
 

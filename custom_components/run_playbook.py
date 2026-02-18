@@ -27,10 +27,10 @@ def _get_ui_url_from_api_url(api_url: str) -> str:
     UI URL format:  https://{tenant}.xdr.{region}.paloaltonetworks.com
 
     Args:
-        api_url: The API URL (e.g., https://api-cortexxsiam.xdr.il.paloaltonetworks.com)
+        api_url: The API URL (e.g., https://api-yourinstance.xdr.us.paloaltonetworks.com)
 
     Returns:
-        The UI URL (e.g., https://cortexxsiam.xdr.il.paloaltonetworks.com)
+        The UI URL (e.g., https://yourinstance.xdr.us.paloaltonetworks.com)
     """
     # Remove "api-" from the URL
     if "://api-" in api_url:
