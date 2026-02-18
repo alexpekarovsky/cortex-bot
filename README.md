@@ -1,18 +1,28 @@
-# Cortex Bot - AI-Powered Security Operations Foundation
+# Cortex Bot - AI-Powered Security Operations for Cortex XSIAM
 
-[![CI](https://github.com/PaloAltoNetworks/cortex-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/PaloAltoNetworks/cortex-mcp/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 
-The foundation for **Cortex Bot**, an AI-powered security operations assistant for [Cortex XSIAM](https://www.paloaltonetworks.com/cortex/cortex-xsiam). Built on the official Palo Alto Networks Cortex MCP Server, this repository adds 84 specialized tools, smart automation capabilities, and infrastructure for skills and sub-agents.
+**Cortex Bot** is an AI-powered security operations assistant for [Cortex XSIAM](https://www.paloaltonetworks.com/cortex/cortex-xsiam). This repository contains **84 custom MCP tools** — the first delivered component of the full Cortex Bot project, which will include smart automation, skills, and sub-agents.
 
-> **⚠️ WORK IN PROGRESS:** This project is under active development. Tools and documentation are continuously improving based on user feedback.
+Built as an extension to the official [Palo Alto Networks Cortex MCP Server](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools), these tools transform any MCP-compatible AI assistant into a senior SOC analyst capable of investigating incidents, hunting threats, executing response actions, and building XSOAR content.
 
-> **⚠️ TOKEN USAGE:** These tools can consume significant AI tokens due to comprehensive security data retrieval and analysis. **Recommended:** Use with Claude Pro (unlimited tokens) or local LLM deployments. Pay-per-token plans may incur substantial costs for heavy usage.
+### Project Roadmap
 
-> **⚠️ PREREQUISITES:** Install the [official Cortex MCP Server](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools) FIRST, then add Cortex Bot components from this repository.
+| Component | Status | Description |
+|-----------|--------|-------------|
+| **Custom MCP Tools** | Delivered (this repo) | 84 tools for investigation, response, hunting, and development |
+| **Smart Tools** | In Progress | Context-aware tools that chain operations automatically |
+| **Skills** | Planned | Reusable investigation and response workflows |
+| **Sub-Agents** | Planned | Specialized AI agents for triage, hunting, and remediation |
 
-**Total Capabilities:** 90 tools (6 official base + 84 Cortex Bot custom) | Smart Tools | Skills (Coming Soon) | Sub-Agents (Coming Soon)
+> **WORK IN PROGRESS:** This project is under active development. Tools and documentation are continuously improving.
+
+> **TOKEN USAGE:** These tools can consume significant AI tokens due to comprehensive security data retrieval. Recommended: Use with Claude Pro or local LLM deployments.
+
+> **PREREQUISITES:** Install the [official Cortex MCP Server](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools) FIRST, then add these tools.
+
+**84 custom tools** across 13 categories | Extends the official PANW MCP Server (6 base tools) to 90 total
 
 ---
 
@@ -197,7 +207,7 @@ pkill -f "cortex-mcp.*main.py"
 get_tenant_info()
 ```
 
-**For multi-tenant setups, credential priority, and advanced configuration:** See [docs/CREDENTIAL_CONFIGURATION.md](docs/CREDENTIAL_CONFIGURATION.md)
+**For multi-tenant setups:** See the [FAQ](#faq) section
 
 ---
 
@@ -256,8 +266,8 @@ This guide shows how to add Cortex Bot enhancements to your existing official Co
 ### Step 2: Clone Cortex Bot Repository
 
 ```bash
-git clone https://github.com/YourOrg/cortex-bot-custom-tools.git
-cd cortex-bot-custom-tools
+git clone https://github.com/alexpekarovsky/cortex-bot.git
+cd cortex-bot
 ```
 
 ### Step 3: Find Your MCP Installation Directory
@@ -329,7 +339,7 @@ Open Claude Desktop or Claude Code and verify:
 
 If you see 90 tools, installation is complete! The 6 official tools + 84 Cortex Bot custom tools are now available.
 
-**For advanced configuration** (multi-tenant setups, credential priority, troubleshooting): See [docs/CREDENTIAL_CONFIGURATION.md](docs/CREDENTIAL_CONFIGURATION.md)
+**For multi-tenant setups:** See the [FAQ](#faq) section
 
 ---
 
@@ -1260,25 +1270,26 @@ paths:
 ## Project Structure
 
 ```
-cortex-mcp/
-├── src/
-│   ├── main.py                    # Server entry point
-│   ├── config/                    # Configuration management
-│   ├── entities/                  # Data models
-│   ├── pkg/                       # Core utilities
-│   ├── service/                   # MCP server implementation
-│   └── usecase/
-│       ├── builtin_components/    # Core MCP tools
-│       ├── custom_components/     # Extended tools (40+)
-│       │   ├── openapi/          # OpenAPI-defined tools
-│       │   ├── sdk_base.py       # SDK runner base class
-│       │   └── sdk_tools.py      # SDK wrapper tools
-│       └── remote_components/     # Remote tool imports
-├── tests/                         # Test suite
-├── docs/                          # Documentation
+cortex-bot/
+├── custom_components/             # All custom MCP tools
+│   ├── __init__.py
+│   ├── openapi/                   # OpenAPI-defined REST tools (24 YAML files)
+│   ├── sdk_base.py                # SDK runner base class
+│   ├── sdk_tools.py               # XSOAR SDK wrapper tools
+│   ├── xql_query.py               # XQL query execution
+│   ├── correlation_rules.py       # Detection rule management
+│   ├── xsiam_content_generator.py # Content generation (11 tools)
+│   ├── xsoar_dev_guides.py        # Development pattern guides
+│   └── ...                        # 28 Python modules total
 ├── .env.example                   # Environment template
-├── pyproject.toml                 # Poetry dependencies
-└── Dockerfile                     # Container support
+├── .gitignore
+├── CHECKSUMS.txt                  # File integrity checksums
+├── INSTALL.md                     # Detailed installation guide
+├── LICENSE                        # Apache 2.0
+├── README.md                      # This file
+├── SECURITY.md                    # Security policy
+├── install.sh                     # Automated installer
+└── pyproject.toml                 # Dependencies
 ```
 
 ---
@@ -1415,21 +1426,21 @@ Use `get_issues` for discovery, `get_alert_multi_events` for deep investigation.
 
 **Q: How do I switch between tenants?**
 
-A: See [docs/CREDENTIAL_CONFIGURATION.md](docs/CREDENTIAL_CONFIGURATION.md) for the complete tenant switching guide.
+A: See the [Getting Started](#getting-started---credentials--configuration) section for the complete tenant switching guide.
 
 ---
 
 ## Troubleshooting
 
-> **Credential & Connection Issues:** For comprehensive troubleshooting, see [docs/CREDENTIAL_CONFIGURATION.md](docs/CREDENTIAL_CONFIGURATION.md).
+> **Credential & Connection Issues:** See the [Getting Started](#getting-started---credentials--configuration) section above.
 
 ### Common Errors and Solutions
 
 | Error Message | Cause | Solution |
 |---------------|-------|----------|
-| `Invalid port: '-https:'` | `.claude/settings.json` has bash expansion syntax | Edit `.claude/settings.json`, use plain strings not `${VAR:-default}`. See [credential docs](docs/CREDENTIAL_CONFIGURATION.md) |
-| `401 Unauthorized` | Invalid API key or wrong credential source | Check ALL FOUR credential sources (env vars, ~/.claude.json, .claude/settings.json, .env). See [credential docs](docs/CREDENTIAL_CONFIGURATION.md) |
-| Changes to `.env` ignored | Higher priority source overriding | **Most common:** Check `~/.claude.json` first! Then: `printenv \| grep CORTEX_MCP_PAPI` and `.claude/settings.json`. See [credential docs](docs/CREDENTIAL_CONFIGURATION.md) |
+| `Invalid port: '-https:'` | `.claude/settings.json` has bash expansion syntax | Edit `.claude/settings.json`, use plain strings not `${VAR:-default}`. See [Getting Started](#getting-started---credentials--configuration) |
+| `401 Unauthorized` | Invalid API key or wrong credential source | Check ALL FOUR credential sources (env vars, ~/.claude.json, .claude/settings.json, .env). See [Getting Started](#getting-started---credentials--configuration) |
+| Changes to `.env` ignored | Higher priority source overriding | **Most common:** Check `~/.claude.json` first! Then: `printenv \| grep CORTEX_MCP_PAPI` and `.claude/settings.json`. See [Getting Started](#getting-started---credentials--configuration) |
 | `403 Forbidden` | Insufficient permissions | Ensure API key has Instance Administrator role |
 | `Connection refused` | Wrong URL format or region | Check URL matches `https://api-{tenant}.xdr.{region}.paloaltonetworks.com` |
 | `pyenv: version '3.12' is not installed` | `.python-version` file constraint | Remove `.python-version` file: `rm .python-version` then recreate venv |
@@ -1477,7 +1488,7 @@ pkill -f "cortex-mcp.*main.py"
 
 **Note:** Most credential issues stem from `~/.claude.json` having old credentials. Always check this file first!
 
-See [docs/CREDENTIAL_CONFIGURATION.md](docs/CREDENTIAL_CONFIGURATION.md) for complete troubleshooting guide.
+See the [Getting Started](#getting-started---credentials--configuration) section for complete troubleshooting guide.
 
 ### Pydantic Version Conflict Resolution
 
@@ -1526,7 +1537,7 @@ curl -X POST "https://api-{tenant}.xdr.{region}.paloaltonetworks.com/public_api/
 
 ## Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+Contributions are welcome! Please open an issue or pull request.
 
 ## Security
 
@@ -1538,10 +1549,6 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 ## Support
 
-- **Documentation**: [docs/](docs/)
-- **Issues**: [GitHub Issues](https://github.com/PaloAltoNetworks/cortex-mcp/issues)
+- **Issues**: [GitHub Issues](https://github.com/alexpekarovsky/cortex-bot/issues)
 - **Cortex XSIAM Docs**: [docs-cortex.paloaltonetworks.com](https://docs-cortex.paloaltonetworks.com)
-
----
-
-**Developed by Palo Alto Networks**
+- **Official MCP Server**: [PANW Installation Guide](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools)
