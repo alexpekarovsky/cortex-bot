@@ -94,3 +94,4 @@ Example/
 !install.sh
 *.yml
 Dockerfile
+test_smart_discovery.py
