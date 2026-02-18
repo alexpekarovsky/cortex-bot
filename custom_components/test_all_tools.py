@@ -741,7 +741,7 @@ async def test_all_tools(
           "test_environment": {
             "test_case_id": "342",
             "test_alert_id": "6102",
-            "endpoint_id": "c708ec11...",
+            "endpoint_id": "your_endpoint_id...",
             "skip_destructive": true
           }
         }

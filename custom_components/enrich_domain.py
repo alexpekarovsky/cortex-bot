@@ -103,7 +103,7 @@ async def _wait_for_domain_enrichment_results(
 async def enrich_domain(
     ctx: Context,
     domain: Annotated[str, Field(description="Domain name to enrich")],
-    alert_id: Annotated[Optional[str], Field(description="Alert ID to add enrichment to (e.g., '6126')")] = None,
+    alert_id: Annotated[Optional[str], Field(description="Alert ID to add enrichment to (e.g., '12345')")] = None,
     case_id: Annotated[Optional[str], Field(description="Case ID to add enrichment to (e.g., '350' or 'CASE-350')")] = None,
 ) -> str:
     """

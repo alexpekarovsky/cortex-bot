@@ -107,7 +107,7 @@ async def _wait_for_url_enrichment_results(
 async def enrich_url(
     ctx: Context,
     url: Annotated[str, Field(description="URL to enrich (must include protocol http:// or https://)")],
-    alert_id: Annotated[Optional[str], Field(description="Alert ID to add enrichment to (e.g., '6126')")] = None,
+    alert_id: Annotated[Optional[str], Field(description="Alert ID to add enrichment to (e.g., '12345')")] = None,
     case_id: Annotated[Optional[str], Field(description="Case ID to add enrichment to (e.g., '350' or 'CASE-350')")] = None,
 ) -> str:
     """

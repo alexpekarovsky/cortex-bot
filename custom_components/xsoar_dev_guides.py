@@ -2163,8 +2163,8 @@ add_war_room_entry(id="<issue_id>", data="Initializing investigation")
 
 **Example:**
 ```bash
-# Running on issue 9648
-!setPlaybook incidentId=9648 name="my_triage_playbook"
+# Running on issue 12345
+!setPlaybook incidentId=12345 name="my_triage_playbook"
 ```
 
 **Via MCP:**

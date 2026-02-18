@@ -133,7 +133,7 @@ components:
                     description: Comparison operator
                     enum: [in, eq, gte, lte]
                   value:
-                    description: "Value(s) to filter by. IMPORTANT: For alert_id_list, values must be integers (e.g., [6126]), not strings."
+                    description: "Value(s) to filter by. IMPORTANT: For alert_id_list, values must be integers (e.g., [12345]), not strings."
                     oneOf:
                       - type: string
                       - type: integer

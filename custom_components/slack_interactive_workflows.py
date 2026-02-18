@@ -328,7 +328,7 @@ User clicks "No" button in Slack
     ↓
 Slack webhook → SlackV3 (Socket Mode)
     ↓
-SlackV3 extracts entitlement: "abc123@9648|2"
+SlackV3 extracts entitlement: "abc123@12345|2"
     ↓
 Closes Task 2 with result: "No"
     ↓
@@ -690,7 +690,7 @@ An **entitlement** is a unique identifier that links a Slack button to an XSOAR 
 3. What value to return (the button text)
 
 **Format:** `GUID@investigation_id|task_id`
-**Example:** `abc123-def456@9648|4`
+**Example:** `abc123-def456@12345|4`
 
 ### Entitlement Types Comparison
 

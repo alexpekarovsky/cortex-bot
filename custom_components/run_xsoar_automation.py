@@ -141,7 +141,7 @@ async def _wait_for_automation_results(
 async def run_xsoar_automation(
     ctx: Context,
     command: Annotated[str, Field(description="XSOAR command to execute (e.g., '!GetInstances instance_status=\"both\"' or '!ip ip=1.1.1.1')")],
-    alert_id: Annotated[Optional[str], Field(description="Alert ID to run command in (e.g., '6126')")] = None,
+    alert_id: Annotated[Optional[str], Field(description="Alert ID to run command in (e.g., '12345')")] = None,
     case_id: Annotated[Optional[str], Field(description="Case ID to run command in (e.g., '350')")] = None,
     wait_for_results: Annotated[bool, Field(description="Wait for and return automation results (default: True)", default=True)] = True,
     timeout_seconds: Annotated[int, Field(description="Seconds to wait for results (default: 20)", default=20)] = 20,

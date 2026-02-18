@@ -145,7 +145,7 @@ async def _wait_for_enrichment_results(
 async def enrich_ip_address(
     ctx: Context,
     ip_address: Annotated[str, Field(description="IP address to enrich (IPv4 or IPv6)")],
-    alert_id: Annotated[Optional[str], Field(description="Alert ID to add enrichment to (e.g., '6126')")] = None,
+    alert_id: Annotated[Optional[str], Field(description="Alert ID to add enrichment to (e.g., '12345')")] = None,
     case_id: Annotated[Optional[str], Field(description="Case ID to add enrichment to (e.g., '350' or 'CASE-350')")] = None,
 ) -> str:
     """
