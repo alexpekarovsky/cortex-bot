@@ -446,7 +446,7 @@ If these custom fields don't exist in your XSIAM instance, create them:
 
 Or check if they're already configured (most XSIAM instances have them pre-configured).
 
-### Issue Management (4 tools)
+### Issue Management (5 tools)
 
 **When to use these tools:**
 - You need to triage individual alerts/detections
@@ -607,7 +607,7 @@ insert_correlation_rule(
 
 **XQL widgets** are reusable query visualizations for dashboards and reports. Create them programmatically to standardize security metrics.
 
-### Playbook Management (3 tools)
+### Playbook Management (4 tools)
 
 **When to use these tools:**
 - Migrating playbooks from another SOAR vendor (Splunk SOAR, ServiceNow, etc.) to XSIAM
@@ -824,7 +824,7 @@ export CONTENT_PATH=/path/to/your/content
 
 **Without this directory, SDK tools will fail with:** "FileNotFoundError: No such file or directory: 'Packs'"
 
-### Development Guide Tools (9 tools)
+### Development Guide Tools (11 tools)
 
 > **For AI Assistants:** Call these tools BEFORE creating integrations or playbooks!
 > **New:** create_playbook tool now available for programmatic playbook generation!
@@ -838,6 +838,8 @@ export CONTENT_PATH=/path/to/your/content
 | `get_xsoar_mirroring_guide` | User needs bidirectional sync | ServiceNow, Jira incident mirroring |
 | `get_xsoar_feed_guide` | User building threat intel feed | TAXII, STIX, custom IOC feeds |
 | `get_xsoar_best_practices` | Need specific topic guidance | Best practices for threading, state management, errors |
+| `get_xsoar_layout_guide` | Building case/incident layouts | Layout JSON guide with buttons, tabs, sections |
+| `get_xsoar_playbook_operations_guide` | Running playbooks & correlation rules | Playbook execution patterns and workarounds |
 | `get_playbook_building_blocks` | **Building playbooks** | 60+ sub-playbooks, 30+ scripts, 10+ transformers from production analysis |
 | `create_playbook` | **Generate playbooks** | Creates valid XSOAR playbooks from simplified task definitions |
 
@@ -902,7 +904,7 @@ test_all_tools(skip_destructive=True)
 
 Skips destructive actions (isolate, terminate, quarantine) and tests:
 - Case management (5 tools)
-- Issue management (4 tools)
+- Issue management (5 tools)
 - Threat hunting (7 tools)
 - Script execution (6 tools)
 - SDK tools (10 tools)
@@ -957,11 +959,11 @@ Results by category: [detailed breakdown]
 
 ### Enabling Destructive Tools
 
-By default, high-risk tools are disabled. To enable:
+To control high-risk tools, configure in your `.env` file:
 
 ```ini
 # In .env file
-ENABLE_DESTRUCTIVE_TOOLS=true
+ENABLE_DESTRUCTIVE_TOOLS=true   # or false to restrict
 ```
 
 ### Large Output Tools

@@ -143,10 +143,10 @@ The following tools can make irreversible changes:
 | `run_script` | Execute scripts | HIGH | Depends on script |
 | `run_snippet_code_script` | Execute code | HIGH | Depends on code |
 
-**Default:** Destructive tools are enabled. To disable:
+To control destructive tools, configure in your `.env` file:
 ```bash
 # In PANW MCP .env file:
-ENABLE_DESTRUCTIVE_TOOLS=false
+ENABLE_DESTRUCTIVE_TOOLS=true   # or false to restrict
 ```
 
 ## Audit and Compliance
@@ -225,5 +225,5 @@ These tools extend the official Palo Alto Networks Cortex MCP Server, which is d
 ---
 
 **Last Updated:** 2026-02-08
-**Security Contact:** (Add your contact)
+**Security Contact:** [Open a private security advisory](https://github.com/alexpekarovsky/cortex-bot/security/advisories)
 **Version:** 1.0.0
