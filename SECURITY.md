@@ -218,8 +218,9 @@ Both are open source and auditable:
 
 ## License
 
-- **Custom tools** (`custom_components/`): Apache License 2.0
-- **PANW MCP Server** (base server): Palo Alto Networks Cortex License - see LICENSE file
+This project is licensed under the Apache License 2.0 — see [LICENSE](LICENSE) for details.
+
+These tools extend the official Palo Alto Networks Cortex MCP Server, which is distributed under its own license.
 
 ---
 

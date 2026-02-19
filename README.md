@@ -53,10 +53,13 @@ Built as an extension to the official [Palo Alto Networks Cortex MCP Server](htt
 ## Features
 
 ### Official PANW MCP Server (Base - 6 Tools)
-- Case Management - List and filter cases
-- Issue Management - View and query issues
-- Asset Discovery - List endpoints and assets
-- Assessment Results - Compliance posture data
+These come from the official server (not this repo):
+- `get_cases` - List and filter cases
+- `get_issues` - View and query issues
+- `get_assets` - List assets
+- `get_filtered_endpoints` - List endpoints with filters
+- `get_assessment_profile_results` - Compliance posture data
+- `get_vulnerabilities` - Vulnerability findings
 
 ### Cortex Bot Enhancements (+84 Tools)
 
@@ -457,6 +460,7 @@ Or check if they're already configured (most XSIAM instances have them pre-confi
 | `get_alert_multi_events` | Get detailed issue/alert event data | `filters` (alert_id_list) |
 | `get_contributing_events` | Get correlation issue events | `alert_id` |
 | `update_issue` | Update issue severity/status | `issue_id`, `severity`, `status` |
+| `create_issue` | Create investigation workspace (for enrichment) | `name` |
 
 ### Response Actions (6 tools)
 
@@ -492,6 +496,10 @@ Or check if they're already configured (most XSIAM instances have them pre-confi
 | `enrich_url` | URL reputation lookup | `url`, `alert_id` |
 | `run_xsoar_automation` | Execute XSOAR commands | `command`, `alert_id` |
 
+> **Enrichment Workflow:** All enrichment tools require an `alert_id` (a War Room context). For ad-hoc lookups without a specific case, create a workspace first:
+> 1. `create_issue(name="Investigation Workspace")` → returns an `alert_id`
+> 2. Use that `alert_id` with any enrichment tool: `enrich_ip_address(ip_address="8.8.8.8", alert_id="<returned_id>")`
+
 ### Detection & Rules (1 tool)
 
 | Tool | Description | Key Parameters |
@@ -525,14 +533,60 @@ insert_correlation_rule(
 
 ### Additional Tools
 
-| Category | Tools |
-|----------|-------|
-| File Operations | `quarantine_files`, `restore_file`, `retrieve_files`, `get_file_retrieval_details`, `get_quarantine_status` |
-| Script Execution | `run_script`, `run_snippet_code_script`, `get_scripts`, `get_script_metadata`, `get_script_execution_status`, `get_script_execution_results` |
-| IOC Management | `insert_indicators_json`, `insert_indicators_csv` |
-| War Room | `add_war_room_entry`, `get_war_room_entries` |
-| Assets & Risk | `get_assets`, `get_endpoints`, `get_filtered_endpoints`, `get_vulnerabilities`, `get_asset_by_id`, `list_risky_users`, `list_risky_hosts`, `get_assessment_profile_results` |
-| Action Tracking | `get_action_status`, `get_tenant_info` |
+**File Operations (5 tools)** — Quarantine malicious files, retrieve forensic evidence, restore false positive quarantines.
+
+| Tool | Description |
+|------|-------------|
+| `quarantine_files` | Quarantine files on endpoints |
+| `restore_file` | Restore a quarantined file |
+| `retrieve_files` | Download files from endpoints for analysis |
+| `get_file_retrieval_details` | Get download link for retrieved files |
+| `get_quarantine_status` | Check quarantine status of files |
+
+**Script Execution (6 tools)** — Run scripts on endpoints for forensic collection, live response, or custom remediation.
+
+| Tool | Description |
+|------|-------------|
+| `run_script` | Execute a script on endpoints |
+| `run_snippet_code_script` | Run custom Python code on endpoints |
+| `get_scripts` | List available scripts |
+| `get_script_metadata` | Get script details and parameters |
+| `get_script_execution_status` | Check script execution progress |
+| `get_script_execution_results` | Get script output |
+
+**IOC Management (2 tools)** — Blocklist malicious indicators (IPs, domains, hashes, URLs) across your environment.
+
+| Tool | Description |
+|------|-------------|
+| `insert_indicators_json` | Insert IOCs via JSON format |
+| `insert_indicators_csv` | Insert IOCs via CSV format |
+
+**War Room (2 tools)** — Document investigation findings and review analyst notes.
+
+| Tool | Description |
+|------|-------------|
+| `add_war_room_entry` | Add notes or run commands in War Room |
+| `get_war_room_entries` | Retrieve War Room history |
+
+**Assets & Risk (8 tools)** — Asset inventory, endpoint discovery, vulnerability assessment, and risk scoring.
+
+| Tool | Description |
+|------|-------------|
+| `get_assets` | List all assets |
+| `get_endpoints` | List endpoints with filters |
+| `get_filtered_endpoints` | Advanced endpoint filtering |
+| `get_vulnerabilities` | Get vulnerability findings |
+| `get_asset_by_id` | Get specific asset details |
+| `list_risky_users` | List users with anomalous behavior (requires ITDR license) |
+| `list_risky_hosts` | List hosts with anomalous behavior (requires ITDR license) |
+| `get_assessment_profile_results` | Get compliance assessment results |
+
+**Action Tracking (2 tools)** — Monitor response action status and check tenant configuration.
+
+| Tool | Description |
+|------|-------------|
+| `get_action_status` | Check status of response actions |
+| `get_tenant_info` | Get tenant license and configuration info |
 
 ### Integration Discovery (2 tools)
 
@@ -568,6 +622,7 @@ insert_correlation_rule(
 | `get_playbook` | Download playbook YAML (returns ZIP file) | `filter` (name or id) |
 | `insert_playbook` | Upload or update playbook from ZIP file | `file` (path to ZIP) |
 | `delete_playbook` | Delete playbook by name or ID | `filter` (name or id) |
+| `run_playbook` | Execute a playbook on an issue | `playbook_name`, `issue_id` |
 
 **Playbook management** via REST API enables direct playbook deployment without SDK. Use these tools to backup, deploy, and manage XSOAR playbooks programmatically.
 
@@ -1203,13 +1258,32 @@ Once installed, try these prompts to see the AI security assistant in action. Ea
 - Widget uploaded to XSIAM
 - "Dashboard 'Top Attacking IPs' created and deployed. View it in XSIAM UI → Dashboards."
 
+### Example 13: Find Non-Active Endpoints
+
+**You say:** *"Show me all non-active endpoints in my environment"*
+
+**Claude uses:**
+```python
+get_endpoints(filters=[
+  {"field": "endpoint_status", "operator": "in",
+   "value": ["disconnected", "lost", "uninstalled"]}
+])
+```
+
+**You get:**
+- List of endpoints not currently connected
+- Last seen timestamps
+- Endpoint types (Server, Workstation, Mobile)
+- Operational status
+- Use for: Asset hygiene, finding stale agents, compliance reporting
+
 ---
 
 ## Adding Custom Tools
 
 ### Python Tools
 
-Create a new file in `src/usecase/custom_components/`:
+Create a new `.py` file in your PANW MCP installation at `src/usecase/custom_components/`:
 
 ```python
 from fastmcp import Context
@@ -1230,7 +1304,7 @@ class MyModule(BaseModule):
 
 ### OpenAPI Tools
 
-Create a YAML file in `src/usecase/custom_components/openapi/`:
+Create a YAML file in your PANW MCP installation at `src/usecase/custom_components/openapi/`:
 
 ```yaml
 openapi: 3.0.0
@@ -1307,25 +1381,6 @@ poetry run ruff check --fix .
 # Type checking
 poetry run mypy src/
 ```
-
-**Example 13: Find Non-Active Endpoints**
-
-*"Show me all non-active endpoints in my environment"*
-
-Claude calls `get_endpoints` with filters for disconnected, lost, and uninstalled endpoints:
-```python
-get_endpoints(filters=[
-  {"field": "endpoint_status", "operator": "in",
-   "value": ["disconnected", "lost", "uninstalled"]}
-])
-```
-
-You get:
-- List of endpoints not currently connected
-- Last seen timestamps
-- Endpoint types (Server, Workstation, Mobile)
-- Operational status
-- Use for: Asset hygiene, finding stale agents, compliance reporting
 
 ---
 
@@ -1545,8 +1600,9 @@ For security concerns, please see our [Security Policy](SECURITY.md). Do not rep
 
 ## License
 
-- **Custom tools** (`custom_components/`): Apache License 2.0 - free to use, modify, and distribute
-- **PANW MCP Server** (base server): [Palo Alto Networks Cortex License](LICENSE) - for use with Cortex XSIAM/XDR products only
+This project is licensed under the Apache License 2.0 — see [LICENSE](LICENSE) for details.
+
+**Note:** These tools are built as extensions to the official Palo Alto Networks Cortex MCP Server, which is distributed under its own [Cortex license](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools). The base server is a separate installation not included in this repository.
 
 ## Support
 
