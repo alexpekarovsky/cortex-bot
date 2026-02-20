@@ -1,3 +1,6 @@
+# PANW MCP server source (local only, not in repo)
+src/
+
 # Environment and secrets
 .env
 .env.*
