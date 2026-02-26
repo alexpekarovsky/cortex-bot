@@ -124,27 +124,74 @@ async def run_xql_query(
 
         # The reply field IS the execution_id (it's a string, not an object)
         execution_id = start_response["reply"]
+        if not isinstance(execution_id, str) or not execution_id:
+            return create_response(
+                data={
+                    "error": "XQL query failed to start. The API returned an invalid execution ID.",
+                    "details": execution_id,
+                    "query": query,
+                },
+                is_error=True
+            )
         logger.info(f"XQL query started with execution_id: {execution_id}")
 
         # Step 2: Poll for results
         poll_payload = {"request_data": {"query_id": execution_id}}
         poll_interval = 2  # seconds
         elapsed_time = 0
+        consecutive_poll_errors = 0
+        max_poll_errors = 5  # Bail out after 5 consecutive poll failures
 
         while elapsed_time < timeout:
             await asyncio.sleep(poll_interval)
             elapsed_time += poll_interval
 
             logger.debug(f"Polling XQL query results (elapsed: {elapsed_time}s)")
-            poll_response = await fetcher.send_request(
-                "/public_api/v1/xql/get_query_results/",
-                data=poll_payload
-            )
 
-            if "reply" not in poll_response:
+            try:
+                poll_response = await fetcher.send_request(
+                    "/public_api/v1/xql/get_query_results/",
+                    data=poll_payload
+                )
+            except Exception as poll_err:
+                consecutive_poll_errors += 1
+                logger.warning(f"XQL poll error ({consecutive_poll_errors}/{max_poll_errors}): {poll_err}")
+                if consecutive_poll_errors >= max_poll_errors:
+                    return create_response(
+                        data={
+                            "error": f"XQL query polling failed {max_poll_errors} times consecutively. Last error: {poll_err}",
+                            "execution_id": execution_id,
+                            "query": query,
+                        },
+                        is_error=True
+                    )
                 continue
 
+            if "reply" not in poll_response:
+                consecutive_poll_errors += 1
+                logger.warning(
+                    f"XQL poll returned no 'reply' key ({consecutive_poll_errors}/{max_poll_errors}). "
+                    f"Response: {str(poll_response)[:200]}"
+                )
+                if consecutive_poll_errors >= max_poll_errors:
+                    return create_response(
+                        data={
+                            "error": f"XQL query failed: {max_poll_errors} consecutive poll responses had no results. "
+                                     f"The query may be invalid or the server is not responding.",
+                            "execution_id": execution_id,
+                            "query": query,
+                            "last_response": str(poll_response)[:500],
+                        },
+                        is_error=True
+                    )
+                continue
+
+            # Valid response received — reset error counter
+            consecutive_poll_errors = 0
             reply = poll_response["reply"]
+            if not isinstance(reply, dict):
+                logger.warning(f"XQL poll 'reply' is not a dict: {type(reply)} — {str(reply)[:200]}")
+                continue
             status = reply.get("status")
 
             if status == "SUCCESS":
@@ -161,7 +208,11 @@ async def run_xql_query(
                 error_msg = reply.get("error", "Query execution failed")
                 logger.error(f"XQL query failed: {error_msg}")
                 return create_response(
-                    data={"error": f"Query execution failed: {error_msg}"},
+                    data={
+                        "error": f"XQL query failed: {error_msg}",
+                        "query": query,
+                        "execution_id": execution_id,
+                    },
                     is_error=True
                 )
 
@@ -171,7 +222,7 @@ async def run_xql_query(
                 continue
 
             else:
-                logger.warning(f"Unknown query status: {status}")
+                logger.warning(f"Unknown XQL query status: {status}")
                 continue
 
         # Timeout reached
@@ -179,7 +230,8 @@ async def run_xql_query(
         return create_response(
             data={
                 "error": f"Query execution timed out after {timeout} seconds. The query may still be running. Execution ID: {execution_id}",
-                "execution_id": execution_id
+                "execution_id": execution_id,
+                "query": query,
             },
             is_error=True
         )

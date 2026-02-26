@@ -4,7 +4,7 @@
 
 **Date:** 2026-02-26
 **Severity:** Medium
-**Status:** Open
+**Status:** Fixed
 **Affected file:** `src/usecase/custom_components/integration_discovery.py`
 
 ### Description
@@ -47,7 +47,13 @@ command = '!GetInstances instance_status="active"'
 2. Call `list_integrations()` or `get_integration_commands("VirusTotal")`
 3. Observe 500 error
 
-### Workaround
+### Fix Applied
+
+Both functions now try the API endpoint first, then automatically fall back to `!GetInstances`
+via War Room if it returns a 500 error. Optional `alert_id`/`case_id` parameters added for the
+fallback path. If no ID is provided and the API fails, the error message includes the workaround.
+
+### Previous Workaround (before fix)
 
 Use `run_xsoar_automation` with `!GetInstances` to list integrations manually:
 ```
