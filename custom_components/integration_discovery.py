@@ -7,6 +7,12 @@ are available in the XSIAM environment.
 
 Uses the /settings/integration-search API when available, falling back to
 !GetInstances via War Room when the API endpoint returns errors (BUG-001).
+
+War Room notes:
+- War Room commands only work on alert/issue IDs, NOT case IDs.
+- The alert must already have an investigation context (War Room initialized).
+  Newly created alerts may not have one yet.
+- Use an alert ID from a previously investigated case (e.g., from get_issues).
 """
 
 import asyncio
@@ -22,13 +28,16 @@ from usecase.base_module import BaseModule
 logger = logging.getLogger(__name__)
 
 
-async def _run_war_room_command(ctx, investigation_id: str, command: str, timeout_seconds: int = 20) -> dict:
+async def _run_war_room_command(ctx, alert_id: str, command: str, timeout_seconds: int = 20) -> dict:
     """
     Executes an XSOAR command via War Room and waits for results.
 
+    IMPORTANT: War Room commands only work on alert/issue IDs (not case IDs).
+    The alert must have an existing investigation context.
+
     Args:
         ctx: The FastMCP context.
-        investigation_id: Alert or case ID to run the command in.
+        alert_id: Alert/issue ID with an active War Room (e.g., '6126').
         command: XSOAR command string (e.g., '!GetInstances instance_status="active"').
         timeout_seconds: Maximum seconds to wait for results.
 
@@ -46,7 +55,7 @@ async def _run_war_room_command(ctx, investigation_id: str, command: str, timeou
         response = await fetcher.send_request(
             path="/entries/insert",
             method="POST",
-            data={"id": investigation_id, "data": command}
+            data={"id": alert_id, "data": command}
         )
     except Exception as e:
         return {"success": False, "error": f"War Room command failed: {e}"}
@@ -71,7 +80,7 @@ async def _run_war_room_command(ctx, investigation_id: str, command: str, timeou
             entries_response = await fetcher.send_request(
                 path="/entries/get",
                 method="POST",
-                data={"id": investigation_id, "filter": {"pagesize": 25}}
+                data={"id": alert_id, "filter": {"pagesize": 25}}
             )
 
             if isinstance(entries_response, dict) and "data" in entries_response:
@@ -199,36 +208,37 @@ async def list_integrations(
         description="If True, only return enabled integrations (default: True)"
     )] = True,
     alert_id: Annotated[Optional[str], Field(
-        description="Alert ID for War Room fallback. If the API endpoint fails, this is used to run !GetInstances via War Room."
-    )] = None,
-    case_id: Annotated[Optional[str], Field(
-        description="Case ID for War Room fallback (alternative to alert_id)."
+        description="Alert/issue ID for War Room fallback (e.g., '6126'). "
+                    "Required when the API endpoint fails. Must be an alert that has an "
+                    "existing investigation (War Room). Use an alert from a previously "
+                    "investigated case, or create one with create_issue()."
     )] = None,
 ) -> str:
     """
     Retrieves list of all XSOAR integrations and automation capabilities available in XSIAM.
 
     This tool discovers what threat intelligence sources, automation tools, and security
-    integrations are configured in your XSIAM instance. Essential for understanding what
-    enrichment commands and automation capabilities are available for investigations.
+    integrations are configured in your XSIAM instance.
 
     Use this to:
     - Discover available threat intelligence integrations (VirusTotal, Google TI, etc.)
     - Find enrichment commands for indicators (!ip, !file, !domain, !url)
     - List automation and remediation integrations
     - Identify SIEM, SOAR, and ticketing system connections
-    - Understand what War Room commands are available
 
     The tool first tries the XSIAM API. If that fails (some tenants return 500 on
-    /settings/integration-search), it falls back to running !GetInstances via War Room,
-    which requires an alert_id or case_id.
+    /settings/integration-search), it falls back to running !GetInstances via War Room.
+
+    IMPORTANT for War Room fallback:
+    - Provide an alert_id, NOT a case_id (War Room runs on issues, not cases)
+    - The alert must have an existing investigation context
+    - Use an alert from a previously investigated case (e.g., from get_issues)
 
     Args:
         ctx: The FastMCP context.
         integration_filter: Optional filter to search for specific integrations by name.
         only_enabled: If True, only return enabled integrations (default: True).
-        alert_id: Alert ID for War Room fallback (e.g., '12345').
-        case_id: Case ID for War Room fallback (e.g., '100').
+        alert_id: Alert/issue ID for War Room fallback (e.g., '6126').
 
     Returns:
         JSON response containing list of integrations with their commands and capabilities.
@@ -302,14 +312,14 @@ async def list_integrations(
 
     # API failed — fall back to War Room !GetInstances
     logger.info("Falling back to War Room !GetInstances")
-    investigation_id = alert_id or case_id
-    if not investigation_id:
+    if not alert_id:
         return create_response(
             data={
                 "error": "The /settings/integration-search API endpoint returned an error. "
-                         "To use the War Room fallback, provide an alert_id or case_id parameter. "
-                         "You can create a workspace with create_issue() first.",
-                "workaround": 'run_xsoar_automation(command=\'!GetInstances instance_status="active"\', alert_id="<your_alert_id>")'
+                         "To use the War Room fallback, provide an alert_id parameter. "
+                         "Use an alert ID from a previously investigated case (not a case ID). "
+                         "Find one with get_issues(), or use run_xsoar_automation() directly.",
+                "workaround": 'run_xsoar_automation(command=\'!GetInstances instance_status="active"\', alert_id="<alert_id>")'
             },
             is_error=True
         )
@@ -319,7 +329,7 @@ async def list_integrations(
     if integration_filter:
         command += f' brand="{integration_filter}"'
 
-    war_room_result = await _run_war_room_command(ctx, investigation_id, command)
+    war_room_result = await _run_war_room_command(ctx, alert_id, command)
 
     if war_room_result.get("success") and war_room_result.get("results"):
         # Parse the first result
@@ -343,18 +353,16 @@ async def get_integration_commands(
         description="Name of the integration to get commands for (e.g., 'VirusTotal', 'ActiveDirectory')"
     )],
     alert_id: Annotated[Optional[str], Field(
-        description="Alert ID for War Room fallback. If the API endpoint fails, this is used to query via War Room."
-    )] = None,
-    case_id: Annotated[Optional[str], Field(
-        description="Case ID for War Room fallback (alternative to alert_id)."
+        description="Alert/issue ID for War Room fallback (e.g., '6126'). "
+                    "Required when the API endpoint fails. Must be an alert that has an "
+                    "existing investigation (War Room)."
     )] = None,
 ) -> str:
     """
     Retrieves detailed command information for a specific XSOAR integration.
 
     Use this to understand what commands an integration provides and how to use them
-    in War Room for investigations. Essential before running enrichment or automation
-    commands.
+    in War Room for investigations.
 
     The response includes:
     - Command names (e.g., 'ip', 'file', 'vt-get-file-report')
@@ -363,14 +371,16 @@ async def get_integration_commands(
     - Output context paths
 
     The tool first tries the XSIAM API. If that fails (some tenants return 500 on
-    /settings/integration-search), it falls back to running !GetInstances via War Room,
-    which provides instance info but not full command details.
+    /settings/integration-search), it falls back to running !GetInstances via War Room.
+
+    IMPORTANT for War Room fallback:
+    - Provide an alert_id, NOT a case_id (War Room runs on issues, not cases)
+    - The alert must have an existing investigation context
 
     Args:
         ctx: The FastMCP context.
         integration_name: Name of the integration (e.g., 'VirusTotal', 'ActiveDirectory').
-        alert_id: Alert ID for War Room fallback (e.g., '12345').
-        case_id: Case ID for War Room fallback (e.g., '100').
+        alert_id: Alert/issue ID for War Room fallback (e.g., '6126').
 
     Returns:
         JSON response with detailed command information for the integration.
@@ -428,20 +438,19 @@ async def get_integration_commands(
 
     # API failed — fall back to War Room
     logger.info(f"Falling back to War Room for integration '{integration_name}'")
-    investigation_id = alert_id or case_id
-    if not investigation_id:
+    if not alert_id:
         return create_response(
             data={
                 "error": "The /settings/integration-search API endpoint returned an error. "
-                         "To use the War Room fallback, provide an alert_id or case_id parameter. "
-                         "You can create a workspace with create_issue() first.",
-                "workaround": f'run_xsoar_automation(command=\'!GetInstances brand="{integration_name}"\', alert_id="<your_alert_id>")'
+                         "To use the War Room fallback, provide an alert_id parameter. "
+                         "Use an alert ID from a previously investigated case (not a case ID).",
+                "workaround": f'run_xsoar_automation(command=\'!GetInstances brand="{integration_name}"\', alert_id="<alert_id>")'
             },
             is_error=True
         )
 
     command = f'!GetInstances brand="{integration_name}"'
-    war_room_result = await _run_war_room_command(ctx, investigation_id, command)
+    war_room_result = await _run_war_room_command(ctx, alert_id, command)
 
     if war_room_result.get("success") and war_room_result.get("results"):
         raw_content = war_room_result["results"][0].get("content", "")
@@ -468,9 +477,6 @@ async def get_integration_commands(
 class IntegrationDiscoveryModule(BaseModule):
     """
     MCP module for discovering XSOAR integrations and their capabilities.
-
-    Provides tools to discover what threat intelligence sources, automation integrations,
-    and security tools are configured in the XSIAM instance.
 
     Tools provided:
         - list_integrations: List all available XSOAR integrations
