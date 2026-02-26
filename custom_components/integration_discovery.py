@@ -42,11 +42,14 @@ async def _run_war_room_command(ctx, investigation_id: str, command: str, timeou
     fetcher = await get_fetcher(ctx)
 
     # Send command to War Room
-    response = await fetcher.send_request(
-        path="/entries/insert",
-        method="POST",
-        data={"id": investigation_id, "data": command}
-    )
+    try:
+        response = await fetcher.send_request(
+            path="/entries/insert",
+            method="POST",
+            data={"id": investigation_id, "data": command}
+        )
+    except Exception as e:
+        return {"success": False, "error": f"War Room command failed: {e}"}
 
     if not isinstance(response, dict):
         return {"success": False, "error": "Unexpected response from War Room"}
