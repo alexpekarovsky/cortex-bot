@@ -108,27 +108,40 @@ These come from the official server (not this repo):
 
 ## Quick Start
 
-**Prerequisites:** Python 3.12+, Cortex XSIAM API key, Claude Desktop or Claude Code
+**Prerequisites:** Python 3.12+, [uv](https://docs.astral.sh/uv/), Cortex XSIAM API key, Claude Desktop or Claude Code
 
 ### Installation
 
-**📦 For complete installation instructions, see [INSTALL.md](INSTALL.md)**
-
-The INSTALL.md guide provides:
-- Step-by-step installation with verification
-- Pre-installation checks
-- Expected outputs at each step
-- Troubleshooting
-- Success criteria checklist
-- Optional automated installer (reviewable install.sh)
+**For complete installation instructions, see [INSTALL.md](INSTALL.md)**
 
 **Quick Summary:**
-1. Install official PANW Cortex MCP Server ([guide](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools))
-2. Download this repository
-3. Copy `custom_components/` to PANW installation
-4. **Configure credentials** (see next section)
-5. Restart MCP server
-6. Verify 90 tools appear
+```bash
+# 1. Install official PANW Cortex MCP Server
+#    See: https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools
+
+# 2. Install uv (required for SDK tools)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# 3. Clone this repo and copy custom_components/ to PANW installation
+git clone https://github.com/alexpekarovsky/cortex-bot.git
+cp -r cortex-bot/custom_components/* /path/to/cortex-mcp/src/usecase/custom_components/
+
+# 4. Install dependencies
+cd /path/to/cortex-mcp
+poetry install
+
+# 5. Configure credentials
+cp .env.example .env
+# Edit .env — get API key values from XSIAM > Settings > Configurations > API Keys
+
+# 6. Create content repository (required for SDK tools)
+mkdir -p ~/content/Packs
+
+# 7. Restart MCP server and verify
+# In Claude Code: /mcp → should show 90 tools
+```
+
+> **Note:** The MCP server must be restarted after any dependency or configuration changes. Code changes and new packages are not picked up by an already-running server.
 
 **Security-conscious?** Review SECURITY.md and verify checksums before installation.
 
@@ -257,7 +270,10 @@ This guide shows how to add Cortex Bot enhancements to your existing official Co
 | Official Cortex MCP Server | Latest | Check Claude Desktop/Code shows 6 base tools | [PANW Installation Guide](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools) |
 | Python | 3.12+ | `python --version` | [python.org/downloads](https://www.python.org/downloads/) |
 | Git | Any | `git --version` | [git-scm.com](https://git-scm.com/) |
+| uv (package manager) | Latest | `uv --version` | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
 | Cortex XSIAM API Key | N/A | See below | [XSIAM API Guide](https://docs-cortex.paloaltonetworks.com/r/Cortex-XSIAM/Cortex-XSIAM-Administrator-Guide/Get-Started-with-APIs) |
+
+> **Why uv?** The XSOAR SDK tools (`sdk_upload`, `sdk_validate`, etc.) use `uvx` to run `demisto-sdk` in an isolated environment, avoiding Python dependency conflicts between the MCP server (pydantic 2.x) and demisto-sdk (pydantic 1.x). Without `uv`, SDK tools will fail silently.
 
 **API Key Requirements:**
 - Security Level: `Standard`
@@ -803,11 +819,11 @@ When installed into the official PANW MCP server, SDK tools:
 
 **REQUIRED for SDK tools:** The SDK tools need a content repository with `Packs/` directory.
 
-**Default Location:** `~/projects/content/`
+**Default Location:** `~/content/`
 
 **Setup:**
 ```bash
-mkdir -p ~/projects/content/Packs
+mkdir -p ~/content/Packs
 ```
 
 **Custom Location:** Set environment variable:
@@ -1505,6 +1521,10 @@ A: See the [Getting Started](#getting-started---credentials--configuration) sect
 | `ImportError: cannot import name 'ModelMetaclass' from 'pydantic.main'` | Pydantic version conflict | MCP server needs pydantic 2.x, demisto-sdk needs 1.x. Use `uvx demisto-sdk` instead of installing directly. See [XSOAR Development Tools](#xsoar-development-tools) |
 | `demisto-sdk not found` | SDK not in PATH | The MCP SDK tools use `uvx demisto-sdk` automatically. For manual use: `uvx demisto-sdk <command>` |
 | `DEMISTO_BASE_URL value is not set` | Missing env vars | Export: `DEMISTO_BASE_URL`, `DEMISTO_API_KEY`, `XSIAM_AUTH_ID` (see [XSOAR Development Tools](#xsoar-development-tools)) |
+| `ModuleNotFoundError: No module named 'aiohttp'` | Missing dependency | Run `poetry install` — aiohttp is declared in pyproject.toml. If already running, restart the MCP server after install. |
+| `uvx: command not found` | uv not installed | Install uv: `curl -LsSf https://astral.sh/uv/install.sh \| sh` — required for all SDK tools |
+| `FileNotFoundError: No such file or directory: 'Packs'` | Content repo missing | Create it: `mkdir -p ~/content/Packs` — required for SDK tools |
+| Tool changes not taking effect | Server caching old code | The MCP server loads code at startup. Restart it after any code, dependency, or configuration changes: `pkill -f "cortex-mcp.*main.py"` then reconnect via `/mcp` |
 
 ### Quick Credential Checks
 

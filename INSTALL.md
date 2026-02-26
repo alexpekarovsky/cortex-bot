@@ -17,7 +17,10 @@ Before you begin, verify you have:
 | **Official PANW Cortex MCP Server** | Latest | Check Claude shows 6 base tools | [PANW Installation Guide](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools) |
 | **Python** | 3.12+ | `python --version` | [python.org](https://www.python.org/downloads/) |
 | **Git** | Any | `git --version` | [git-scm.com](https://git-scm.com/) |
+| **uv** (package manager) | Latest | `uv --version` | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
 | **Cortex XSIAM API Credentials** | N/A | See below | [XSIAM API Guide](https://docs-cortex.paloaltonetworks.com/r/Cortex-XSIAM/Cortex-XSIAM-Administrator-Guide/Get-Started-with-APIs) |
+
+> **Why uv?** The SDK tools (`sdk_upload`, `sdk_validate`, etc.) use `uvx` to run `demisto-sdk` in an isolated environment, avoiding dependency conflicts. Without `uv`, SDK tools will fail silently.
 
 ### Verify Official MCP Server is Working
 
@@ -149,9 +152,45 @@ ls /path/to/cortex-mcp/src/usecase/custom_components/openapi/*.yaml | wc -l
 
 ---
 
-### Step 4: Restart MCP Server
+### Step 4: Install Dependencies
 
-The MCP server needs to reload to discover the new tools.
+After copying the custom tools, install any additional Python dependencies they require:
+
+```bash
+cd /path/to/cortex-mcp
+source venv/bin/activate   # If using Poetry/venv
+poetry install             # Installs all declared dependencies (including aiohttp)
+```
+
+> **Why this matters:** Some custom tools (e.g., `insert_playbook`) require `aiohttp`, which is declared in `pyproject.toml` but only installed when you run `poetry install`. Skipping this step will cause runtime errors.
+
+---
+
+### Step 5: Configure Credentials
+
+```bash
+# Copy the example environment file
+cp .env.example .env
+
+# Edit with your XSIAM API credentials
+# Get these from: XSIAM > Settings > Configurations > API Keys
+nano .env   # or your preferred editor
+```
+
+The three required values in `.env`:
+```
+CORTEX_MCP_PAPI_URL=https://api-{tenant}.xdr.{region}.paloaltonetworks.com
+CORTEX_MCP_PAPI_AUTH_HEADER=your_api_key_here
+CORTEX_MCP_PAPI_AUTH_ID=your_api_key_id_here
+```
+
+> **Tip:** If you already configured credentials for the official PANW server (e.g., in `~/.claude.json` or environment variables), the custom tools will inherit them automatically. You can skip this step in that case.
+
+---
+
+### Step 6: Restart MCP Server
+
+The MCP server needs to reload to discover the new tools and dependencies.
 
 **For Poetry/Manual Installation:**
 ```bash
@@ -195,7 +234,7 @@ docker ps | grep cortex-mcp
 
 ---
 
-### Step 5: Verify Installation
+### Step 7: Verify Installation
 
 Open Claude Desktop or Claude Code and reconnect to the MCP server.
 
@@ -258,7 +297,7 @@ Issue Management (4 tools):
 
 ---
 
-## Step 6: Test Basic Functionality
+## Step 8: Test Basic Functionality
 
 Verify the tools work by testing each category:
 
@@ -304,50 +343,29 @@ Ask Claude: "List available XSOAR integration scripts"
 
 ---
 
-## Step 7: Install Demisto SDK (REQUIRED)
+## Step 9: Install Demisto SDK (Optional)
 
-**MANDATORY:** The following 10 SDK tools will NOT work without demisto-sdk:
+The following 10 SDK tools require demisto-sdk:
 - sdk_upload, sdk_validate, sdk_lint
 - sdk_init, sdk_download, sdk_run
 - sdk_run_playbook, sdk_generate_docs
 - sdk_split, sdk_unify
 
-**Install demisto-sdk now.** The other 80 tools work without it, but you'll want SDK tools for creating/uploading content.
+The other 80 tools work without it. SDK tools **automatically use your MCP credentials** - no separate configuration needed.
 
-SDK tools **automatically use your MCP credentials** - no separate configuration needed.
+### Step 9.1: Verify uv is Installed
 
-### Step 7.1: Choose Installation Method
-
-**Method A: Using uvx (Recommended)**
-
-Install uv package manager:
+If you followed the prerequisites, `uv` is already installed. Verify:
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-Verify:
-```bash
-which uvx
-# Expected: /Users/yourname/.cargo/bin/uvx
-
 uvx demisto-sdk --version
 # Expected: demisto-sdk 1.x.x
 ```
 
-**Method B: Direct Installation**
+> **Alternative (not recommended):** You can install demisto-sdk directly with `pip3 install demisto-sdk`, but this requires Python 3.9-3.12 and may conflict with MCP's pydantic 2.x requirement. Using `uvx` avoids this entirely.
 
-Install demisto-sdk directly:
-```bash
-pip3 install demisto-sdk
-demisto-sdk --version
-# Expected: demisto-sdk 1.x.x
-```
+### Step 9.2: Setup Content Repository
 
-**Note:** Requires Python 3.9-3.12. May conflict with MCP's Python 3.12+. Method A (uvx) handles this automatically.
-
-### Step 7.2: Setup Content Repository
-
-Create content directory (REQUIRED):
+Create content directory (required for SDK tools):
 ```bash
 mkdir -p ~/content/Packs
 ```
@@ -358,7 +376,7 @@ export CONTENT_PATH=/your/custom/path
 mkdir -p $CONTENT_PATH/Packs
 ```
 
-### Step 7.3: Test SDK Tools
+### Step 9.3: Test SDK Tools
 
 In Claude:
 ```
@@ -374,11 +392,15 @@ Ask Claude: "List available XSOAR scripts"
 
 Before considering installation complete, verify:
 
+- [ ] **uv installed** (`uv --version` returns a version)
+- [ ] **Dependencies installed** (`poetry install` completed without errors)
+- [ ] **Credentials configured** (`.env` file has your API key, URL, and key ID)
 - [ ] **90 tools visible** in Claude (not 6)
 - [ ] **Can list cases** without authentication errors
 - [ ] **Can run XQL queries** and get results
 - [ ] **Enrichment works** (test with known good IP like 8.8.8.8)
 - [ ] **Can list endpoints** in your environment
+- [ ] **Content repo exists** (`ls ~/content/Packs` works)
 - [ ] **SDK tools respond** (at minimum, list scripts works)
 - [ ] **No import errors** in MCP server logs
 
@@ -505,18 +527,27 @@ Once installation is complete:
 
 **Installation Summary:**
 ```bash
-# 1. Download/clone
+# 1. Install uv (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# 2. Download/clone
 git clone https://github.com/alexpekarovsky/cortex-bot.git
 
-# 2. Copy
-cp -r custom_components/* ~/cortex-mcp/src/usecase/custom_components/
+# 3. Copy custom tools
+cp -r cortex-bot/custom_components/* ~/cortex-mcp/src/usecase/custom_components/
 
-# 3. Restart
+# 4. Install dependencies
+cd ~/cortex-mcp && poetry install
+
+# 5. Configure credentials
+cp .env.example .env && nano .env
+
+# 6. Create content repo (for SDK tools)
+mkdir -p ~/content/Packs
+
+# 7. Restart and verify
 pkill -f cortex.*main.py
-
-# 4. Verify
-# In Claude: "List all tools"
-# Should see: 90 tools
+# In Claude: /mcp → should show 90 tools
 ```
 
 **Success Criteria:**
@@ -533,6 +564,4 @@ pkill -f cortex.*main.py
 
 ---
 
-**Estimated installation time:** 5-10 minutes
-
-**Difficulty:** Easy (if official PANW MCP is already working)
+**Difficulty:** Straightforward if the official PANW MCP server is already working.
