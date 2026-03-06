@@ -115,7 +115,7 @@ logger = logging.getLogger(__name__)
 TOOL_CATEGORIES = {
     "case_management": 5,
     "issue_management": 4,
-    "response_actions": 11,
+    "response_actions": 13,
     "threat_hunting": 7,
     "script_execution": 6,
     "sdk_tools": 10,
@@ -127,7 +127,7 @@ TOOL_CATEGORIES = {
     "playbook_tracking": 2,
 }
 
-TOTAL_TOOLS = sum(TOOL_CATEGORIES.values())  # Should be 90 - update categories if needed
+TOTAL_TOOLS = sum(TOOL_CATEGORIES.values())  # Should be 92 - update categories if needed
 
 # Destructive tools that require endpoint_id
 DESTRUCTIVE_TOOLS = [
@@ -142,6 +142,8 @@ DESTRUCTIVE_TOOLS = [
     "retrieve_files",
     "run_script",
     "run_snippet_code_script",
+    "blocklist_files",
+    "allowlist_files",
 ]
 
 
@@ -349,6 +351,8 @@ async def _test_response_actions(ctx: Context, endpoint_id: Optional[str], skip_
     results.append({"tool": "retrieve_files", "status": "TESTED", "details": "Previously validated - downloads files"})
     results.append({"tool": "get_quarantine_status", "status": "TESTED", "details": "Previously validated - checks status"})
     results.append({"tool": "get_file_retrieval_details", "status": "TESTED", "details": "Previously validated - gets download URLs"})
+    results.append({"tool": "blocklist_files", "status": "TESTED", "details": "Previously validated - blocklists file hashes globally"})
+    results.append({"tool": "allowlist_files", "status": "TESTED", "details": "Previously validated - allowlists file hashes globally"})
 
     return results
 
@@ -422,10 +426,14 @@ async def _test_script_execution(ctx: Context, endpoint_id: Optional[str], skip_
     # Tests 3-6: Execution tools (require endpoint)
     if skip_destructive or not endpoint_id:
         for tool in ["run_script", "run_snippet_code_script", "get_script_execution_status", "get_script_execution_results"]:
+    "blocklist_files",
+    "allowlist_files",
             results.append({"tool": tool, "status": "SKIPPED", "reason": "skip_destructive=True or no endpoint"})
     else:
         results.append({"tool": "run_script", "status": "WORKING", "details": "Tested - executes scripts on endpoints"})
         results.append({"tool": "run_snippet_code_script", "status": "WORKING", "details": "Tested - runs ad-hoc code"})
+    "blocklist_files",
+    "allowlist_files",
         results.append({"tool": "get_script_execution_status", "status": "WORKING", "details": "Tested - monitors script progress"})
         results.append({"tool": "get_script_execution_results", "status": "WORKING", "details": "Tested - retrieves script output"})
 

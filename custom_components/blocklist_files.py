@@ -6,7 +6,8 @@ on managed endpoints.
 """
 
 import logging
-from typing import Annotated, Optional
+import re
+from typing import Annotated
 
 from fastmcp import Context, FastMCP
 from pydantic import Field
@@ -29,8 +30,8 @@ logger = logging.getLogger(__name__)
 async def blocklist_files(
     ctx: Context,
     hash_list: Annotated[list[str], Field(description="List of file hashes (MD5, SHA1, or SHA256) to add to blocklist")],
-    comment: Annotated[Optional[str], Field(description="Optional comment explaining why these hashes are being blocklisted")] = None,
-    incident_id: Annotated[Optional[int], Field(description="Optional incident/case ID to associate this blocklist action with")] = None,
+    comment: Annotated[str | None, Field(description="Optional comment explaining why these hashes are being blocklisted")] = None,
+    incident_id: Annotated[int | None, Field(description="Optional incident/case ID to associate this blocklist action with")] = None,
     confirm_destructive_action: Annotated[bool, Field(
         description="REQUIRED: Must be True to execute. This is a destructive action that cannot be easily reversed."
     )] = False,
@@ -85,6 +86,24 @@ async def blocklist_files(
             data={
                 "error": "hash_list cannot be empty",
                 "message": "At least one hash must be provided to blocklist"
+            },
+            is_error=True
+        )
+
+
+    # Validate hash format (MD5=32, SHA1=40, SHA256=64 hex chars)
+    valid_lengths = {32, 40, 64}
+    hex_pattern = re.compile(r'^[0-9a-fA-F]+$')
+    invalid_hashes = [
+        h for h in hash_list
+        if len(h) not in valid_lengths or not hex_pattern.match(h)
+    ]
+    if invalid_hashes:
+        return create_response(
+            data={
+                "error": "Invalid hash format",
+                "invalid_hashes": invalid_hashes,
+                "expected": "Hexadecimal string of length 32 (MD5), 40 (SHA1), or 64 (SHA256)",
             },
             is_error=True
         )
