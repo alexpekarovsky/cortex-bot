@@ -1,6 +1,6 @@
 # Installation Guide - Cortex Bot Custom Tools
 
-Complete installation guide for adding 84 custom tools to your official Palo Alto Networks Cortex MCP Server.
+Complete installation guide for adding 86 custom tools to your official Palo Alto Networks Cortex MCP Server.
 
 **Tested and verified:** This procedure successfully installed all 90 tools with 100% success rate.
 
