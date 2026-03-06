@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 
-**Cortex Bot** is an AI-powered security operations assistant for [Cortex XSIAM](https://www.paloaltonetworks.com/cortex/cortex-xsiam). This repository contains **84 custom MCP tools** — the first delivered component of the full Cortex Bot project, which will include smart automation, skills, and sub-agents.
+**Cortex Bot** is an AI-powered security operations assistant for [Cortex XSIAM](https://www.paloaltonetworks.com/cortex/cortex-xsiam). This repository contains **86 custom MCP tools** — the first delivered component of the full Cortex Bot project, which will include smart automation, skills, and sub-agents.
 
 Built as an extension to the official [Palo Alto Networks Cortex MCP Server](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools), these tools transform any MCP-compatible AI assistant into a senior SOC analyst capable of investigating incidents, hunting threats, executing response actions, and building XSOAR content.
 
@@ -77,7 +77,7 @@ These come from the official server (not this repo):
 **Response & Containment:**
 - **Endpoint Actions** - Isolate, scan, retrieve files
 - **Process Control** - Terminate processes and causality chains
-- **File Operations** - Quarantine, restore, check status
+- **File Operations** - Quarantine, restore, blocklist, allowlist, check status
 - **Indicator Blocking** - IOC management and blocklisting
 
 **XSOAR Development (10 SDK Tools):**
@@ -549,12 +549,14 @@ insert_correlation_rule(
 
 ### Additional Tools
 
-**File Operations (5 tools)** — Quarantine malicious files, retrieve forensic evidence, restore false positive quarantines.
+**File Operations (7 tools)** — Quarantine and restore files, blocklist/allowlist hashes, retrieve forensic evidence.
 
 | Tool | Description |
 |------|-------------|
 | `quarantine_files` | Quarantine files on endpoints |
 | `restore_file` | Restore a quarantined file |
+| `blocklist_files` | Add file hashes to enterprise blocklist |
+| `allowlist_files` | Add file hashes to enterprise allowlist |
 | `retrieve_files` | Download files from endpoints for analysis |
 | `get_file_retrieval_details` | Get download link for retrieved files |
 | `get_quarantine_status` | Check quarantine status of files |

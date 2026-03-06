@@ -1,0 +1,101 @@
+openapi: 3.0.0
+paths:
+  /public_api/v1/hash_exceptions/allowlist:
+    post:
+      summary: Add Files to Allowlist
+      description: |-
+        HIGH RISK ACTION - Requires Confirmation
+        Reversal: Files can be removed from allowlist if security policies change.
+
+        Adds file hashes to the Cortex XSIAM allowlist to exempt them from security
+        restrictions. Allowlisted files will bypass security controls on all managed
+        endpoints.
+
+        SECURITY WARNING: Allowlisting files can compromise security if done incorrectly.
+        Only allowlist files after thorough verification and analysis confirm they are safe.
+
+        Use this when:
+        - You've confirmed files are benign after thorough analysis
+        - False positive detections need to be exempted from blocking
+        - Legitimate applications are being incorrectly blocked or quarantined
+        - Your organization's custom/proprietary software is being flagged
+        - You need to override blocklist decisions with explicit allowlist
+
+        Files added to allowlist can be removed later via the API if security
+        policy changes or new threats are discovered.
+      operationId: allowlist_files
+      tags:
+        - Endpoint Response
+      requestBody:
+        description: JSON object containing file hashes to allowlist
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AllowlistFilesRequest'
+            examples:
+              allowlist_hashes:
+                summary: Allowlist legitimate application files
+                value:
+                  request_data:
+                    hash_list:
+                      - "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                      - "d41d8cd98f00b204e9800998ecf8427e"
+                    comment: "Confirmed safe - custom enterprise application v2.1"
+                    incident_id: 350
+      responses:
+        '200':
+          description: Successful response - hashes added to allowlist
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Response containing allowlist operation status
+                properties:
+                  success:
+                    type: boolean
+                    description: Whether the operation succeeded
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  hash_count:
+                    type: integer
+                  hash_list:
+                    type: array
+                    items:
+                      type: string
+                additionalProperties: true
+        '400':
+          description: Bad request - invalid parameters or empty hash list
+        '401':
+          description: Unauthorized - invalid API credentials
+        '403':
+          description: Forbidden - insufficient permissions
+
+components:
+  schemas:
+    AllowlistFilesRequest:
+      type: object
+      properties:
+        request_data:
+          type: object
+          required:
+            - hash_list
+          properties:
+            hash_list:
+              type: array
+              description: List of file hashes (MD5, SHA1, or SHA256) to allowlist
+              items:
+                type: string
+              example:
+                - "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                - "d41d8cd98f00b204e9800998ecf8427e"
+            comment:
+              type: string
+              description: Optional comment explaining why these files are being allowlisted
+              example: "Confirmed safe - custom enterprise application v2.1"
+            incident_id:
+              type: integer
+              description: Optional incident/case ID to associate this action with for tracking and audit
+              example: 350

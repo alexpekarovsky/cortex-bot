@@ -22,7 +22,7 @@ The tools require API permissions based on functionality:
 | Case/Issue Management | Read incidents, Read alerts, Update incidents, Update alerts |
 | Threat Hunting | Execute XQL queries, Read security data |
 | Enrichment | Access threat intelligence integrations |
-| Response Actions | Isolate endpoints, Terminate processes, Quarantine files, Execute scripts |
+| Response Actions | Isolate endpoints, Terminate processes, Quarantine files, Blocklist/Allowlist files, Execute scripts |
 | SDK Tools | Upload content, Validate content, Download content |
 | Assets | Read asset inventory, Read endpoints |
 
@@ -140,6 +140,8 @@ The following tools can make irreversible changes:
 | `terminate_process` | Kill process | HIGH | No |
 | `terminate_causality` | Kill process tree | HIGH | No |
 | `quarantine_files` | Quarantine files | HIGH | Yes (restore_file) |
+| `blocklist_files` | Blocklist file hashes globally | HIGH | Yes (allowlist API) |
+| `allowlist_files` | Allowlist file hashes globally | HIGH | Yes (removal via API) |
 | `run_script` | Execute scripts | HIGH | Depends on script |
 | `run_snippet_code_script` | Execute code | HIGH | Depends on code |
 
