@@ -87,8 +87,9 @@ async def get_playbook(
                     is_error=True
                 )
 
-            # Read the first YAML file (should be only one)
-            yaml_filename = file_list[0]
+            # Find the YAML file (not metadata.json)
+            yaml_files = [f for f in file_list if f.endswith(('.yml', '.yaml'))]
+            yaml_filename = yaml_files[0] if yaml_files else file_list[0]
             yaml_content = zip_file.read(yaml_filename).decode('utf-8')
 
             return create_response(data={
