@@ -51,7 +51,7 @@ async def _find_case_id(ctx: Context) -> str:
             "request_data": {
                 "search_from": 0,
                 "search_to": 5,
-                "sort": [{"field": "creation_time", "keyword": "desc"}]
+                "sort": {"field": "creation_time", "keyword": "desc"}
             }
         }
 
