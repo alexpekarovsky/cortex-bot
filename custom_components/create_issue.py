@@ -118,7 +118,7 @@ async def create_issue(
             "name": name,
             "description": description,
             "observation_time": timestamp,
-            "domain": domain.upper(),
+            "issue_domain": domain.upper(),
             "category": category.upper(),
             "severity": severity.upper(),
             "tags": tags,
@@ -160,7 +160,7 @@ async def create_issue(
                 await asyncio.sleep(2)  # Brief wait for issue to be indexed
 
                 issues_response = await fetcher.send_request(
-                    path="/public_api/v1/issues",
+                    path="/issue/search/",
                     method="POST",
                     data={
                         "request_data": {
