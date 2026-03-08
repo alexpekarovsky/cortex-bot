@@ -79,12 +79,12 @@ async def _query_integrations_via_xsoar_api(ctx: Context, integration_filter: Op
     return None
 
 
-async def _find_case_id(ctx: Context) -> str:
+async def _find_alert_id(ctx: Context) -> str:
     """
-    Finds a recent case ID suitable for War Room commands.
+    Finds a recent alert/issue ID suitable for War Room commands.
 
-    Queries the cases API for a recent case. War Room commands require
-    a case/incident ID — alert/issue IDs do not work.
+    Queries the issues API for a recent issue. War Room commands must target
+    alert/issue IDs — case IDs cause a server-side panic via the public API.
     """
     fetcher = await get_fetcher(ctx)
 
@@ -93,46 +93,49 @@ async def _find_case_id(ctx: Context) -> str:
             "request_data": {
                 "search_from": 0,
                 "search_to": 5,
-                "sort": {"field": "creation_time", "keyword": "desc"}
+                "sort": {"field": "observation_time", "keyword": "desc"}
             }
         }
 
-        cases_response = await fetcher.send_request(
-            path="case/search/",
+        issues_response = await fetcher.send_request(
+            path="/issue/search/",
             method="POST",
             data=payload
         )
 
-        if isinstance(cases_response, dict):
-            reply = cases_response.get("reply", cases_response)
-            cases = reply.get("DATA", reply.get("data", []))
-            for case in cases:
-                candidate_id = case.get("case_id") or case.get("id")
+        if isinstance(issues_response, dict):
+            reply = issues_response.get("reply", issues_response)
+            issues = reply.get("DATA", reply.get("data", []))
+            for issue in issues:
+                candidate_id = issue.get("id") or issue.get("alert_id")
                 if candidate_id:
-                    case_id = str(candidate_id)
-                    logger.info(f"Auto-found case_id for War Room: {case_id}")
-                    return case_id
+                    alert_id = str(candidate_id)
+                    logger.info(f"Auto-found alert_id for War Room: {alert_id}")
+                    return alert_id
 
     except Exception as e:
-        logger.warning(f"Failed to query cases API: {e}")
+        logger.warning(f"Failed to query issues API: {e}")
 
     raise RuntimeError(
-        "Could not find a case for War Room commands. "
-        "Please provide a case_id manually, or create an issue with "
-        "MEDIUM+ severity so it gets grouped into a Case."
+        "Could not find an alert/issue for War Room commands. "
+        "Please provide an alert_id manually, or create an issue with "
+        "create_issue first."
     )
 
 
-async def _run_war_room_command(ctx: Context, case_id: str, command: str, timeout_seconds: int = 20) -> dict:
+async def _run_war_room_command(ctx: Context, alert_id: str, command: str, timeout_seconds: int = 20) -> dict:
     """
     Executes an XSOAR command via War Room and waits for results.
+
+    IMPORTANT: Use alert/issue IDs, NOT case IDs. Case IDs cause a
+    server-side panic via the public API. Alert/issue IDs work correctly.
     """
     from datetime import datetime
 
     fetcher = await get_fetcher(ctx)
 
-    # Send command to War Room
-    request_data = {"id": case_id, "data": command}
+    # Send command to War Room — must use alert/issue ID, not case ID
+    request_data = {"id": alert_id, "data": command}
 
     try:
         response = await fetcher.send_request(
@@ -145,8 +148,8 @@ async def _run_war_room_command(ctx: Context, case_id: str, command: str, timeou
         if "Could not find investigations" in error_str:
             return {
                 "success": False,
-                "error": f"Case {case_id} does not have a War Room. "
-                         "Try a different case_id, or provide a case that has been investigated."
+                "error": f"Alert {alert_id} does not have a War Room. "
+                         "Try a different alert_id, or create an issue with create_issue first."
             }
         return {"success": False, "error": f"War Room command failed: {e}"}
 
@@ -170,7 +173,7 @@ async def _run_war_room_command(ctx: Context, case_id: str, command: str, timeou
             entries_response = await fetcher.send_request(
                 path="/entries/get",
                 method="POST",
-                data={"id": case_id, "filter": {"pagesize": 25}}
+                data={"id": alert_id, "filter": {"pagesize": 25}}
             )
 
             if isinstance(entries_response, dict) and "data" in entries_response:
@@ -302,8 +305,9 @@ async def list_integrations(
     only_enabled: Annotated[bool, Field(
         description="If True, only return enabled integrations (default: True)"
     )] = True,
-    case_id: Annotated[Optional[str], Field(
-        description="Case/incident ID for War Room execution (fallback method). "
+    alert_id: Annotated[Optional[str], Field(
+        description="Alert/issue ID for War Room execution (fallback method). "
+                    "Must be an alert/issue ID, NOT a case ID. "
                     "If not provided, one will be found automatically."
     )] = None,
 ) -> str:
@@ -326,7 +330,7 @@ async def list_integrations(
         ctx: The FastMCP context.
         integration_filter: Optional filter to search for specific integrations by name.
         only_enabled: If True, only return enabled integrations (default: True).
-        case_id: Case/incident ID for War Room fallback. Auto-detected if not provided.
+        alert_id: Alert/issue ID for War Room fallback. Auto-detected if not provided.
 
     Returns:
         JSON response containing list of integrations with their instances.
@@ -342,14 +346,14 @@ async def list_integrations(
     # Approach 2: Fall back to War Room
     logger.info("XSOAR API paths unavailable, falling back to War Room")
 
-    if not case_id:
+    if not alert_id:
         try:
-            case_id = await _find_case_id(ctx)
+            alert_id = await _find_alert_id(ctx)
         except RuntimeError as e:
             return create_response(
                 data={
                     "error": str(e),
-                    "hint": "Provide a case_id parameter (incident ID, not alert ID)."
+                    "hint": "Provide an alert_id parameter (issue/alert ID, NOT case ID)."
                 },
                 is_error=True
             )
@@ -359,19 +363,19 @@ async def list_integrations(
     if integration_filter:
         command += f' brand="{integration_filter}"'
 
-    war_room_result = await _run_war_room_command(ctx, case_id, command)
+    war_room_result = await _run_war_room_command(ctx, alert_id, command)
 
     if war_room_result.get("success") and war_room_result.get("results"):
         raw_content = war_room_result["results"][0].get("content", "")
         parsed = _parse_instances_response(raw_content, only_enabled)
         parsed["source"] = "war_room"
-        parsed["case_id_used"] = case_id
+        parsed["alert_id_used"] = alert_id
         return create_response(data=parsed)
 
     error_msg = war_room_result.get("error", "Unknown error")
     result = {
         "error": f"Failed to retrieve integrations: {error_msg}",
-        "case_id_used": case_id,
+        "alert_id_used": alert_id,
         "methods_tried": ["xsoar_api", "war_room"],
         "hint": "Check API key permissions. The key may need an 'Instance Administrator' or similar role "
                 "that includes SOAR integration access."
@@ -386,8 +390,9 @@ async def get_integration_commands(
     integration_name: Annotated[str, Field(
         description="Name of the integration to get commands for (e.g., 'VirusTotal', 'ActiveDirectory')"
     )],
-    case_id: Annotated[Optional[str], Field(
-        description="Case/incident ID for War Room execution (fallback method). "
+    alert_id: Annotated[Optional[str], Field(
+        description="Alert/issue ID for War Room execution (fallback method). "
+                    "Must be an alert/issue ID, NOT a case ID. "
                     "If not provided, one will be found automatically."
     )] = None,
 ) -> str:
@@ -400,7 +405,7 @@ async def get_integration_commands(
     Args:
         ctx: The FastMCP context.
         integration_name: Name of the integration (e.g., 'VirusTotal', 'ActiveDirectory').
-        case_id: Case/incident ID for War Room fallback. Auto-detected if not provided.
+        alert_id: Alert/issue ID for War Room fallback. Auto-detected if not provided.
 
     Returns:
         JSON response with integration instance information.
@@ -419,20 +424,20 @@ async def get_integration_commands(
     # Approach 2: Fall back to War Room
     logger.info("XSOAR API paths unavailable, falling back to War Room")
 
-    if not case_id:
+    if not alert_id:
         try:
-            case_id = await _find_case_id(ctx)
+            alert_id = await _find_alert_id(ctx)
         except RuntimeError as e:
             return create_response(
                 data={
                     "error": str(e),
-                    "hint": "Provide a case_id parameter (incident ID, not alert ID)."
+                    "hint": "Provide an alert_id parameter (issue/alert ID, NOT case ID)."
                 },
                 is_error=True
             )
 
     command = f'!GetInstances brand="{integration_name}"'
-    war_room_result = await _run_war_room_command(ctx, case_id, command)
+    war_room_result = await _run_war_room_command(ctx, alert_id, command)
 
     if war_room_result.get("success") and war_room_result.get("results"):
         raw_content = war_room_result["results"][0].get("content", "")
@@ -441,14 +446,14 @@ async def get_integration_commands(
         return create_response(data={
             "integration_name": integration_name,
             "source": "war_room",
-            "case_id_used": case_id,
+            "alert_id_used": alert_id,
             **parsed,
         })
 
     error_msg = war_room_result.get("error", "Unknown error")
     result = {
         "error": f"Failed to retrieve integration '{integration_name}': {error_msg}",
-        "case_id_used": case_id,
+        "alert_id_used": alert_id,
         "methods_tried": ["xsoar_api", "war_room"],
         "hint": "Check API key permissions or try a different integration name."
     }
