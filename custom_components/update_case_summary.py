@@ -98,15 +98,16 @@ async def update_case_ai_summary(
         )
 
         incident_details = incident_response.get('reply', {}).get('incident', {})
-        hosts = incident_details.get('hosts', [])
-        users = incident_details.get('users', [])
-        alerts = incident_details.get('alerts', [])
+        hosts = incident_details.get('hosts') or []
+        users = incident_details.get('users') or []
+        alerts_data = incident_response.get('reply', {}).get('alerts', {})
+        alerts = alerts_data.get('data', []) if isinstance(alerts_data, dict) else []
 
         logger.info(f"Collected case data: {len(hosts)} hosts, {len(users)} users, {len(alerts)} alerts")
 
         # Generate comprehensive summary
-        mitre_tactics = case_data.get('mitre_tactics_ids_and_names', [])
-        mitre_techniques = case_data.get('mitre_techniques_ids_and_names', [])
+        mitre_tactics = case_data.get('mitre_tactics_ids_and_names') or []
+        mitre_techniques = case_data.get('mitre_techniques_ids_and_names') or []
 
         summary = f"""# Security Incident Investigation Report
 ## Case {case_id}: Advanced Threat Analysis
@@ -156,7 +157,7 @@ This incident exhibits characteristics of an Advanced Persistent Threat (APT) op
 {chr(10).join(f"- **{host.get('host_name', 'Unknown') if isinstance(host, dict) else str(host)}** - The computer where most malicious activity was detected" for host in hosts[:5]) if hosts else '- Investigation ongoing to identify primary targets'}
 
 **Compromised Identities - The Accounts Used by Attackers:**
-{chr(10).join(f"- **{user}** - This credential was either stolen or misused" for user in case_data.get('users', [])[:15])}
+{chr(10).join(f"- **{user}** - This credential was either stolen or misused" for user in (case_data.get('users') or [])[:15])}
 
 ### Alert Severity Distribution
 
@@ -182,9 +183,9 @@ Specific techniques identified through behavioral analysis and correlation:
 {chr(10).join(f"- **{technique.split(' - ')[0]}**: {technique.split(' - ')[1] if ' - ' in technique else technique}" for technique in mitre_techniques[:10]) if mitre_techniques else '- Attack techniques under analysis'}
 
 ### Attack Classification
-**Categories:** {', '.join(case_data.get('issue_categories', ['Advanced Persistent Threat'])[:5])}
+**Categories:** {', '.join((case_data.get('issue_categories') or ['Advanced Persistent Threat'])[:5])}
 
-This intrusion demonstrates characteristics of {', '.join(case_data.get('issue_categories', ['sophisticated attack campaign'])[:3]).lower()}, indicating targeted reconnaissance, privilege escalation, and potential data exfiltration objectives.
+This intrusion demonstrates characteristics of {', '.join((case_data.get('issue_categories') or ['sophisticated attack campaign'])[:3]).lower()}, indicating targeted reconnaissance, privilege escalation, and potential data exfiltration objectives.
 
 ---
 
@@ -229,7 +230,7 @@ Based on observed TTPs, this threat demonstrates:
 - Preserve forensic evidence
 
 **2. CREDENTIAL RESPONSE**
-- Force password reset for: {', '.join(case_data.get('users', [])[:3])}
+- Force password reset for: {', '.join((case_data.get('users') or [])[:3]) or 'N/A'}
 - Revoke all active authentication tokens
 - Implement emergency MFA enforcement
 
@@ -370,7 +371,7 @@ Based on observed TTPs, this threat demonstrates:
 - **Host Count:** {case_data.get('host_count', 0)}
 
 **Classification Tags:**
-{', '.join(case_data.get('tags', [])[:10])}
+{', '.join((case_data.get('tags') or [])[:10])}
 
 ---
 
