@@ -5,17 +5,13 @@ Discovers available XSOAR integrations, their commands, and active instances.
 This is critical for knowing what threat intelligence and automation capabilities
 are available in the XSIAM environment.
 
-Uses the /settings/integration-search API when available, falling back to
-!GetInstances via War Room when the API endpoint returns errors (BUG-001).
-
-War Room notes:
-- War Room commands only work on alert/issue IDs, NOT case IDs.
-- The alert must already have an investigation context (War Room initialized).
-  Newly created alerts may not have one yet.
-- Use an alert ID from a previously investigated case (e.g., from get_issues).
+Approach priority:
+1. XSOAR internal API (/xsoar/public/v1/settings/integration/search) — direct query
+2. War Room (!GetInstances via /entries/insert + /entries/get) — fallback
 """
 
 import asyncio
+import json
 import logging
 from typing import Annotated, Optional
 
@@ -24,40 +20,137 @@ from pydantic import Field
 
 from pkg.util import create_response
 from usecase.base_module import BaseModule
+from usecase.fetcher import get_fetcher
 
 logger = logging.getLogger(__name__)
 
+# XSOAR internal API paths to try for listing integration instances
+XSOAR_INTEGRATION_PATHS = [
+    "/xsoar/public/v1/settings/integration/search",
+    "/xsoar/public/v1/settings/integration-search",
+]
 
-async def _run_war_room_command(ctx, alert_id: str, command: str, timeout_seconds: int = 20) -> dict:
+
+async def _query_integrations_via_xsoar_api(ctx: Context, integration_filter: Optional[str] = None) -> Optional[dict]:
+    """
+    Try to query integrations via XSOAR internal API endpoints.
+
+    XSIAM exposes XSOAR APIs at /xsoar/public/v1/. This function tries
+    known XSOAR endpoints for listing integration instances.
+
+    Returns parsed integration data or None if no endpoint works.
+    """
+    fetcher = await get_fetcher(ctx)
+
+    # Build search payload
+    payload = {}
+    if integration_filter:
+        payload = {"name": integration_filter}
+
+    for path in XSOAR_INTEGRATION_PATHS:
+        try:
+            logger.info(f"Trying XSOAR API path: {path}")
+            response = await fetcher.send_request(
+                path=path,
+                method="POST",
+                data=payload,
+                omit_papi_prefix=True
+            )
+
+            if isinstance(response, dict):
+                # XSOAR returns integration instances directly
+                instances = response.get("instances", response.get("configurations", []))
+                if isinstance(response, list):
+                    instances = response
+
+                logger.info(f"XSOAR API {path} returned {len(instances) if isinstance(instances, list) else 'dict'} result(s)")
+                return {"source": "xsoar_api", "path": path, "data": response}
+
+        except Exception as e:
+            error_str = str(e)
+            logger.info(f"XSOAR API path {path} failed: {error_str[:200]}")
+            # 303 redirect means the path exists but redirects — try next
+            # 400/404 means invalid — try next
+            # 401/403 means auth issue — try next but log warning
+            if "401" in error_str or "403" in error_str:
+                logger.warning(f"Auth error on {path} — API key may lack SOAR permissions")
+            continue
+
+    return None
+
+
+async def _find_alert_id(ctx: Context) -> str:
+    """
+    Finds a recent alert/issue ID suitable for War Room commands.
+
+    Queries the issues API for a recent issue. War Room commands must target
+    alert/issue IDs — case IDs cause a server-side panic via the public API.
+    """
+    fetcher = await get_fetcher(ctx)
+
+    try:
+        payload = {
+            "request_data": {
+                "search_from": 0,
+                "search_to": 5,
+                "sort": {"field": "observation_time", "keyword": "desc"}
+            }
+        }
+
+        issues_response = await fetcher.send_request(
+            path="/issue/search/",
+            method="POST",
+            data=payload
+        )
+
+        if isinstance(issues_response, dict):
+            reply = issues_response.get("reply", issues_response)
+            issues = reply.get("DATA", reply.get("data", []))
+            for issue in issues:
+                candidate_id = issue.get("id") or issue.get("alert_id")
+                if candidate_id:
+                    alert_id = str(candidate_id)
+                    logger.info(f"Auto-found alert_id for War Room: {alert_id}")
+                    return alert_id
+
+    except Exception as e:
+        logger.warning(f"Failed to query issues API: {e}")
+
+    raise RuntimeError(
+        "Could not find an alert/issue for War Room commands. "
+        "Please provide an alert_id manually, or create an issue with "
+        "create_issue first."
+    )
+
+
+async def _run_war_room_command(ctx: Context, alert_id: str, command: str, timeout_seconds: int = 20) -> dict:
     """
     Executes an XSOAR command via War Room and waits for results.
 
-    IMPORTANT: War Room commands only work on alert/issue IDs (not case IDs).
-    The alert must have an existing investigation context.
-
-    Args:
-        ctx: The FastMCP context.
-        alert_id: Alert/issue ID with an active War Room (e.g., '6126').
-        command: XSOAR command string (e.g., '!GetInstances instance_status="active"').
-        timeout_seconds: Maximum seconds to wait for results.
-
-    Returns:
-        dict with 'success' bool and 'results' list, or error info.
+    IMPORTANT: Use alert/issue IDs, NOT case IDs. Case IDs cause a
+    server-side panic via the public API. Alert/issue IDs work correctly.
     """
     from datetime import datetime
 
-    from usecase.fetcher import get_fetcher
-
     fetcher = await get_fetcher(ctx)
 
-    # Send command to War Room
+    # Send command to War Room — must use alert/issue ID, not case ID
+    request_data = {"id": alert_id, "data": command}
+
     try:
         response = await fetcher.send_request(
             path="/entries/insert",
             method="POST",
-            data={"id": alert_id, "data": command}
+            data=request_data
         )
     except Exception as e:
+        error_str = str(e)
+        if "Could not find investigations" in error_str:
+            return {
+                "success": False,
+                "error": f"Alert {alert_id} does not have a War Room. "
+                         "Try a different alert_id, or create an issue with create_issue first."
+            }
         return {"success": False, "error": f"War Room command failed: {e}"}
 
     if not isinstance(response, dict):
@@ -90,6 +183,18 @@ async def _run_war_room_command(ctx, alert_id: str, command: str, timeout_second
                         continue
 
                     parent_content = entry.get("parentContent", "")
+                    content = entry.get("contents", "")
+
+                    # Detect platform panic errors
+                    if content and "Panic" in content and "runtime error" in content:
+                        seen_entry_ids.add(entry_id)
+                        return {
+                            "success": False,
+                            "error": "XSIAM platform error: War Room command caused a server-side panic. "
+                                     "This is a known platform issue. The command cannot be executed via the API at this time.",
+                            "platform_error": content,
+                        }
+
                     if (entry.get("category") == "artifact" and
                             parent_content and
                             f"!{command_name}" in parent_content):
@@ -98,7 +203,6 @@ async def _run_war_room_command(ctx, alert_id: str, command: str, timeout_second
                         if entry_created:
                             entry_time = datetime.fromisoformat(entry_created.replace('Z', '+00:00'))
                             if entry_time > command_time:
-                                content = entry.get("contents", "")
                                 if content and len(content) > 5:
                                     seen_entry_ids.add(entry_id)
                                     collected_results.append({
@@ -128,74 +232,68 @@ async def _run_war_room_command(ctx, alert_id: str, command: str, timeout_second
     }
 
 
-def _parse_instances_to_integrations(raw_content: str, only_enabled: bool = True) -> dict:
+def _parse_instances_response(data, only_enabled: bool = True) -> dict:
     """
-    Parse !GetInstances War Room output into a structured integration list.
-
-    The War Room returns instance data as a markdown table or JSON. This function
-    normalizes it into the same shape as the API response.
+    Parse integration instances from either XSOAR API response or War Room output
+    into a structured integration list.
     """
-    import json
-
     integrations_by_brand = {}
+    instances = []
 
-    # Try parsing as JSON first (some XSOAR versions return JSON)
-    try:
-        if isinstance(raw_content, str):
-            data = json.loads(raw_content)
-        else:
-            data = raw_content
-
-        if isinstance(data, list):
-            instances = data
-        elif isinstance(data, dict):
-            instances = [data]
-        else:
-            instances = []
-
-        for instance in instances:
-            brand = instance.get("brand", instance.get("name", "Unknown"))
-            enabled = instance.get("enabled", "true")
-            if isinstance(enabled, str):
-                enabled = enabled.lower() == "true"
-
-            if only_enabled and not enabled:
-                continue
-
-            if brand not in integrations_by_brand:
-                integrations_by_brand[brand] = {
-                    "name": brand,
-                    "display_name": brand,
-                    "category": instance.get("category", "Unknown"),
-                    "description": instance.get("description", ""),
-                    "instances": [],
-                }
-
-            integrations_by_brand[brand]["instances"].append({
-                "name": instance.get("name", brand),
-                "enabled": enabled,
-                "brand": brand,
-            })
-
-        if integrations_by_brand:
-            result_list = list(integrations_by_brand.values())
+    # Handle various response formats
+    if isinstance(data, str):
+        try:
+            data = json.loads(data)
+        except (json.JSONDecodeError, TypeError):
             return {
-                "total_count": len(result_list),
-                "integrations": result_list,
-                "source": "war_room_fallback",
-                "note": "Retrieved via !GetInstances. Command-level details are not available through this method."
+                "total_count": 0,
+                "integrations": [],
+                "raw_output": data,
+                "note": "Could not parse structured data. Raw output included."
             }
 
-    except (json.JSONDecodeError, TypeError):
-        pass
+    if isinstance(data, list):
+        instances = data
+    elif isinstance(data, dict):
+        # XSOAR API may return instances under various keys
+        instances = (data.get("instances", None)
+                     or data.get("configurations", None)
+                     or data.get("reply", None)
+                     or [data])
+        if isinstance(instances, dict):
+            instances = [instances]
 
-    # If JSON parsing failed, return the raw content
+    for instance in instances:
+        if not isinstance(instance, dict):
+            continue
+
+        brand = instance.get("brand", instance.get("name", "Unknown"))
+        enabled = instance.get("enabled", instance.get("isActive", "true"))
+        if isinstance(enabled, str):
+            enabled = enabled.lower() in ("true", "active")
+
+        if only_enabled and not enabled:
+            continue
+
+        if brand not in integrations_by_brand:
+            integrations_by_brand[brand] = {
+                "name": brand,
+                "display_name": instance.get("displayName", brand),
+                "category": instance.get("category", "Unknown"),
+                "description": instance.get("description", ""),
+                "instances": [],
+            }
+
+        integrations_by_brand[brand]["instances"].append({
+            "name": instance.get("name", brand),
+            "enabled": enabled,
+            "brand": brand,
+        })
+
+    result_list = list(integrations_by_brand.values())
     return {
-        "total_count": 0,
-        "integrations": [],
-        "raw_output": raw_content if isinstance(raw_content, str) else str(raw_content),
-        "source": "war_room_fallback",
-        "note": "Could not parse structured data. Raw War Room output included."
+        "total_count": len(result_list),
+        "integrations": result_list,
     }
 
 
@@ -208,10 +306,9 @@ async def list_integrations(
         description="If True, only return enabled integrations (default: True)"
     )] = True,
     alert_id: Annotated[Optional[str], Field(
-        description="Alert/issue ID for War Room fallback (e.g., '6126'). "
-                    "Required when the API endpoint fails. Must be an alert that has an "
-                    "existing investigation (War Room). Use an alert from a previously "
-                    "investigated case, or create one with create_issue()."
+        description="Alert/issue ID for War Room execution (fallback method). "
+                    "Must be an alert/issue ID, NOT a case ID. "
+                    "If not provided, one will be found automatically."
     )] = None,
 ) -> str:
     """
@@ -226,103 +323,40 @@ async def list_integrations(
     - List automation and remediation integrations
     - Identify SIEM, SOAR, and ticketing system connections
 
-    The tool first tries the XSIAM API. If that fails (some tenants return 500 on
-    /settings/integration-search), it falls back to running !GetInstances via War Room.
-
-    IMPORTANT for War Room fallback:
-    - Provide an alert_id, NOT a case_id (War Room runs on issues, not cases)
-    - The alert must have an existing investigation context
-    - Use an alert from a previously investigated case (e.g., from get_issues)
+    The tool first tries the XSOAR internal API for listing integrations directly.
+    If that fails, it falls back to running !GetInstances via the War Room API.
 
     Args:
         ctx: The FastMCP context.
         integration_filter: Optional filter to search for specific integrations by name.
         only_enabled: If True, only return enabled integrations (default: True).
-        alert_id: Alert/issue ID for War Room fallback (e.g., '6126').
+        alert_id: Alert/issue ID for War Room fallback. Auto-detected if not provided.
 
     Returns:
-        JSON response containing list of integrations with their commands and capabilities.
+        JSON response containing list of integrations with their instances.
     """
-    from usecase.fetcher import get_fetcher
+    # Approach 1: Try XSOAR internal API
+    xsoar_result = await _query_integrations_via_xsoar_api(ctx, integration_filter)
+    if xsoar_result is not None:
+        parsed = _parse_instances_response(xsoar_result["data"], only_enabled)
+        parsed["source"] = xsoar_result["source"]
+        parsed["api_path"] = xsoar_result["path"]
+        return create_response(data=parsed)
 
-    fetcher = await get_fetcher(ctx)
+    # Approach 2: Fall back to War Room
+    logger.info("XSOAR API paths unavailable, falling back to War Room")
 
-    # Try the API endpoint first
-    try:
-        endpoint = "/settings/integration-search"
-        request_data = {}
-        if integration_filter:
-            request_data["query"] = integration_filter
-
-        response = await fetcher.send_request(
-            path=endpoint,
-            method="POST",
-            data=request_data
-        )
-
-        # Check if the response is valid (not an error)
-        if isinstance(response, dict) and "integrations" in response:
-            integrations = response["integrations"]
-
-            if only_enabled:
-                integrations = [
-                    integration for integration in integrations
-                    if integration.get("enabled", False) or
-                       any(instance.get("enabled", False) for instance in integration.get("instances", []))
-                ]
-
-            result = {
-                "total_count": len(integrations),
-                "integrations": [],
-                "source": "api",
-            }
-
-            for integration in integrations:
-                integration_info = {
-                    "name": integration.get("name"),
-                    "display_name": integration.get("display"),
-                    "category": integration.get("category"),
-                    "description": integration.get("description"),
-                    "commands": [],
-                    "instances": []
-                }
-
-                commands = integration.get("script", {}).get("commands", [])
-                for cmd in commands:
-                    integration_info["commands"].append({
-                        "name": cmd.get("name"),
-                        "description": cmd.get("description"),
-                        "deprecated": cmd.get("deprecated", False)
-                    })
-
-                instances = integration.get("instances", [])
-                for instance in instances:
-                    integration_info["instances"].append({
-                        "name": instance.get("name"),
-                        "enabled": instance.get("enabled", False),
-                        "brand": instance.get("brand")
-                    })
-
-                result["integrations"].append(integration_info)
-
-            return create_response(data=result)
-
-    except Exception as e:
-        logger.warning(f"API endpoint /settings/integration-search failed: {e}")
-
-    # API failed — fall back to War Room !GetInstances
-    logger.info("Falling back to War Room !GetInstances")
     if not alert_id:
-        return create_response(
-            data={
-                "error": "The /settings/integration-search API endpoint returned an error. "
-                         "To use the War Room fallback, provide an alert_id parameter. "
-                         "Use an alert ID from a previously investigated case (not a case ID). "
-                         "Find one with get_issues(), or use run_xsoar_automation() directly.",
-                "workaround": 'run_xsoar_automation(command=\'!GetInstances instance_status="active"\', alert_id="<alert_id>")'
-            },
-            is_error=True
-        )
+        try:
+            alert_id = await _find_alert_id(ctx)
+        except RuntimeError as e:
+            return create_response(
+                data={
+                    "error": str(e),
+                    "hint": "Provide an alert_id parameter (issue/alert ID, NOT case ID)."
+                },
+                is_error=True
+            )
 
     status_filter = "active" if only_enabled else "both"
     command = f'!GetInstances instance_status="{status_filter}"'
@@ -332,19 +366,23 @@ async def list_integrations(
     war_room_result = await _run_war_room_command(ctx, alert_id, command)
 
     if war_room_result.get("success") and war_room_result.get("results"):
-        # Parse the first result
         raw_content = war_room_result["results"][0].get("content", "")
-        parsed = _parse_instances_to_integrations(raw_content, only_enabled)
+        parsed = _parse_instances_response(raw_content, only_enabled)
+        parsed["source"] = "war_room"
+        parsed["alert_id_used"] = alert_id
         return create_response(data=parsed)
 
-    return create_response(
-        data={
-            "error": "Both API and War Room fallback failed to retrieve integrations.",
-            "api_error": "500 Internal Server Error on /settings/integration-search",
-            "war_room_error": war_room_result.get("error", "Unknown error"),
-        },
-        is_error=True
-    )
+    error_msg = war_room_result.get("error", "Unknown error")
+    result = {
+        "error": f"Failed to retrieve integrations: {error_msg}",
+        "alert_id_used": alert_id,
+        "methods_tried": ["xsoar_api", "war_room"],
+        "hint": "Check API key permissions. The key may need an 'Instance Administrator' or similar role "
+                "that includes SOAR integration access."
+    }
+    if war_room_result.get("platform_error"):
+        result["platform_error"] = war_room_result["platform_error"]
+    return create_response(data=result, is_error=True)
 
 
 async def get_integration_commands(
@@ -353,125 +391,75 @@ async def get_integration_commands(
         description="Name of the integration to get commands for (e.g., 'VirusTotal', 'ActiveDirectory')"
     )],
     alert_id: Annotated[Optional[str], Field(
-        description="Alert/issue ID for War Room fallback (e.g., '6126'). "
-                    "Required when the API endpoint fails. Must be an alert that has an "
-                    "existing investigation (War Room)."
+        description="Alert/issue ID for War Room execution (fallback method). "
+                    "Must be an alert/issue ID, NOT a case ID. "
+                    "If not provided, one will be found automatically."
     )] = None,
 ) -> str:
     """
-    Retrieves detailed command information for a specific XSOAR integration.
+    Retrieves instance information for a specific XSOAR integration.
 
-    Use this to understand what commands an integration provides and how to use them
-    in War Room for investigations.
-
-    The response includes:
-    - Command names (e.g., 'ip', 'file', 'vt-get-file-report')
-    - Detailed descriptions
-    - Input parameters and types
-    - Output context paths
-
-    The tool first tries the XSIAM API. If that fails (some tenants return 500 on
-    /settings/integration-search), it falls back to running !GetInstances via War Room.
-
-    IMPORTANT for War Room fallback:
-    - Provide an alert_id, NOT a case_id (War Room runs on issues, not cases)
-    - The alert must have an existing investigation context
+    First tries the XSOAR internal API filtered by integration name.
+    Falls back to !GetInstances via War Room if the API is unavailable.
 
     Args:
         ctx: The FastMCP context.
         integration_name: Name of the integration (e.g., 'VirusTotal', 'ActiveDirectory').
-        alert_id: Alert/issue ID for War Room fallback (e.g., '6126').
+        alert_id: Alert/issue ID for War Room fallback. Auto-detected if not provided.
 
     Returns:
-        JSON response with detailed command information for the integration.
+        JSON response with integration instance information.
     """
-    from usecase.fetcher import get_fetcher
+    # Approach 1: Try XSOAR internal API
+    xsoar_result = await _query_integrations_via_xsoar_api(ctx, integration_name)
+    if xsoar_result is not None:
+        parsed = _parse_instances_response(xsoar_result["data"], only_enabled=False)
+        return create_response(data={
+            "integration_name": integration_name,
+            "source": xsoar_result["source"],
+            "api_path": xsoar_result["path"],
+            **parsed,
+        })
 
-    fetcher = await get_fetcher(ctx)
+    # Approach 2: Fall back to War Room
+    logger.info("XSOAR API paths unavailable, falling back to War Room")
 
-    # Try the API endpoint first
-    try:
-        endpoint = "/settings/integration-search"
-        response = await fetcher.send_request(
-            path=endpoint,
-            method="POST",
-            data={"query": integration_name}
-        )
-
-        if isinstance(response, dict) and "integrations" in response:
-            integrations = response["integrations"]
-
-            matching = None
-            for integration in integrations:
-                if (integration.get("name", "").lower() == integration_name.lower() or
-                        integration.get("display", "").lower() == integration_name.lower()):
-                    matching = integration
-                    break
-
-            if matching:
-                commands = matching.get("script", {}).get("commands", [])
-                return create_response(data={
-                    "integration_name": matching.get("display"),
-                    "category": matching.get("category"),
-                    "description": matching.get("description"),
-                    "total_commands": len(commands),
-                    "source": "api",
-                    "commands": [
-                        {
-                            "name": cmd.get("name"),
-                            "description": cmd.get("description"),
-                            "deprecated": cmd.get("deprecated", False),
-                            "arguments": cmd.get("arguments", []),
-                            "outputs": cmd.get("outputs", [])
-                        }
-                        for cmd in commands
-                    ]
-                })
-            else:
-                return create_response(data={
-                    "error": f"Integration '{integration_name}' not found",
-                    "available_integrations": [i.get("display") for i in integrations[:20]]
-                })
-
-    except Exception as e:
-        logger.warning(f"API endpoint /settings/integration-search failed: {e}")
-
-    # API failed — fall back to War Room
-    logger.info(f"Falling back to War Room for integration '{integration_name}'")
     if not alert_id:
-        return create_response(
-            data={
-                "error": "The /settings/integration-search API endpoint returned an error. "
-                         "To use the War Room fallback, provide an alert_id parameter. "
-                         "Use an alert ID from a previously investigated case (not a case ID).",
-                "workaround": f'run_xsoar_automation(command=\'!GetInstances brand="{integration_name}"\', alert_id="<alert_id>")'
-            },
-            is_error=True
-        )
+        try:
+            alert_id = await _find_alert_id(ctx)
+        except RuntimeError as e:
+            return create_response(
+                data={
+                    "error": str(e),
+                    "hint": "Provide an alert_id parameter (issue/alert ID, NOT case ID)."
+                },
+                is_error=True
+            )
 
     command = f'!GetInstances brand="{integration_name}"'
     war_room_result = await _run_war_room_command(ctx, alert_id, command)
 
     if war_room_result.get("success") and war_room_result.get("results"):
         raw_content = war_room_result["results"][0].get("content", "")
-        parsed = _parse_instances_to_integrations(raw_content, only_enabled=False)
+        parsed = _parse_instances_response(raw_content, only_enabled=False)
 
         return create_response(data={
             "integration_name": integration_name,
-            "source": "war_room_fallback",
-            "note": "Retrieved via !GetInstances. Full command details are only available when the API endpoint works.",
-            "instances": parsed.get("integrations", []),
-            "raw_output": parsed.get("raw_output"),
+            "source": "war_room",
+            "alert_id_used": alert_id,
+            **parsed,
         })
 
-    return create_response(
-        data={
-            "error": f"Both API and War Room fallback failed for integration '{integration_name}'.",
-            "api_error": "500 Internal Server Error on /settings/integration-search",
-            "war_room_error": war_room_result.get("error", "Unknown error"),
-        },
-        is_error=True
-    )
+    error_msg = war_room_result.get("error", "Unknown error")
+    result = {
+        "error": f"Failed to retrieve integration '{integration_name}': {error_msg}",
+        "alert_id_used": alert_id,
+        "methods_tried": ["xsoar_api", "war_room"],
+        "hint": "Check API key permissions or try a different integration name."
+    }
+    if war_room_result.get("platform_error"):
+        result["platform_error"] = war_room_result["platform_error"]
+    return create_response(data=result, is_error=True)
 
 
 class IntegrationDiscoveryModule(BaseModule):
@@ -480,7 +468,7 @@ class IntegrationDiscoveryModule(BaseModule):
 
     Tools provided:
         - list_integrations: List all available XSOAR integrations
-        - get_integration_commands: Get detailed command info for specific integration
+        - get_integration_commands: Get instance info for specific integration
     """
 
     def register_tools(self):
