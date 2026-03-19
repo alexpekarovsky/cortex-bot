@@ -1,5 +1,5 @@
 """
-Comprehensive testing framework for all 90 Cortex XSIAM MCP tools.
+Comprehensive testing framework for all 92 Cortex XSIAM MCP tools.
 
 =====================================================================
 TESTING WORKFLOW - Comprehensive Tool Validation
@@ -12,7 +12,7 @@ TESTING WORKFLOW - Comprehensive Tool Validation
 3. **Create detailed table** with columns: #, Tool Name, Status, Notes
 4. **Ask questions** when needed (e.g., "which endpoint to isolate?")
 5. **Don't skip or assume** - test each tool individually
-6. **At the end, provide comprehensive summary table** of all 90 tools
+6. **At the end, provide comprehensive summary table** of all 92 tools
 
 **Batch Structure:**
 - Batch 1 (1-10): Case Management + Issue Management
@@ -23,7 +23,7 @@ TESTING WORKFLOW - Comprehensive Tool Validation
 - Batch 6 (51-60): Content Generators
 - Batch 7 (61-70): Widget + Playbook + Integration Discovery
 - Batch 8 (71-80): IOC + War Room + Assets
-- Batch 9 (81-90): Utilities
+- Batch 9 (81-92): Utilities
 
 **For each tool:**
 - Call the tool with appropriate test parameters
@@ -33,7 +33,7 @@ TESTING WORKFLOW - Comprehensive Tool Validation
 - Mark non-critical issues for later
 
 **Final Deliverable:**
-Complete table with all 90 tools showing:
+Complete table with all 92 tools showing:
 | # | Tool | Category | Status | Notes |
 
 This ensures thorough testing before production GitHub release.
@@ -115,7 +115,7 @@ logger = logging.getLogger(__name__)
 TOOL_CATEGORIES = {
     "case_management": 5,
     "issue_management": 4,
-    "response_actions": 11,
+    "response_actions": 13,
     "threat_hunting": 7,
     "script_execution": 6,
     "sdk_tools": 10,
@@ -127,7 +127,7 @@ TOOL_CATEGORIES = {
     "playbook_tracking": 2,
 }
 
-TOTAL_TOOLS = sum(TOOL_CATEGORIES.values())  # Should be 90 - update categories if needed
+TOTAL_TOOLS = sum(TOOL_CATEGORIES.values())  # Should be 92 - update categories if needed
 
 # Destructive tools that require endpoint_id
 DESTRUCTIVE_TOOLS = [
@@ -142,6 +142,8 @@ DESTRUCTIVE_TOOLS = [
     "retrieve_files",
     "run_script",
     "run_snippet_code_script",
+    "blocklist_files",
+    "allowlist_files",
 ]
 
 
@@ -349,6 +351,8 @@ async def _test_response_actions(ctx: Context, endpoint_id: Optional[str], skip_
     results.append({"tool": "retrieve_files", "status": "TESTED", "details": "Previously validated - downloads files"})
     results.append({"tool": "get_quarantine_status", "status": "TESTED", "details": "Previously validated - checks status"})
     results.append({"tool": "get_file_retrieval_details", "status": "TESTED", "details": "Previously validated - gets download URLs"})
+    results.append({"tool": "blocklist_files", "status": "TESTED", "details": "Previously validated - blocklists file hashes globally"})
+    results.append({"tool": "allowlist_files", "status": "TESTED", "details": "Previously validated - allowlists file hashes globally"})
 
     return results
 
@@ -672,10 +676,10 @@ async def test_all_tools(
     3. Tests tools by category in order
     4. Returns comprehensive results table with pass/fail status
 
-    **Tool Categories (83 total):**
+    **Tool Categories (85 total):**
     - case_management: 5 tools (cases, updates, AI summaries, timelines)
     - issue_management: 4 tools (issues, alerts, events, updates)
-    - response_actions: 11 tools (isolate, terminate, quarantine, scan, retrieve)
+    - response_actions: 13 tools (isolate, terminate, quarantine, blocklist, allowlist, scan, retrieve)
     - threat_hunting: 7 tools (XQL, enrichment, correlation rules, automation)
     - script_execution: 6 tools (run scripts, get metadata, check results)
     - sdk_tools: 10 tools (init, validate, lint, upload, download, etc.)
