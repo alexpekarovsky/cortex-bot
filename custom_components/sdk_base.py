@@ -63,6 +63,11 @@ class DemistoSDKRunner:
             papi_auth_id = os.getenv("CORTEX_MCP_PAPI_AUTH_ID", "")
 
         if papi_url:
+            # DEMISTO_BASE_URL requires the api- prefix for SDK operations.
+            # CORTEX_MCP_PAPI_URL typically doesn't include it (e.g., https://cortexxsiam.xdr....)
+            # but the SDK needs https://api-cortexxsiam.xdr.... to avoid 303 redirects.
+            if "api-" not in papi_url.split("//", 1)[-1]:
+                papi_url = papi_url.replace("https://", "https://api-")
             env["DEMISTO_BASE_URL"] = papi_url
         if papi_auth:
             env["DEMISTO_API_KEY"] = papi_auth
@@ -87,7 +92,8 @@ class DemistoSDKRunner:
     async def run_sdk_command(
         args: list[str],
         timeout: int = 300,
-        cwd: Optional[str] = None
+        cwd: Optional[str] = None,
+        stdin_data: Optional[str] = None
     ) -> dict:
         """
         Run a demisto-sdk command asynchronously.
@@ -96,6 +102,7 @@ class DemistoSDKRunner:
             args: Command arguments (without 'demisto-sdk' prefix)
             timeout: Maximum seconds to wait for command completion
             cwd: Working directory for the command
+            stdin_data: Optional string to pipe to stdin (for interactive prompts)
 
         Returns:
             dict: {
@@ -128,10 +135,15 @@ class DemistoSDKRunner:
         env["DEMISTO_SDK_IGNORE_CONTENT_WARNING"] = "1"
 
         try:
+            # Use DEVNULL for stdin if no data provided to prevent hanging
+            # on interactive prompts (e.g., demisto-sdk init asks Y/N questions)
+            stdin_pipe = asyncio.subprocess.PIPE if stdin_data else asyncio.subprocess.DEVNULL
+
             proc = await asyncio.create_subprocess_exec(
                 "uvx",
                 "demisto-sdk",
                 *args,
+                stdin=stdin_pipe,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 env=env,
@@ -139,8 +151,9 @@ class DemistoSDKRunner:
             )
 
             try:
+                stdin_bytes = stdin_data.encode() if stdin_data else None
                 stdout, stderr = await asyncio.wait_for(
-                    proc.communicate(),
+                    proc.communicate(input=stdin_bytes),
                     timeout=timeout
                 )
             except asyncio.TimeoutError:
