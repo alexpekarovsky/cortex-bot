@@ -204,7 +204,7 @@ async def run_xql_query(
                 }
                 return create_response(data=poll_response)
 
-            elif status == "FAILED":
+            elif status in ("FAILED", "FAIL"):
                 error_msg = reply.get("error", "Query execution failed")
                 logger.error(f"XQL query failed: {error_msg}")
                 return create_response(
@@ -225,7 +225,7 @@ async def run_xql_query(
                 logger.warning(f"Unknown XQL query status: {status}")
                 continue
 
-        # Timeout reached
+        # Timeout reached — include last known status for debugging
         logger.error(f"XQL query timed out after {timeout} seconds")
         return create_response(
             data={
