@@ -27,6 +27,85 @@ from usecase.base_module import BaseModule
 
 logger = logging.getLogger(__name__)
 
+# XSOAR internal API paths (tried before the public API)
+_XSOAR_INTEGRATION_PATHS = [
+    "/xsoar/public/v1/settings/integration/search",
+    "/xsoar/public/v1/settings/integration-search",
+]
+
+
+async def _query_xsoar_internal_api(fetcher, integration_filter: Optional[str] = None) -> Optional[dict]:
+    """
+    Query the XSOAR internal API for integration instances.
+
+    XSIAM exposes XSOAR internals at /xsoar/public/v1/. These endpoints work
+    even when /settings/integration-search returns 500 on the public API.
+    Requires omit_papi_prefix=True so the path is not prefixed with /public_api/v1.
+
+    Returns parsed response dict, or None if all paths fail.
+    """
+    payload = {"name": integration_filter} if integration_filter else {}
+
+    for path in _XSOAR_INTEGRATION_PATHS:
+        try:
+            logger.info(f"Trying XSOAR internal API: {path}")
+            response = await fetcher.send_request(
+                path=path,
+                method="POST",
+                data=payload,
+                omit_papi_prefix=True
+            )
+            if isinstance(response, (dict, list)):
+                logger.info(f"XSOAR internal API succeeded: {path}")
+                return response
+        except Exception as e:
+            logger.debug(f"XSOAR internal API {path} failed: {e}")
+
+    return None
+
+
+def _parse_xsoar_instances(response, only_enabled: bool = True) -> dict:
+    """Parse XSOAR internal API response into a structured integration list."""
+    if isinstance(response, list):
+        instances = response
+    elif isinstance(response, dict):
+        instances = response.get("instances", response.get("configurations", [response]))
+    else:
+        return {"total_count": 0, "integrations": [], "source": "xsoar_internal_api"}
+
+    integrations_by_brand = {}
+    for instance in instances:
+        if not isinstance(instance, dict):
+            continue
+        brand = instance.get("brand", instance.get("name", "Unknown"))
+        enabled = instance.get("enabled", True)
+        if isinstance(enabled, str):
+            enabled = enabled.lower() == "true"
+
+        if only_enabled and not enabled:
+            continue
+
+        if brand not in integrations_by_brand:
+            integrations_by_brand[brand] = {
+                "name": brand,
+                "display_name": instance.get("friendlyName", brand),
+                "category": instance.get("category", ""),
+                "description": instance.get("description", ""),
+                "instances": [],
+            }
+        integrations_by_brand[brand]["instances"].append({
+            "name": instance.get("name", brand),
+            "enabled": enabled,
+            "brand": brand,
+        })
+
+    result = list(integrations_by_brand.values())
+    return {
+        "total_count": len(result),
+        "integrations": result,
+        "source": "xsoar_internal_api",
+    }
+
 
 async def _run_war_room_command(ctx, alert_id: str, command: str, timeout_seconds: int = 20) -> dict:
     """
@@ -247,7 +326,12 @@ async def list_integrations(
 
     fetcher = await get_fetcher(ctx)
 
-    # Try the API endpoint first
+    # 1. Try XSOAR internal API first (works when public API returns 500)
+    xsoar_response = await _query_xsoar_internal_api(fetcher, integration_filter)
+    if xsoar_response is not None:
+        return create_response(data=_parse_xsoar_instances(xsoar_response, only_enabled))
+
+    # 2. Try the public API endpoint
     try:
         endpoint = "/settings/integration-search"
         request_data = {}
@@ -260,7 +344,6 @@ async def list_integrations(
             data=request_data
         )
 
-        # Check if the response is valid (not an error)
         if isinstance(response, dict) and "integrations" in response:
             integrations = response["integrations"]
 
@@ -274,7 +357,7 @@ async def list_integrations(
             result = {
                 "total_count": len(integrations),
                 "integrations": [],
-                "source": "api",
+                "source": "public_api",
             }
 
             for integration in integrations:
@@ -308,17 +391,16 @@ async def list_integrations(
             return create_response(data=result)
 
     except Exception as e:
-        logger.warning(f"API endpoint /settings/integration-search failed: {e}")
+        logger.warning(f"Public API /settings/integration-search failed: {e}")
 
-    # API failed — fall back to War Room !GetInstances
+    # 3. Fall back to War Room !GetInstances
     logger.info("Falling back to War Room !GetInstances")
     if not alert_id:
         return create_response(
             data={
-                "error": "The /settings/integration-search API endpoint returned an error. "
-                         "To use the War Room fallback, provide an alert_id parameter. "
-                         "Use an alert ID from a previously investigated case (not a case ID). "
-                         "Find one with get_issues(), or use run_xsoar_automation() directly.",
+                "error": "Both XSOAR internal API and public API failed to retrieve integrations. "
+                         "To use the War Room fallback, provide an alert_id (issue ID with active War Room). "
+                         "Use create_issue() to get a fresh workspace alert_id.",
                 "workaround": 'run_xsoar_automation(command=\'!GetInstances instance_status="active"\', alert_id="<alert_id>")'
             },
             is_error=True
@@ -389,7 +471,33 @@ async def get_integration_commands(
 
     fetcher = await get_fetcher(ctx)
 
-    # Try the API endpoint first
+    # 1. Try XSOAR internal API first
+    xsoar_response = await _query_xsoar_internal_api(fetcher, integration_name)
+    if xsoar_response is not None:
+        parsed = _parse_xsoar_instances(xsoar_response, only_enabled=False)
+        matching = next(
+            (i for i in parsed["integrations"]
+             if i["name"].lower() == integration_name.lower() or
+                i["display_name"].lower() == integration_name.lower()),
+            None
+        )
+        if matching:
+            return create_response(data={
+                "integration_name": matching["display_name"],
+                "category": matching.get("category", ""),
+                "description": matching.get("description", ""),
+                "source": "xsoar_internal_api",
+                "instances": matching["instances"],
+                "note": "Retrieved via XSOAR internal API. Full command argument details require the public API."
+            })
+        # Not found by name — return all so caller can browse
+        return create_response(data={
+            "error": f"Integration '{integration_name}' not found via XSOAR internal API.",
+            "available_integrations": [i["name"] for i in parsed["integrations"][:30]],
+            "source": "xsoar_internal_api",
+        })
+
+    # 2. Try the public API
     try:
         endpoint = "/settings/integration-search"
         response = await fetcher.send_request(
@@ -415,7 +523,7 @@ async def get_integration_commands(
                     "category": matching.get("category"),
                     "description": matching.get("description"),
                     "total_commands": len(commands),
-                    "source": "api",
+                    "source": "public_api",
                     "commands": [
                         {
                             "name": cmd.get("name"),
@@ -434,16 +542,16 @@ async def get_integration_commands(
                 })
 
     except Exception as e:
-        logger.warning(f"API endpoint /settings/integration-search failed: {e}")
+        logger.warning(f"Public API /settings/integration-search failed: {e}")
 
-    # API failed — fall back to War Room
+    # 3. Fall back to War Room
     logger.info(f"Falling back to War Room for integration '{integration_name}'")
     if not alert_id:
         return create_response(
             data={
-                "error": "The /settings/integration-search API endpoint returned an error. "
-                         "To use the War Room fallback, provide an alert_id parameter. "
-                         "Use an alert ID from a previously investigated case (not a case ID).",
+                "error": f"Both XSOAR internal API and public API failed for integration '{integration_name}'. "
+                         "Provide an alert_id (issue with active War Room) for War Room fallback. "
+                         "Use create_issue() to get a workspace alert_id.",
                 "workaround": f'run_xsoar_automation(command=\'!GetInstances brand="{integration_name}"\', alert_id="<alert_id>")'
             },
             is_error=True

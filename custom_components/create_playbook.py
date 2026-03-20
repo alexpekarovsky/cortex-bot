@@ -696,6 +696,27 @@ async def create_playbook(
     ]
     ```
 
+    CRITICAL: SCRIPT vs COMMAND REFERENCE FORMAT
+    ─────────────────────────────────────────────
+    Two types of tasks require DIFFERENT field formats:
+
+    AUTOMATION SCRIPTS (Print, ParseJSON, Set, extractIndicators, etc.):
+    - Use bare script name — NO pack prefix
+    - WRONG: "CommonScripts|||Print"  → causes "Missing script" error even if installed
+    - CORRECT: "Print"
+    - Set iscommand=false, brand="" (handled automatically when using "script" key)
+
+    INTEGRATION COMMANDS (xdr-get-endpoints, ip, file, etc.):
+    - Use "Pack|||command" format OR just the command name
+    - CORRECT: "Cortex Core - IR|||xdr-get-endpoints" or just "xdr-get-endpoints"
+    - Set iscommand=true, brand="Integration Name" (handled automatically when using "command" key)
+
+    In the task JSON input to this tool:
+    - Use "script" key for automation scripts: {"script": "Print", ...}
+    - Use "command" key for integration commands: {"command": "Cortex Core - IR|||xdr-get-endpoints", ...}
+
+    ─────────────────────────────────────────────
+
     TASK FORMAT GUIDE:
 
     Regular Task (simple):

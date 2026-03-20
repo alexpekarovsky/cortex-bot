@@ -46,6 +46,34 @@ PLAYBOOK_BUILDING_BLOCKS = """
 
 ---
 
+## CRITICAL: Script vs Command Reference Format in Playbook YAML
+
+**Two types of tasks — each uses a DIFFERENT field format:**
+
+### Automation Scripts (e.g., Print, ParseJSON, Set)
+```yaml
+task:
+  script: Print          # Bare script name — NO pack prefix (not "CommonScripts|||Print")
+  iscommand: false
+  brand: ""
+```
+- `iscommand: false` — it is a script/automation, not an integration command
+- `brand: ""` — leave blank for scripts
+- **WRONG:** `script: CommonScripts|||Print` → causes "Missing script" error even if installed
+- **CORRECT:** `script: Print`
+
+### Integration Commands (e.g., xdr-get-endpoints, ip, file)
+```yaml
+task:
+  script: Cortex Core - IR|||xdr-get-endpoints   # Pack|||command format
+  iscommand: true
+  brand: "Cortex Core - IR"
+```
+- `iscommand: true` — it is an integration command
+- `brand` must match the exact integration name from list_integrations
+
+---
+
 ## CRITICAL: Incremental Playbook Development - COMPLETE ALL 4 PHASES
 
 **Build playbooks iteratively - Start simple, progressively add ALL complexity:**

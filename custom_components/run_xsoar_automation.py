@@ -283,9 +283,27 @@ async def run_xsoar_automation(
         return create_response(data=response)
 
     except Exception as e:
+        error_msg = str(e)
         logger.exception(f"Failed to execute XSOAR automation command: {e}")
+
+        if "noInv" in error_msg or "Could not find investigation" in error_msg:
+            return create_response(
+                data={
+                    "error": f"Alert/issue {investigation_id} does not have an active War Room investigation.",
+                    "cause": "War Room only exists on alerts that have been opened as investigations in XSIAM. "
+                             "Numeric alert IDs from get_issues() may not have a War Room yet.",
+                    "fix": "Use create_issue() to create a fresh workspace with an active War Room, "
+                           "then pass the returned alert_id to this tool.",
+                    "example": {
+                        "step1": "issue = create_issue(name='Automation Workspace')",
+                        "step2": f"run_xsoar_automation(command='{command}', alert_id=issue['alert_id'])"
+                    }
+                },
+                is_error=True
+            )
+
         return create_response(
-            data={"error": f"Failed to execute automation: {str(e)}"},
+            data={"error": f"Failed to execute automation: {error_msg}"},
             is_error=True
         )
 
