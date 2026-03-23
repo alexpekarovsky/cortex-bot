@@ -157,7 +157,7 @@ async def create_issue(
             numeric_issue_id = None
             try:
                 import asyncio
-                await asyncio.sleep(2)  # Brief wait for issue to be indexed
+                await asyncio.sleep(5)  # Wait for issue to be indexed (2s was too short)
 
                 issues_response = await fetcher.send_request(
                     path="/issue/search/",
