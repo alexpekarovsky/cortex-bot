@@ -79,10 +79,12 @@ async def sdk_init(
     if output_dir:
         args.extend(["--output", output_dir])
 
-    # Don't prompt for input (if SDK supports it)
-    # Note: --non-interactive may not be supported in all SDK versions
+    # demisto-sdk init prompts for interactive input (Y/N for ID, fromversion, etc.)
+    # Pipe default answers via stdin to prevent hanging in non-interactive environments.
+    # Answers: Y (use directory name as ID), empty (accept default fromversion)
+    stdin_answers = "Y\n\n"
 
-    result = await DemistoSDKRunner.run_sdk_command(args)
+    result = await DemistoSDKRunner.run_sdk_command(args, stdin_data=stdin_answers)
 
     if result["success"]:
         return create_response(data={
