@@ -118,7 +118,7 @@ async def create_issue(
             "name": name,
             "description": description,
             "observation_time": timestamp,
-            "domain": domain.upper(),
+            "issue_domain": domain.upper(),
             "category": category.upper(),
             "severity": severity.upper(),
             "tags": tags,
