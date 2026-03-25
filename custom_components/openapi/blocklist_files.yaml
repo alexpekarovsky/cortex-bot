@@ -1,0 +1,100 @@
+openapi: 3.0.0
+paths:
+  /public_api/v1/hash_exceptions/blocklist:
+    post:
+      summary: Add Files to Blocklist
+      description: |-
+        DESTRUCTIVE ACTION - Risk Level: HIGH
+        Reversal: Files can be removed via the allowlist API if needed.
+
+        Adds file hashes to the Cortex XSIAM blocklist to prevent their execution
+        on managed endpoints. Blocklisted files will be blocked from running across
+        your entire environment.
+
+        WARNING: This action affects all managed endpoints globally.
+        Ensure you understand the scope before blocklisting files.
+
+        Use this when:
+        - You've identified malicious files that need immediate blocking
+        - You want to prevent file execution across your environment
+        - Adding known malware hashes to your enterprise blocklist
+        - Performing rapid incident response to stop malware propagation
+
+        Files added to blocklist can be removed later via the allowlist API
+        if analysis determines they are benign.
+      operationId: blocklist_files
+      tags:
+        - Endpoint Response
+      requestBody:
+        description: JSON object containing file hashes to blocklist
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlocklistFilesRequest'
+            examples:
+              blocklist_hashes:
+                summary: Blocklist multiple malware hashes
+                value:
+                  request_data:
+                    hash_list:
+                      - "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                      - "d41d8cd98f00b204e9800998ecf8427e"
+                    comment: "Detected malware variant associated with incident #12345"
+                    incident_id: 350
+      responses:
+        '200':
+          description: Successful response - hashes added to blocklist
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Response containing blocklist operation status
+                properties:
+                  success:
+                    type: boolean
+                    description: Whether the operation succeeded
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  hash_count:
+                    type: integer
+                  hash_list:
+                    type: array
+                    items:
+                      type: string
+                additionalProperties: true
+        '400':
+          description: Bad request - invalid parameters or empty hash list
+        '401':
+          description: Unauthorized - invalid API credentials
+        '403':
+          description: Forbidden - insufficient permissions
+
+components:
+  schemas:
+    BlocklistFilesRequest:
+      type: object
+      properties:
+        request_data:
+          type: object
+          required:
+            - hash_list
+          properties:
+            hash_list:
+              type: array
+              description: List of file hashes (MD5, SHA1, or SHA256) to blocklist
+              items:
+                type: string
+              example:
+                - "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                - "d41d8cd98f00b204e9800998ecf8427e"
+            comment:
+              type: string
+              description: Optional comment explaining why these files are being blocklisted
+              example: "Detected malware variant - ransomware family"
+            incident_id:
+              type: integer
+              description: Optional incident/case ID to associate this action with for tracking and audit
+              example: 350

@@ -1,0 +1,80 @@
+openapi: 3.0.0
+paths:
+  /public_api/v1/endpoints/unisolate/:
+    post:
+      summary: Un-isolate Endpoint from Network
+      description: |-
+        Removes network isolation from an endpoint, restoring normal network connectivity.
+        Use this after an isolated endpoint has been remediated and cleaned of threats.
+
+        IMPORTANT: Only unisolate endpoints after:
+        - Threat has been completely removed
+        - System has been verified clean
+        - Incident response is complete
+
+        This is the reversal operation for isolate_endpoint.
+      operationId: unisolate_endpoint
+      tags:
+        - Endpoint Response
+      requestBody:
+        description: JSON object containing the endpoint identifier to unisolate
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnisolateEndpointRequest'
+            examples:
+              by_endpoint_id:
+                summary: Unisolate endpoint by endpoint ID
+                value:
+                  request_data:
+                    endpoint_id: "a1b2c3d4e5f6g7h8"
+              by_filters:
+                summary: Unisolate multiple endpoints using filters
+                value:
+                  request_data:
+                    filters:
+                      - field: "endpoint_id_list"
+                        operator: "in"
+                        value: ["a1b2c3d4e5f6g7h8"]
+      responses:
+        '200':
+          description: Successful response - unisolation action initiated
+        '400':
+          description: Bad request - invalid parameters
+        '401':
+          description: Unauthorized - invalid API credentials
+        '403':
+          description: Forbidden - insufficient permissions
+components:
+  schemas:
+    UnisolateEndpointRequest:
+      type: object
+      properties:
+        request_data:
+          type: object
+          description: Request data containing endpoint filters
+          properties:
+            filters:
+              type: array
+              description: Filter criteria for selecting endpoints
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                    enum: [endpoint_id_list]
+                    description: Field to filter on
+                  operator:
+                    type: string
+                    enum: [in]
+                    description: Filter operator
+                  value:
+                    type: array
+                    description: List of endpoint IDs
+                    items:
+                      type: string
+                required: [field, operator, value]
+            endpoint_id:
+              type: string
+              description: Single endpoint ID (alternative to filters)
