@@ -40,13 +40,13 @@ find ~ -name "main.py" -path "*/cortex*/src/main.py" 2>/dev/null
 # Copy custom tools into it
 cp -r cortex-bot/custom_components/* /path/to/cortex-mcp/src/usecase/custom_components/
 
-# Verify: should show 28+ Python files
+# Verify: should show 39 Python files
 ls /path/to/cortex-mcp/src/usecase/custom_components/*.py | wc -l
 ```
 
 If `src/usecase/custom_components/` doesn't exist, create it first:
 ```bash
-mkdir -p /path/to/cortex-mcp/src/usecase/custom_components/openapi
+mkdir -p /path/to/cortex-mcp/src/usecase/custom_components
 ```
 
 ## Step 2: Install dependencies
@@ -75,7 +75,7 @@ uvx demisto-sdk --version
 mkdir -p ~/content/Packs
 ```
 
-If you skip this step, 10 SDK tools won't work. The other 80 tools are unaffected.
+If you skip this step, 9 SDK tools won't work. The other 81 tools are unaffected.
 
 ## Step 4: Configure credentials
 
@@ -170,7 +170,7 @@ Test with these prompts:
 
 | Problem | Fix |
 |---------|-----|
-| Only 6 tools visible | Custom files not copied — check `ls src/usecase/custom_components/*.py` shows 28+ files |
+| Only 6 tools visible | Custom files not copied — check `ls src/usecase/custom_components/*.py` shows 39 files |
 | `401 Unauthorized` | Wrong API key — verify in `.env` |
 | `ModuleNotFoundError: aiohttp` | Run `poetry install` in MCP server directory |
 | Import/pydantic errors | Don't `pip install demisto-sdk` in MCP venv — use `uvx` |

@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 
-**84 custom MCP tools** that extend the official [Palo Alto Networks Cortex MCP Server](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools) (6 base tools) to **90 total tools**.
+**84 custom MCP tools** that extend the official [Palo Alto Networks Cortex MCP Server](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools) (6 base tools) to **90 total tools**. All tools are **pure Python** — no OpenAPI YAML dependencies.
 
 Works with any MCP-compatible AI coding agent: **Claude Code**, **Gemini CLI**, **OpenAI Codex**, or any other MCP client.
 
@@ -56,7 +56,7 @@ For detailed step-by-step instructions, see [INSTALL.md](INSTALL.md).
 | **Threat Hunting** | 6 | Run XQL queries, enrich IPs/domains/files/URLs, run XSOAR automations |
 | **Detection Rules** | 1 | Create XQL-based correlation rules |
 | **Script Execution** | 6 | Run scripts and Python snippets on endpoints |
-| **XSOAR SDK** | 10 | Create, validate, lint, upload integrations and scripts |
+| **XSOAR SDK** | 9 | Validate, lint, upload, download integrations and scripts |
 | **Development Guides** | 11 | Pattern guides, building blocks, playbook generation |
 | **Content Generators** | 11 | Dashboards, parsing rules, modeling rules, layouts |
 | **Playbook Management** | 4 | Get, insert, delete, run playbooks via API |
@@ -175,7 +175,7 @@ mlx_lm.server --model mlx-community/gemma-3-27b-it-4bit --port 8080
 
 ## Demisto SDK (Required for XSOAR Development Tools)
 
-10 tools require `demisto-sdk`: `sdk_init`, `sdk_validate`, `sdk_lint`, `sdk_upload`, `sdk_download`, `sdk_run`, `sdk_run_playbook`, `sdk_generate_docs`, `sdk_split`, `sdk_unify`. The other 80 tools work without it.
+9 tools require `demisto-sdk`: `sdk_validate`, `sdk_lint`, `sdk_upload`, `sdk_download`, `sdk_run`, `sdk_run_playbook`, `sdk_generate_docs`, `sdk_split`, `sdk_unify`. The other 81 tools work without it.
 
 ### Why uvx?
 
@@ -254,35 +254,6 @@ class MyModule(BaseModule):
         pass
 ```
 
-### OpenAPI tool
-
-Create `custom_components/openapi/my_tool.yaml`:
-
-```yaml
-openapi: 3.0.0
-info:
-  title: My Tool
-  version: 1.0.0
-paths:
-  /public_api/v1/your/endpoint:
-    post:
-      operationId: my_tool
-      summary: What this tool does
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                param1:
-                  type: string
-              required: [param1]
-      responses:
-        '200':
-          description: Success
-```
-
 Restart the MCP server after adding tools.
 
 ---
@@ -291,18 +262,24 @@ Restart the MCP server after adding tools.
 
 ```
 cortex-bot/
-├── custom_components/          # All custom MCP tools (this is what you install)
-│   ├── openapi/                # 25+ OpenAPI YAML tool definitions
-│   ├── sdk_base.py             # SDK runner (handles uvx + credential mapping)
-│   ├── sdk_tools.py            # 10 XSOAR SDK wrapper tools
-│   ├── xql_query.py            # XQL query execution
+├── custom_components/              # All custom MCP tools (this is what you install)
+│   ├── client_patch.py             # DictResponse patch for PANW OpenAPI compatibility
+│   ├── endpoint_tools.py           # Endpoint: get, isolate, scan, terminate
+│   ├── file_tools.py               # File: quarantine, retrieve, status
+│   ├── script_tools.py             # Script: run, snippet, metadata, results
+│   ├── misc_tools.py               # Widgets, indicators, alert events
+│   ├── war_room.py                 # War Room: add/get entries
+│   ├── asset_tools.py              # Assets, vulnerabilities, assessment
+│   ├── sdk_base.py                 # SDK runner (handles uvx + credential mapping)
+│   ├── sdk_tools.py                # 9 XSOAR SDK wrapper tools
+│   ├── xql_query.py                # XQL query execution
 │   ├── xsiam_content_generator.py  # 11 content generation tools
-│   └── ...                     # 28 Python modules total
-├── .env.example                # Credential template
-├── INSTALL.md                  # Detailed installation guide
-├── push.sh                     # Safe push script (for contributors)
-├── LICENSE                     # Apache 2.0
-└── README.md                   # This file
+│   └── ...                         # 39 Python modules total
+├── .env.example                    # Credential template
+├── INSTALL.md                      # Detailed installation guide
+├── push.sh                         # Safe push script (for contributors)
+├── LICENSE                         # Apache 2.0
+└── README.md                       # This file
 ```
 
 ---
@@ -325,7 +302,7 @@ Control with `ENABLE_DESTRUCTIVE_TOOLS=true/false` in `.env`.
 
 | Problem | Solution |
 |---------|---------|
-| Only 6 tools show (not 90) | Files not copied — verify `ls /path/to/cortex-mcp/src/usecase/custom_components/*.py` shows 28+ files, then restart server |
+| Only 6 tools show (not 90) | Files not copied — verify `ls /path/to/cortex-mcp/src/usecase/custom_components/*.py` shows 39 files, then restart server |
 | `401 Unauthorized` | Check `.env` credentials match your XSIAM API key |
 | `pydantic` import errors | Don't install demisto-sdk in MCP venv — use `uvx demisto-sdk` |
 | SDK tools fail silently | Install uv: `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
