@@ -494,7 +494,8 @@ class SDKToolsModule(BaseModule):
 
     def register_tools(self):
         """Register all SDK wrapper tools."""
-        self._add_tool(sdk_init)
+        # sdk_init removed — requires interactive prompt, not MCP-compatible
+        # self._add_tool(sdk_init)
         self._add_tool(sdk_validate)
         self._add_tool(sdk_lint)
         self._add_tool(sdk_upload)
