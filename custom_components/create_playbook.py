@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 """
 XSOAR Playbook Creator with Smart Content Discovery
 
@@ -1010,6 +1011,15 @@ async def create_playbook(
                     sla=task_def.get("sla"),
                     slareminder=task_def.get("slareminder")
                 )
+
+        # Validate output path - must be under home directory or /tmp
+        allowed_bases = [Path.home(), Path("/tmp")]
+        resolved_output = Path(output_path).resolve()
+        if not any(str(resolved_output).startswith(str(base)) for base in allowed_bases):
+            return create_response(
+                data={"error": f"Output path must be under home directory or /tmp: {output_path}"},
+                is_error=True
+            )
 
         # Write YAML
         with open(output_path, 'w') as f:

@@ -23,6 +23,7 @@ import json
 import logging
 import os
 import re
+import shlex
 import subprocess
 import yaml
 from pathlib import Path
@@ -89,11 +90,13 @@ def run_sdk_upload(path: str, use_zip: bool = False) -> dict:
     """
     try:
         # Build the command
-        cmd = f'''source {ENV_FILE} && \
+        safe_path = shlex.quote(str(path))
+        safe_env = shlex.quote(str(ENV_FILE))
+        cmd = f'''source {safe_env} && \
 export DEMISTO_BASE_URL="$CORTEX_MCP_PAPI_URL" \
 DEMISTO_API_KEY="$CORTEX_MCP_PAPI_AUTH_HEADER" \
 XSIAM_AUTH_ID="$CORTEX_MCP_PAPI_AUTH_ID" && \
-DEMISTO_SDK_IGNORE_CONTENT_WARNING=1 uvx demisto-sdk upload -i {path} --marketplace marketplacev2'''
+DEMISTO_SDK_IGNORE_CONTENT_WARNING=1 uvx demisto-sdk upload -i {safe_path} --marketplace marketplacev2'''
 
         if use_zip:
             cmd += ' -z'

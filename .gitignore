@@ -54,7 +54,7 @@ coverage.xml
 *.cover
 
 # Documentation
-docs/_build/
+docs/
 site/
 
 # Logs

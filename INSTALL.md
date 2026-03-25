@@ -1,567 +1,209 @@
-# Installation Guide - Cortex Bot Custom Tools
+# Installation Guide
 
-Complete installation guide for adding 86 custom tools to your official Palo Alto Networks Cortex MCP Server.
+Step-by-step guide to add Cortex Bot custom tools to your existing PANW Cortex MCP Server.
 
-**Tested and verified:** This procedure successfully installed all 90 tools with 100% success rate.
+**Works with:** Claude Code, Gemini CLI, OpenAI Codex, or any MCP-compatible AI agent.
 
 ---
 
 ## Prerequisites
 
-Before you begin, verify you have:
+| Requirement | Check | Install |
+|-------------|-------|---------|
+| Official PANW Cortex MCP Server | Your AI agent shows 6 base tools | [PANW docs](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools) |
+| Python 3.12+ | `python --version` | [python.org](https://www.python.org/downloads/) |
+| Git | `git --version` | [git-scm.com](https://git-scm.com/) |
+| uv (for demisto-sdk) | `uv --version` | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| XSIAM API key | See below | XSIAM > Settings > API Keys |
 
-### Required
+### Get your XSIAM API key
 
-| Requirement | Version | Verification Command | Where to Get |
-|-------------|---------|---------------------|--------------|
-| **Official PANW Cortex MCP Server** | Latest | Check Claude shows 6 base tools | [PANW Installation Guide](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools) |
-| **Python** | 3.12+ | `python --version` | [python.org](https://www.python.org/downloads/) |
-| **Git** | Any | `git --version` | [git-scm.com](https://git-scm.com/) |
-| **uv** (package manager) | Latest | `uv --version` | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| **Cortex XSIAM API Credentials** | N/A | See below | [XSIAM API Guide](https://docs-cortex.paloaltonetworks.com/r/Cortex-XSIAM/Cortex-XSIAM-Administrator-Guide/Get-Started-with-APIs) |
+1. Log into your XSIAM instance
+2. Go to **Settings > Configurations > API Keys**
+3. Create a new key with **Security Level: Standard** and **Role: Instance Administrator**
+4. Save three values: **API Key** (long string), **Key ID** (number), and your **tenant URL**
 
-> **Why uv?** The SDK tools (`sdk_upload`, `sdk_validate`, etc.) use `uvx` to run `demisto-sdk` in an isolated environment, avoiding dependency conflicts. Without `uv`, SDK tools will fail silently.
-
-### Verify Official MCP Server is Working
-
-```bash
-# Open Claude Desktop or Claude Code
-# Type: "List all MCP tools"
-
-# Expected output:
-Connected to cortex-xsiam (6 tools)
-- get_cases
-- get_issues
-- get_assets
-- get_filtered_endpoints
-- get_assessment_profile_results
-- get_vulnerabilities
-```
-
-✅ **If you see 6 tools, proceed to installation.**
-❌ **If not, install official PANW MCP server first.**
+Your tenant URL format: `https://api-{tenant}.xdr.{region}.paloaltonetworks.com`
 
 ---
 
-## Installation Steps
+## Step 1: Clone and copy
 
-### Step 1: Download Custom Tools Package
-
-**Option A: From GitHub Release**
 ```bash
-# Download the latest release
-wget https://github.com/alexpekarovsky/cortex-bot/releases/latest/download/cortex-bot.zip
-
-# Extract
-unzip cortex-bot.zip
-cd cortex-bot
-```
-
-**Option B: Clone Repository**
-```bash
-# Clone from GitHub
+# Clone this repo
 git clone https://github.com/alexpekarovsky/cortex-bot.git
-cd cortex-bot
-```
 
-**Expected after extraction:**
-```
-cortex-bot/
-├── README.md
-├── LICENSE
-├── .env.example
-├── pyproject.toml
-├── .gitignore
-└── custom_components/
-    ├── __init__.py
-    ├── *.py (28 Python tools)
-    └── openapi/*.yaml (25 YAML tools)
-```
+# Find your PANW MCP server installation
+find ~ -name "main.py" -path "*/cortex*/src/main.py" 2>/dev/null
+# Typical locations: ~/cortex-mcp, ~/.local/share/cortex-mcp
 
-✅ **Verify:** `ls -la custom_components/*.py | wc -l` should show **28 files**
+# Copy custom tools into it
+cp -r cortex-bot/custom_components/* /path/to/cortex-mcp/src/usecase/custom_components/
 
----
-
-### Step 2: Locate Your Official MCP Installation
-
-Find where the official PANW Cortex MCP server is installed:
-
-```bash
-# Common installation locations:
-# - Poetry: ~/cortex-mcp or ~/.local/share/cortex-mcp
-# - Docker: /opt/cortex-mcp
-# - Manual: wherever you extracted it
-
-# Search for it:
-find ~ -name "cortex*mcp" -type d 2>/dev/null | grep -v ".claude\|venv\|__pycache__"
-```
-
-**Expected output:**
-```
-/Users/yourname/cortex-mcp
-```
-
-**Verify it's the right directory:**
-```bash
-ls /path/to/cortex-mcp/src/main.py
-```
-
-✅ **Should exist** - this confirms you found the MCP server
-
----
-
-### Step 3: Copy Custom Tools
-
-```bash
-# Copy custom_components folder to official installation
-cp -r custom_components/* /path/to/cortex-mcp/src/usecase/custom_components/
-
-# Example for typical Poetry installation:
-# cp -r custom_components/* ~/cortex-mcp/src/usecase/custom_components/
-```
-
-**Expected output:**
-```
-(No output if successful, or list of files copied)
-```
-
-**Verify files were copied:**
-```bash
+# Verify: should show 28+ Python files
 ls /path/to/cortex-mcp/src/usecase/custom_components/*.py | wc -l
 ```
 
-✅ **Should show: 28** (or more if PANW adds built-in custom tools)
-
+If `src/usecase/custom_components/` doesn't exist, create it first:
 ```bash
-ls /path/to/cortex-mcp/src/usecase/custom_components/openapi/*.yaml | wc -l
+mkdir -p /path/to/cortex-mcp/src/usecase/custom_components/openapi
 ```
 
-✅ **Should show: 25** (or more)
+## Step 2: Install dependencies
 
-**Troubleshooting:**
-
-❌ **"No such file or directory: .../custom_components"**
-- The official MCP installation might not have this directory yet
-- Create it: `mkdir -p /path/to/cortex-mcp/src/usecase/custom_components`
-- Then retry the copy command
-
-❌ **"Permission denied"**
-- You may need elevated permissions
-- Try: `sudo cp -r custom_components/* ...`
-- Or: `chmod -R u+w /path/to/cortex-mcp/src/usecase/`
-
----
-
-### Step 4: Install Dependencies
-
-After copying the custom tools, install any additional Python dependencies they require:
-
-```bash
-cd /path/to/cortex-mcp
-source venv/bin/activate   # If using Poetry/venv
-poetry install             # Installs all declared dependencies (including aiohttp)
-```
-
-> **Why this matters:** Some custom tools (e.g., `insert_playbook`) require `aiohttp`, which is declared in `pyproject.toml` but only installed when you run `poetry install`. Skipping this step will cause runtime errors.
-
----
-
-### Step 5: Configure Credentials
-
-```bash
-# Copy the example environment file
-cp .env.example .env
-
-# Edit with your XSIAM API credentials
-# Get these from: XSIAM > Settings > Configurations > API Keys
-nano .env   # or your preferred editor
-```
-
-The three required values in `.env`:
-```
-CORTEX_MCP_PAPI_URL=https://api-{tenant}.xdr.{region}.paloaltonetworks.com
-CORTEX_MCP_PAPI_AUTH_HEADER=your_api_key_here
-CORTEX_MCP_PAPI_AUTH_ID=your_api_key_id_here
-```
-
-> **Tip:** If you already configured credentials for the official PANW server (e.g., in `~/.claude.json` or environment variables), the custom tools will inherit them automatically. You can skip this step in that case.
-
----
-
-### Step 6: Restart MCP Server
-
-The MCP server needs to reload to discover the new tools and dependencies.
-
-**For Poetry/Manual Installation:**
-```bash
-# Kill the running server (it will auto-restart)
-pkill -f "cortex.*main.py"
-
-# Wait 2-3 seconds for restart
-sleep 3
-
-# Verify it's running again
-ps aux | grep "cortex.*main.py" | grep -v grep
-```
-
-✅ **Expected:** Should see the Python process running
-
-**For Docker Installation:**
-```bash
-# Restart the container
-docker restart cortex-mcp
-
-# Verify it's running
-docker ps | grep cortex-mcp
-```
-
-✅ **Expected:** Container shows as "Up" status
-
-**Troubleshooting:**
-
-❌ **Server doesn't restart automatically**
-- Manually start it:
-  ```bash
-  cd /path/to/cortex-mcp
-  source venv/bin/activate  # If using Poetry
-  python src/main.py
-  ```
-
-❌ **Import errors in logs**
-- Check the log file: `tail -50 /path/to/cortex-mcp/cortex-mcp.log`
-- Common issue: Missing dependencies
-- Solution: Reinstall in the official MCP directory
-
----
-
-### Step 7: Verify Installation
-
-Open Claude Desktop or Claude Code and reconnect to the MCP server.
-
-**In Claude, type:**
-```
-List all available cortex-xsiam MCP tools
-```
-
-**Expected output:**
-```
-Connected to cortex-xsiam (90 tools)
-
-The following 90 tools are available:
-
-Case Management (5 tools):
-- get_cases
-- get_incident_extra_data
-- update_incident
-- update_case_ai_summary
-- update_case_timeline
-
-Issue Management (4 tools):
-- get_issues
-- get_alert_multi_events
-- get_contributing_events
-- update_issue
-
-... (continues with all 90 tools)
-```
-
-✅ **Success:** You see **90 tools** (6 base + 84 custom)
-❌ **Problem:** You see only 6 tools (custom tools didn't load)
-
-**If only 6 tools appear:**
-
-1. **Check files were copied:**
-   ```bash
-   ls -la /path/to/cortex-mcp/src/usecase/custom_components/ | grep -E "\.py$|\.yaml$"
-   ```
-   Should see 53+ files
-
-2. **Check for import errors:**
-   ```bash
-   tail -100 /path/to/cortex-mcp/cortex-mcp.log | grep -i error
-   ```
-
-3. **Verify Python version:**
-   ```bash
-   cd /path/to/cortex-mcp
-   source venv/bin/activate
-   python --version  # Should be 3.12 or higher
-   ```
-
-4. **Reinstall dependencies:**
-   ```bash
-   cd /path/to/cortex-mcp
-   source venv/bin/activate
-   poetry install  # or pip install -r requirements.txt
-   ```
-
----
-
-## Step 8: Test Basic Functionality
-
-Verify the tools work by testing each category:
-
-### Test 1: Case Management
-```
-Ask Claude: "Show me all my XSIAM cases from the last 7 days"
-```
-
-✅ **Expected:** List of cases with IDs, severities, and descriptions
-❌ **If fails:** Check API credentials are configured
-
-### Test 2: Threat Hunting
-```
-Ask Claude: "Run an XQL query to find all process events in the last hour"
-```
-
-✅ **Expected:** XQL query executes and returns results
-❌ **If fails:** Verify XSIAM API connection
-
-### Test 3: Enrichment
-```
-Ask Claude: "Enrich IP address 8.8.8.8"
-```
-
-✅ **Expected:** IP reputation data from threat intelligence sources
-❌ **If fails:** Check threat intel integrations are configured in XSIAM
-
-### Test 4: Response Actions
-```
-Ask Claude: "List all my endpoints"
-```
-
-✅ **Expected:** List of endpoints with hostnames, IPs, and status
-❌ **If fails:** Check API permissions include endpoint read access
-
-### Test 5: SDK Tools (If SDK Installed)
-```
-Ask Claude: "List available XSOAR integration scripts"
-```
-
-✅ **Expected:** List of scripts from script library
-❌ **If fails:** demisto-sdk not installed (see Step 7 below)
-
----
-
-## Step 9: Install Demisto SDK (Optional)
-
-The following 10 SDK tools require demisto-sdk:
-- sdk_upload, sdk_validate, sdk_lint
-- sdk_init, sdk_download, sdk_run
-- sdk_run_playbook, sdk_generate_docs
-- sdk_split, sdk_unify
-
-The other 80 tools work without it. SDK tools **automatically use your MCP credentials** - no separate configuration needed.
-
-### Step 9.1: Verify uv is Installed
-
-If you followed the prerequisites, `uv` is already installed. Verify:
-```bash
-uvx demisto-sdk --version
-# Expected: demisto-sdk 1.x.x
-```
-
-> **Alternative (not recommended):** You can install demisto-sdk directly with `pip3 install demisto-sdk`, but this requires Python 3.9-3.12 and may conflict with MCP's pydantic 2.x requirement. Using `uvx` avoids this entirely.
-
-### Step 9.2: Setup Content Repository
-
-Create content directory (required for SDK tools):
-```bash
-mkdir -p ~/content/Packs
-```
-
-Or use custom location:
-```bash
-export CONTENT_PATH=/your/custom/path
-mkdir -p $CONTENT_PATH/Packs
-```
-
-### Step 9.3: Test SDK Tools
-
-In Claude:
-```
-Ask Claude: "List available XSOAR scripts"
-```
-
-✅ **Expected:** List of scripts from script library
-❌ **If fails:** Run `which uvx` or `demisto-sdk --version` to verify installation
-
----
-
-## Installation Success Checklist
-
-Before considering installation complete, verify:
-
-- [ ] **uv installed** (`uv --version` returns a version)
-- [ ] **Dependencies installed** (`poetry install` completed without errors)
-- [ ] **Credentials configured** (`.env` file has your API key, URL, and key ID)
-- [ ] **90 tools visible** in Claude (not 6)
-- [ ] **Can list cases** without authentication errors
-- [ ] **Can run XQL queries** and get results
-- [ ] **Enrichment works** (test with known good IP like 8.8.8.8)
-- [ ] **Can list endpoints** in your environment
-- [ ] **Content repo exists** (`ls ~/content/Packs` works)
-- [ ] **SDK tools respond** (at minimum, list scripts works)
-- [ ] **No import errors** in MCP server logs
-
-**If all checked:** 🎉 Installation successful! You're ready to use all 90 tools.
-
----
-
-## Common Issues and Solutions
-
-### Issue: "Only 6 tools appear, not 90"
-
-**Cause:** Custom tools didn't load
-
-**Solution:**
-1. Verify files were copied:
-   ```bash
-   ls /path/to/cortex-mcp/src/usecase/custom_components/*.py
-   ```
-   Should see 28 Python files
-
-2. Check MCP server logs for errors:
-   ```bash
-   tail -100 /path/to/cortex-mcp/cortex-mcp.log
-   ```
-
-3. Restart MCP server:
-   ```bash
-   pkill -f cortex.*main.py
-   ```
-
-### Issue: "401 Unauthorized" errors
-
-**Cause:** API credentials not configured or incorrect
-
-**Solution:**
-1. Check credentials file exists:
-   ```bash
-   cat /path/to/cortex-mcp/.env | grep CORTEX_MCP_PAPI
-   ```
-
-2. Verify credentials are correct in your XSIAM tenant
-
-3. Restart MCP server after updating credentials
-
-### Issue: "Module import errors"
-
-**Cause:** Dependencies not installed or wrong Python version
-
-**Solution:**
 ```bash
 cd /path/to/cortex-mcp
 source venv/bin/activate
-python --version  # Should be 3.12+
-poetry install  # Reinstall dependencies
-pkill -f cortex.*main.py  # Restart
+poetry install
 ```
 
-### Issue: "SDK tools don't work"
+This installs `aiohttp` and other dependencies required by the custom tools.
 
-**Cause:** uv package manager not installed
+## Step 3: Install uv and demisto-sdk
 
-**Solution:**
+The XSOAR SDK tools (`sdk_upload`, `sdk_validate`, etc.) need `demisto-sdk`, which conflicts with the MCP server's pydantic version. `uvx` solves this by running it in isolation.
+
 ```bash
 # Install uv
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Verify
-which uvx
-# Should show: /Users/yourname/.cargo/bin/uvx
+# Verify demisto-sdk works through uvx
+uvx demisto-sdk --version
+# Expected: demisto-sdk 1.x.x
 
-# Retry SDK command in Claude
-```
-
-### Issue: "Cannot find MCP installation directory"
-
-**Cause:** Unclear where PANW MCP was installed
-
-**Solution:**
-```bash
-# Search for it
-find ~ -name "main.py" -path "*/cortex*/src/main.py" 2>/dev/null
-
-# Check common locations:
-ls ~/cortex-mcp/src/main.py 2>/dev/null
-ls ~/.local/share/cortex-mcp/src/main.py 2>/dev/null
-ls /opt/cortex-mcp/src/main.py 2>/dev/null
-
-# If installed via Docker:
-docker ps | grep cortex
-# Then: docker exec -it cortex-mcp ls /app/src/main.py
-```
-
----
-
-## Next Steps
-
-Once installation is complete:
-
-1. **Explore the tools:**
-   ```
-   Ask Claude: "What can you do with these XSIAM tools?"
-   ```
-
-2. **Try a real task:**
-   ```
-   "Investigate case 123 and generate an AI summary"
-   "Hunt for PowerShell execution on domain controllers"
-   "Create a phishing investigation playbook"
-   ```
-
-3. **Review documentation:**
-   - See `README.md` for complete tool reference
-   - See `README.md` for use cases and examples
-   - See `README.md` for architecture and FAQ
-
-4. **Join the community:**
-   - Report issues on GitHub
-   - Contribute new tools
-   - Share your use cases
-
----
-
-## Quick Reference
-
-**Installation Summary:**
-```bash
-# 1. Install uv (if not already installed)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# 2. Download/clone
-git clone https://github.com/alexpekarovsky/cortex-bot.git
-
-# 3. Copy custom tools
-cp -r cortex-bot/custom_components/* ~/cortex-mcp/src/usecase/custom_components/
-
-# 4. Install dependencies
-cd ~/cortex-mcp && poetry install
-
-# 5. Configure credentials
-cp .env.example .env && nano .env
-
-# 6. Create content repo (for SDK tools)
+# Create content directory (required for SDK tools)
 mkdir -p ~/content/Packs
-
-# 7. Restart and verify
-pkill -f cortex.*main.py
-# In Claude: /mcp → should show 90 tools
 ```
 
-**Success Criteria:**
-- 90 tools visible
-- Can list cases
-- Can run XQL queries
-- Enrichment works
-- SDK tools respond
+If you skip this step, 10 SDK tools won't work. The other 80 tools are unaffected.
 
-**Get Help:**
-- GitHub Issues: [link]
-- Documentation: README.md
-- PANW Support: [PANW Docs](https://docs-cortex.paloaltonetworks.com/)
+## Step 4: Configure credentials
+
+```bash
+# In your PANW MCP server directory
+cp .env.example .env
+```
+
+Edit `.env` with your three XSIAM values:
+
+```bash
+CORTEX_MCP_PAPI_URL=https://api-yourinstance.xdr.us.paloaltonetworks.com
+CORTEX_MCP_PAPI_AUTH_HEADER=your_api_key_here
+CORTEX_MCP_PAPI_AUTH_ID=1
+```
+
+**These same credentials are used by all tools**, including the demisto-sdk tools. The SDK automatically maps them:
+- `CORTEX_MCP_PAPI_URL` → `DEMISTO_BASE_URL`
+- `CORTEX_MCP_PAPI_AUTH_HEADER` → `DEMISTO_API_KEY`
+- `CORTEX_MCP_PAPI_AUTH_ID` → `XSIAM_AUTH_ID`
+
+No separate SDK credential setup is needed.
+
+## Step 5: Configure your AI agent
+
+### Claude Code
+
+Add to `.claude/settings.local.json` (project-level) or `~/.claude/settings.json` (global):
+
+```json
+{
+  "mcpServers": {
+    "cortex-xsiam": {
+      "command": "python",
+      "args": ["/path/to/cortex-mcp/src/main.py"],
+      "env": {
+        "CORTEX_MCP_PAPI_URL": "https://api-yourinstance.xdr.us.paloaltonetworks.com",
+        "CORTEX_MCP_PAPI_AUTH_HEADER": "your_api_key",
+        "CORTEX_MCP_PAPI_AUTH_ID": "1"
+      }
+    }
+  }
+}
+```
+
+Then in Claude Code, run `/mcp` to connect.
+
+### Gemini CLI
+
+Add to `~/.gemini/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "cortex-xsiam": {
+      "command": "python",
+      "args": ["/path/to/cortex-mcp/src/main.py"],
+      "env": {
+        "CORTEX_MCP_PAPI_URL": "https://api-yourinstance.xdr.us.paloaltonetworks.com",
+        "CORTEX_MCP_PAPI_AUTH_HEADER": "your_api_key",
+        "CORTEX_MCP_PAPI_AUTH_ID": "1"
+      }
+    }
+  }
+}
+```
+
+### Any MCP client
+
+The server uses **stdio transport** by default. Configure your client to run:
+```
+python /path/to/cortex-mcp/src/main.py
+```
+With the three `CORTEX_MCP_PAPI_*` environment variables set.
+
+## Step 6: Verify
+
+After connecting your AI agent, you should see **90 tools** (6 base + 84 custom).
+
+Test with these prompts:
+
+```
+"Show me all my XSIAM cases"           → Tests case management + API connection
+"Run XQL: dataset = xdr_data | limit 5" → Tests XQL execution
+"List all endpoints"                     → Tests endpoint access
+"Enrich IP 8.8.8.8"                     → Tests threat intel enrichment
+```
 
 ---
 
-**Difficulty:** Straightforward if the official PANW MCP server is already working.
+## Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| Only 6 tools visible | Custom files not copied — check `ls src/usecase/custom_components/*.py` shows 28+ files |
+| `401 Unauthorized` | Wrong API key — verify in `.env` |
+| `ModuleNotFoundError: aiohttp` | Run `poetry install` in MCP server directory |
+| Import/pydantic errors | Don't `pip install demisto-sdk` in MCP venv — use `uvx` |
+| SDK tools fail | Install uv: `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| `FileNotFoundError: Packs` | `mkdir -p ~/content/Packs` |
+| Code changes not loading | MCP server caches at startup — restart it |
+
+### Check credentials
+
+```bash
+# Verify .env is correct
+grep CORTEX_MCP_PAPI /path/to/cortex-mcp/.env
+
+# Check for env var overrides (higher priority than .env)
+printenv | grep CORTEX_MCP_PAPI
+
+# Test API directly
+curl -s -X POST "$CORTEX_MCP_PAPI_URL/public_api/v1/incidents/get_incidents" \
+  -H "Authorization: $CORTEX_MCP_PAPI_AUTH_HEADER" \
+  -H "x-xdr-auth-id: $CORTEX_MCP_PAPI_AUTH_ID" \
+  -H "Content-Type: application/json" \
+  -d '{"request_data": {}}' | head -100
+```
+
+---
+
+## What's next
+
+Once installed, try:
+
+- "Investigate case 123 and create an AI summary"
+- "Hunt for PowerShell activity on domain controllers"
+- "Create a phishing investigation playbook"
+- "Build a custom integration for our ticketing system"
+
+See [README.md](README.md) for the full tool reference.

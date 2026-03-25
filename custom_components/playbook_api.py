@@ -8,7 +8,9 @@ These use the REST API instead of the SDK for better performance and simplicity.
 import base64
 import io
 import logging
+import os
 import zipfile
+from pathlib import Path
 from typing import Annotated, Optional
 
 from fastmcp import Context
@@ -62,7 +64,7 @@ async def get_playbook(
     }
 
     try:
-        response = requests.post(url, json=request_data, headers=headers, verify=False)
+        response = requests.post(url, json=request_data, headers=headers, verify=True)
 
         if response.status_code != 200:
             return create_response(
@@ -161,6 +163,15 @@ async def insert_playbook(
 
     fetcher = await get_fetcher(ctx)
 
+    # Validate file path - must be under home directory or /tmp
+    allowed_bases = [Path.home(), Path("/tmp")]
+    resolved = Path(file).resolve()
+    if not any(str(resolved).startswith(str(base)) for base in allowed_bases):
+        return create_response(
+            data={"error": f"File path must be under home directory or /tmp: {file}"},
+            is_error=True
+        )
+
     # Read the ZIP file
     try:
         with open(file, 'rb') as f:
@@ -188,7 +199,7 @@ async def insert_playbook(
             form = aiohttp.FormData()
             form.add_field('file', zip_data, filename='playbook.zip', content_type='application/zip')
 
-            async with session.post(url, data=form, headers=headers, ssl=False) as resp:
+            async with session.post(url, data=form, headers=headers, ssl=True) as resp:
                 if resp.status != 200:
                     error_text = await resp.text()
                     return create_response(
