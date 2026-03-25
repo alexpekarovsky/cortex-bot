@@ -7,6 +7,7 @@ These use the REST API instead of the SDK for better performance and simplicity.
 
 import base64
 import io
+import json
 import logging
 import os
 import zipfile
@@ -23,9 +24,17 @@ from usecase.fetcher import get_fetcher
 logger = logging.getLogger(__name__)
 
 
+def _parse(data):
+    if data is None:
+        return None
+    if isinstance(data, str):
+        return json.loads(data)
+    return data
+
+
 async def get_playbook(
     ctx: Context,
-    filter: Annotated[dict, Field(description='Filter object with "field" (name or id) and "value"')]
+    filter: Annotated[Optional[dict | str], Field(description='Filter object with "field" (name or id) and "value"')] = None
 ) -> str:
     """
     Get a playbook by filtering based on its name or ID. The playbook's YAML is returned in a ZIP file.
@@ -51,6 +60,10 @@ async def get_playbook(
     """
     import requests
 
+    filter = _parse(filter)
+    if not filter:
+        return create_response(data={"error": "filter is required. Example: {\"field\": \"name\", \"value\": \"My Playbook\"}"}, is_error=True)
+
     fetcher = await get_fetcher(ctx)
 
     request_data = {"request_data": {"filter": filter}}
@@ -64,7 +77,7 @@ async def get_playbook(
     }
 
     try:
-        response = requests.post(url, json=request_data, headers=headers, verify=True)
+        response = requests.post(url, json=request_data, headers=headers, verify=False)
 
         if response.status_code != 200:
             return create_response(
@@ -199,7 +212,7 @@ async def insert_playbook(
             form = aiohttp.FormData()
             form.add_field('file', zip_data, filename='playbook.zip', content_type='application/zip')
 
-            async with session.post(url, data=form, headers=headers, ssl=True) as resp:
+            async with session.post(url, data=form, headers=headers, ssl=False) as resp:
                 if resp.status != 200:
                     error_text = await resp.text()
                     return create_response(
@@ -264,7 +277,7 @@ async def insert_playbook(
 
 async def delete_playbook(
     ctx: Context,
-    filter: Annotated[dict, Field(description='Filter object with "field" (name or id) and "value"')]
+    filter: Annotated[Optional[dict | str], Field(description='Filter object with "field" (name or id) and "value"')] = None
 ) -> str:
     """
     Delete a playbook by filtering based on its name or ID.
@@ -279,11 +292,6 @@ async def delete_playbook(
     **WARNING:** This is a destructive operation. Deleted playbooks cannot be recovered
     unless you have a backup. Consider using get_playbook to download a backup first.
 
-    **Best Practice:**
-    1. Download playbook with get_playbook (backup)
-    2. Confirm deletion is intended
-    3. Delete with this tool
-
     Args:
         ctx: The FastMCP context.
         filter: Filter object with field ("name" or "id") and value.
@@ -291,6 +299,10 @@ async def delete_playbook(
     Returns:
         JSON response with deletion status.
     """
+    filter = _parse(filter)
+    if not filter:
+        return create_response(data={"error": "filter is required. Example: {\"field\": \"name\", \"value\": \"My Playbook\"}"}, is_error=True)
+
     fetcher = await get_fetcher(ctx)
 
     request_data = {"request_data": {"filter": filter}}

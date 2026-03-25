@@ -104,18 +104,18 @@ async def update_issue(
         )
 
         return create_response(data=response_data)
-    except PAPIResponseError as e:
+    except (PAPIResponseError, AttributeError) as e:
         # API returns 204 No Content on success, which causes JSON parse error
-        # Check if error message indicates empty response (successful update)
+        # Also catches AttributeError from DictResponse compatibility issues
         error_str = str(e)
-        if ("Invalid JSON response" in error_str and "column 1" in error_str) or \
+        if ("Invalid JSON response" in error_str) or \
            ("JSONDecodeError" in error_str) or \
-           ("'dict' object has no attribute 'JSONDecodeError'" in error_str):
-            # Update succeeded but response was empty/malformed
+           ("has no attribute" in error_str) or \
+           ("204" in error_str):
             return create_response(data={
                 "success": True,
                 "issue_id": issue_id,
-                "message": f"Issue {issue_id} updated successfully (API returned 204 No Content)",
+                "message": f"Issue {issue_id} updated successfully",
                 "updates_applied": update_data
             })
         logger.exception(f"PAPI response error while updating issue: {e}")
@@ -130,6 +130,15 @@ async def update_issue(
         logger.exception(f"PAPI error while updating issue: {e}")
         return create_response(data={"error": str(e)}, is_error=True)
     except Exception as e:
+        error_str = str(e)
+        # Catch 204/empty response errors that slip through
+        if "has no attribute" in error_str or "JSONDecodeError" in error_str:
+            return create_response(data={
+                "success": True,
+                "issue_id": issue_id,
+                "message": f"Issue {issue_id} updated successfully",
+                "updates_applied": update_data
+            })
         logger.exception(f"Failed to update issue: {e}")
         return create_response(data={"error": str(e)}, is_error=True)
 

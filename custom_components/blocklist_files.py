@@ -5,6 +5,7 @@ Adds file hashes to the Cortex XSIAM blocklist to prevent their execution
 on managed endpoints.
 """
 
+import json
 import logging
 import re
 from typing import Annotated
@@ -29,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 async def blocklist_files(
     ctx: Context,
-    hash_list: Annotated[list[str], Field(description="List of file hashes (MD5, SHA1, or SHA256) to add to blocklist")],
+    hash_list: Annotated[list[str] | str, Field(description="List of file hashes (MD5, SHA1, or SHA256) to add to blocklist")],
     comment: Annotated[str | None, Field(description="Optional comment explaining why these hashes are being blocklisted")] = None,
     incident_id: Annotated[int | None, Field(description="Optional incident/case ID to associate this blocklist action with")] = None,
     confirm_destructive_action: Annotated[bool, Field(
@@ -65,6 +66,10 @@ async def blocklist_files(
     Returns:
         JSON response with blocklist operation status and details.
     """
+
+    # Parse JSON string if needed
+    if isinstance(hash_list, str):
+        hash_list = json.loads(hash_list)
 
     # Safety check - require explicit confirmation
     if not confirm_destructive_action:

@@ -930,9 +930,18 @@ async def create_playbook(
                         if key not in ["id", "type", "name", "description", "conditions", "next", "tags"] and isinstance(value, list):
                             cond_nexttasks[key] = value
 
-                # If "next" is provided as list, add as default path
-                if "next" in task_def and "#default#" not in cond_nexttasks:
-                    cond_nexttasks["#default#"] = task_def["next"]
+                # If "next" is provided, use it for routing
+                if "next" in task_def:
+                    next_val = task_def["next"]
+                    if isinstance(next_val, dict):
+                        # Dict format: {"yes": ["4"], "#default#": ["5"]}
+                        # Merge into cond_nexttasks (don't overwrite existing)
+                        for k, v in next_val.items():
+                            if k not in cond_nexttasks:
+                                cond_nexttasks[k] = v
+                    elif isinstance(next_val, list) and "#default#" not in cond_nexttasks:
+                        # List format: ["5"] -> default path
+                        cond_nexttasks["#default#"] = next_val
 
                 # Auto-detect if this condition is referenced by SlackAsk/EmailAsk
                 # and automatically add tags for sub-playbook compatibility
