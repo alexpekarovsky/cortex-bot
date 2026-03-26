@@ -66,6 +66,19 @@ For detailed step-by-step instructions, see [INSTALL.md](INSTALL.md).
 | **War Room & IOC** | 4 | War Room entries, IOC insertion (JSON/CSV) |
 | **Other** | 1 | test_all_tools, get_action_status, get_tenant_info, Slack guide |
 
+### Example Prompts
+
+| You say | What happens |
+|---------|-------------|
+| "Show me all critical cases from the last 24 hours" | Lists cases with alert counts and affected hosts |
+| "Investigate case 100 and generate an AI summary" | Gets full forensics, creates investigation report |
+| "Hunt for PowerShell on domain controllers" | Runs XQL query, shows process trees |
+| "Is IP 45.33.32.156 malicious?" | Enriches via threat intel, shows reputation |
+| "Isolate endpoint Server-DC-1" | Isolates from network, monitors status |
+| "Create an SSH brute force detection rule" | Creates XQL correlation rule |
+| "Create a ServiceNow integration" | Scaffolds code, writes Python, uploads to XSIAM |
+| "Create a playbook that checks if NGFW sessions ended and closes the issue. Upload it, run it on a test issue, fix any errors, and keep going until it completes 100%." | Creates playbook YAML, uploads to XSIAM, creates test issue, opens War Room, runs playbook, reads errors from War Room, fixes YAML, re-uploads, retests — iterates until fully working |
+
 ### Complete Tool Reference
 
 <details>
