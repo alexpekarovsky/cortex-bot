@@ -66,17 +66,227 @@ For detailed step-by-step instructions, see [INSTALL.md](INSTALL.md).
 | **War Room & IOC** | 4 | War Room entries, IOC insertion (JSON/CSV) |
 | **Other** | 1 | test_all_tools, get_action_status, get_tenant_info, Slack guide |
 
-### Example Prompts
+### Complete Tool Reference
 
-| You say | What happens |
-|---------|-------------|
-| "Show me all critical cases from the last 24 hours" | Lists cases with alert counts and affected hosts |
-| "Investigate case 100 and generate an AI summary" | Gets full forensics, creates investigation report |
-| "Hunt for PowerShell on domain controllers" | Runs XQL query, shows process trees |
-| "Is IP 45.33.32.156 malicious?" | Enriches via threat intel, shows reputation |
-| "Isolate endpoint Server-DC-1" | Isolates from network, monitors status |
-| "Create an SSH brute force detection rule" | Creates XQL correlation rule |
-| "Create a ServiceNow integration" | Scaffolds code, writes Python, uploads to XSIAM |
+<details>
+<summary><b>Case Management (5 tools)</b></summary>
+
+| Tool | Example Prompt |
+|------|---------------|
+| `get_cases` | "Show me all critical cases from the last 24 hours" |
+| `get_incident_extra_data` | "Give me full details on case 474 including all alerts" |
+| `update_incident` | "Assign case 474 to analyst@company.com" |
+| `update_case_ai_summary` | "Generate an AI investigation summary for case 474" |
+| `update_case_timeline` | "Create a visual timeline for case 474" |
+
+</details>
+
+<details>
+<summary><b>Issue Management (5 tools)</b></summary>
+
+| Tool | Example Prompt |
+|------|---------------|
+| `get_issues` | "Show me all new high severity alerts" |
+| `create_issue` | "Create a scratch pad issue for IP investigation" |
+| `update_issue` | "Mark alert 11222 as resolved false positive" |
+| `get_alert_multi_events` | "Show me the raw events that triggered alert 11223" |
+| `get_contributing_events` | "Get contributing events for alert 10781" |
+
+</details>
+
+<details>
+<summary><b>Response Actions (7 tools)</b></summary>
+
+| Tool | Example Prompt |
+|------|---------------|
+| `isolate_endpoint` | "Isolate the Gaming endpoint from the network" |
+| `unisolate_endpoint` | "Restore network access to Gaming" |
+| `scan_endpoint` | "Run a malware scan on Gaming" |
+| `abort_scan` | "Cancel the running scan on Gaming" |
+| `terminate_process` | "Kill notepad.exe on the Gaming endpoint" |
+| `terminate_causality` | "Terminate the entire process tree for causality abc123" |
+| `get_action_status` | "Check the status of action 149" |
+
+</details>
+
+<details>
+<summary><b>File Operations (7 tools)</b></summary>
+
+| Tool | Example Prompt |
+|------|---------------|
+| `quarantine_files` | "Quarantine C:\malware.exe on the Gaming endpoint" |
+| `restore_file` | "Restore the quarantined file on Gaming" |
+| `retrieve_files` | "Pull the hosts file from Gaming for analysis" |
+| `get_file_retrieval_details` | "Get download link for file retrieval action 155" |
+| `get_quarantine_status` | "Check if malware.exe is quarantined on Gaming" |
+| `blocklist_files` | "Block hash e3b0c44... across all endpoints" |
+| `allowlist_files` | "Allowlist our custom app hash a1b2c3..." |
+
+</details>
+
+<details>
+<summary><b>Threat Hunting (6 tools)</b></summary>
+
+| Tool | Example Prompt |
+|------|---------------|
+| `run_xql_query` | "Hunt for PowerShell with bypass flag in the last 7 days" |
+| `enrich_ip_address` | "Is 45.33.32.156 malicious?" |
+| `enrich_domain` | "Check reputation of suspicious-domain.com" |
+| `enrich_file_hash` | "Look up file hash d7a8fbb307... in threat intel" |
+| `enrich_url` | "Is https://phishing-site.com/login safe?" |
+| `run_xsoar_automation` | "Run !GetInstances to see all configured integrations" |
+
+</details>
+
+<details>
+<summary><b>Detection Rules (1 tool)</b></summary>
+
+| Tool | Example Prompt |
+|------|---------------|
+| `insert_correlation_rule` | "Create a rule to detect SSH brute force over 10 failed logins" |
+
+</details>
+
+<details>
+<summary><b>Script Execution (6 tools)</b></summary>
+
+| Tool | Example Prompt |
+|------|---------------|
+| `run_script` | "Run process_get on Gaming to list running processes" |
+| `run_snippet_code_script` | "Run `import platform; print(platform.version())` on Gaming" |
+| `get_scripts` | "List all available scripts I can run on endpoints" |
+| `get_script_metadata` | "Show me the parameters for the process_get script" |
+| `get_script_execution_status` | "Is script action 153 still running?" |
+| `get_script_execution_results` | "Show me the output from script action 153" |
+
+</details>
+
+<details>
+<summary><b>XSOAR SDK (9 tools)</b></summary>
+
+| Tool | Example Prompt |
+|------|---------------|
+| `sdk_validate` | "Validate the structure of Packs/MyIntegration" |
+| `sdk_lint` | "Lint the Python code in Packs/MyIntegration" |
+| `sdk_upload` | "Upload Packs/MyIntegration to XSIAM" |
+| `sdk_download` | "Download the CommonScripts pack from XSIAM" |
+| `sdk_run` | "Run the ip command with ip=8.8.8.8 via SDK" |
+| `sdk_run_playbook` | "Trigger the Gaming Endpoint Check playbook via SDK" |
+| `sdk_generate_docs` | "Generate README docs for my integration" |
+| `sdk_split` | "Split a unified YAML into directory structure" |
+| `sdk_unify` | "Unify Packs/MyPack into a single deployable package" |
+
+</details>
+
+<details>
+<summary><b>Development Guides (12 tools)</b></summary>
+
+| Tool | Example Prompt |
+|------|---------------|
+| `get_xsoar_pattern_guide` | "What integration pattern should I use for a webhook listener?" |
+| `get_xsoar_long_running_guide` | "How do I build a long-running monitoring integration?" |
+| `get_xsoar_event_collector_guide` | "How do I build a ServiceNow event collector?" |
+| `get_xsoar_scheduled_commands_guide` | "How do I implement async polling for sandbox analysis?" |
+| `get_xsoar_mirroring_guide` | "How do I build bidirectional sync with Jira?" |
+| `get_xsoar_feed_guide` | "How do I build a TAXII threat feed integration?" |
+| `get_xsoar_layout_guide` | "How do I create a custom alert layout with buttons?" |
+| `get_xsoar_playbook_operations_guide` | "How do I run a playbook on a specific alert?" |
+| `get_xsoar_best_practices` | "What are the threading and state management rules?" |
+| `get_playbook_building_blocks` | "Show me building blocks for containment playbooks" |
+| `get_slack_interactive_workflows_guide` | "How do I build Slack approval workflows with buttons?" |
+| `get_xsiam_content_guide` | "What content types can I create for XSIAM?" |
+
+</details>
+
+<details>
+<summary><b>Content Generators (11 tools)</b></summary>
+
+| Tool | Example Prompt |
+|------|---------------|
+| `create_xsiam_dashboard` | "Create a dashboard showing total events by host" |
+| `create_xsiam_report` | "Create a weekly alert summary report" |
+| `create_case_field` | "Create a singleSelect field called Investigation Priority" |
+| `create_case_layout` | "Create a custom case layout for phishing investigations" |
+| `create_case_layout_rule` | "Route phishing cases to the phishing layout" |
+| `create_parsing_rule` | "Create a parsing rule for our custom app logs" |
+| `create_modeling_rule` | "Map parsed logs to the XDM Audit model" |
+| `create_assets_modeling_rule` | "Map host inventory to the Assets model" |
+| `create_agentix_action` | "Wrap the ip command as an AgentIX action" |
+| `create_agentix_agent` | "Create an AI agent that can enrich IPs and domains" |
+| `create_playbook` | "Build a playbook that checks NGFW sessions and auto-closes" |
+
+</details>
+
+<details>
+<summary><b>Playbook Management (4 tools)</b></summary>
+
+| Tool | Example Prompt |
+|------|---------------|
+| `get_playbook` | "Download the YAML for the phishing playbook" |
+| `insert_playbook` | "Upload my playbook ZIP to XSIAM" |
+| `delete_playbook` | "Delete the old test playbook" |
+| `run_playbook` | "Run the NGFW Session Check playbook on alert 11223" |
+
+</details>
+
+<details>
+<summary><b>Integration Discovery (2 tools)</b></summary>
+
+| Tool | Example Prompt |
+|------|---------------|
+| `list_integrations` | "What integrations are configured in my XSIAM?" |
+| `get_integration_commands` | "What commands does Cortex Core - IR support?" |
+
+</details>
+
+<details>
+<summary><b>Widget Management (3 tools)</b></summary>
+
+| Tool | Example Prompt |
+|------|---------------|
+| `get_widgets` | "List all my XQL dashboard widgets" |
+| `insert_widgets` | "Create a widget showing alert count by severity" |
+| `delete_widgets` | "Delete widget xql_tool_test_123" |
+
+</details>
+
+<details>
+<summary><b>Assets & Risk (8 tools)</b></summary>
+
+| Tool | Example Prompt |
+|------|---------------|
+| `get_endpoints` | "List all my endpoints with their status" |
+| `get_filtered_endpoints` | "Show me only connected Windows endpoints" |
+| `get_assets` | "List assets in the inventory" |
+| `get_asset_by_id` | "Get details for asset ID abc123" |
+| `get_vulnerabilities` | "Show me critical CVEs in my environment" |
+| `get_assessment_profile_results` | "Show CIS benchmark compliance results" |
+| `list_risky_users` | "Who are the riskiest users in my environment?" |
+| `list_risky_hosts` | "Which hosts have the highest risk scores?" |
+
+</details>
+
+<details>
+<summary><b>War Room & IOC (4 tools)</b></summary>
+
+| Tool | Example Prompt |
+|------|---------------|
+| `add_war_room_entry` | "Add a note to alert 11222: confirmed false positive" |
+| `get_war_room_entries` | "Show me the War Room history for alert 11222" |
+| `insert_indicators_json` | "Add 10.99.99.99 as a suspicious IOC" |
+| `insert_indicators_csv` | "Bulk import IOCs from CSV" |
+
+</details>
+
+<details>
+<summary><b>Other (2 tools)</b></summary>
+
+| Tool | Example Prompt |
+|------|---------------|
+| `get_tenant_info` | "Show me my XSIAM license and expiration dates" |
+| `test_all_tools` | "Run the built-in tool connectivity test" |
+
+</details>
 
 ---
 
