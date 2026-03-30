@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 """
 XSOAR Playbook Creator with Smart Content Discovery
 
@@ -28,6 +29,25 @@ logger = logging.getLogger(__name__)
 def generate_uuid() -> str:
     """Generate UUID for task IDs."""
     return str(uuid.uuid4())
+
+
+# Integration command prefixes/names that must use iscommand=true + script='|||cmd'.
+# LLMs often pass these under the "script" key (automation syntax) by mistake.
+_INTEGRATION_COMMAND_PREFIXES = (
+    "core-", "xdr-", "send-mail", "closeCase", "setIncident", "setAlert",
+    "closeInvestigation", "jira-", "servicenow-", "splunk-", "qradar-",
+    "aws-", "azure-", "gcp-", "crowdstrike-", "okta-", "github-",
+)
+
+
+def _is_integration_command(name: str) -> bool:
+    """Return True if name looks like an integration command rather than an automation."""
+    if not name:
+        return False
+    # Explicit pack|||command format already signals an integration command
+    if "|||" in name:
+        return True
+    return any(name.startswith(prefix) for prefix in _INTEGRATION_COMMAND_PREFIXES)
 
 
 def generate_task_id(index: int) -> str:
@@ -103,6 +123,15 @@ def create_regular_task(task_id: str, name: str,
         position = {"x": 450, "y": 195}
 
     is_command = command is not None
+
+    # Auto-promote integration commands passed under "script" to command format.
+    # LLMs often use the "script" key for integration commands (e.g. "core-get-endpoints")
+    # even though those require iscommand=true + script='|||cmd'. Detect and fix here
+    # so callers don't have to know the distinction.
+    if script_name and not command and _is_integration_command(script_name):
+        command = f"|||{script_name}"
+        script_name = None
+        is_command = True
 
     # Wrap arguments in simple: format if not already wrapped
     wrapped_arguments = {}
@@ -696,6 +725,27 @@ async def create_playbook(
     ]
     ```
 
+    CRITICAL: SCRIPT vs COMMAND REFERENCE FORMAT
+    ─────────────────────────────────────────────
+    Two types of tasks require DIFFERENT field formats:
+
+    AUTOMATION SCRIPTS (Print, ParseJSON, Set, extractIndicators, etc.):
+    - Use bare script name — NO pack prefix
+    - WRONG: "CommonScripts|||Print"  → causes "Missing script" error even if installed
+    - CORRECT: "Print"
+    - Set iscommand=false, brand="" (handled automatically when using "script" key)
+
+    INTEGRATION COMMANDS (xdr-get-endpoints, ip, file, etc.):
+    - Use "Pack|||command" format OR just the command name
+    - CORRECT: "Cortex Core - IR|||xdr-get-endpoints" or just "xdr-get-endpoints"
+    - Set iscommand=true, brand="Integration Name" (handled automatically when using "command" key)
+
+    In the task JSON input to this tool:
+    - Use "script" key for automation scripts: {"script": "Print", ...}
+    - Use "command" key for integration commands: {"command": "Cortex Core - IR|||xdr-get-endpoints", ...}
+
+    ─────────────────────────────────────────────
+
     TASK FORMAT GUIDE:
 
     Regular Task (simple):
@@ -908,9 +958,28 @@ async def create_playbook(
                         if key not in ["id", "type", "name", "description", "conditions", "next", "tags"] and isinstance(value, list):
                             cond_nexttasks[key] = value
 
-                # If "next" is provided as list, add as default path
-                if "next" in task_def and "#default#" not in cond_nexttasks:
-                    cond_nexttasks["#default#"] = task_def["next"]
+                # If "next" is provided, use it for routing
+                if "next" in task_def:
+                    next_val = task_def["next"]
+                    if isinstance(next_val, dict):
+                        # Dict format: {"yes": ["4"], "#default#": ["5"]}
+                        # Merge into cond_nexttasks (don't overwrite existing)
+                        for k, v in next_val.items():
+                            if k not in cond_nexttasks:
+                                cond_nexttasks[k] = v
+                    elif isinstance(next_val, list) and "#default#" not in cond_nexttasks:
+                        # List format: ["5"] -> default path
+                        cond_nexttasks["#default#"] = next_val
+
+                # Fix double-nesting: LLMs sometimes pass nexttasks with all branches
+                # wrapped under a spurious '#default#' key, e.g.:
+                #   {"#default#": {"Yes": ["6"], "No": ["7"], "#default#": ["7"]}}
+                # Flatten to: {"Yes": ["6"], "No": ["7"], "#default#": ["7"]}
+                if (
+                    list(cond_nexttasks.keys()) == ["#default#"]
+                    and isinstance(cond_nexttasks.get("#default#"), dict)
+                ):
+                    cond_nexttasks = cond_nexttasks["#default#"]
 
                 # Auto-detect if this condition is referenced by SlackAsk/EmailAsk
                 # and automatically add tags for sub-playbook compatibility
@@ -990,6 +1059,15 @@ async def create_playbook(
                     slareminder=task_def.get("slareminder")
                 )
 
+        # Validate output path - must be under home directory or /tmp
+        allowed_bases = [Path.home(), Path("/tmp")]
+        resolved_output = Path(output_path).resolve()
+        if not any(str(resolved_output).startswith(str(base)) for base in allowed_bases):
+            return create_response(
+                data={"error": f"Output path must be under home directory or /tmp: {output_path}"},
+                is_error=True
+            )
+
         # Write YAML
         with open(output_path, 'w') as f:
             yaml.dump(playbook, f, default_flow_style=False, sort_keys=False)
@@ -1043,6 +1121,36 @@ class CreatePlaybookModule(BaseModule):
         super().__init__(mcp)
 
 
+def _format_collection_question(q: dict, index: int) -> dict:
+    """
+    Convert a simplified question dict to the full XSOAR singleSelect format.
+
+    XSOAR requires specific fields (id, fieldassociated, placeholder, etc.) on
+    every question. When callers pass simplified dicts like
+    ``{"label": "Did user run this?", "options": ["Yes", "No"]}`` the form
+    renders empty in the War Room because the required fields are absent.
+    This function fills in all required fields with safe defaults.
+    """
+    return {
+        "id": q.get("id", f"question{index + 1}"),
+        "label": q.get("label", f"Question {index + 1}"),
+        "fieldassociated": q.get("fieldassociated", ""),
+        "placeholder": q.get("placeholder", ""),
+        "description": q.get("description", ""),
+        "required": q.get("required", False),
+        "defaultrows": q.get("defaultrows", []),
+        "type": q.get("type", "singleSelect"),
+        "options": q.get("options", []),
+        "tooltip": q.get("tooltip", ""),
+        "readonly": q.get("readonly", False),
+        "size": q.get("size", "large"),
+        "rowsNum": q.get("rowsNum", 4),
+        "senderID": q.get("senderID", ""),
+        "stringInContext": q.get("stringInContext", ""),
+        "gridcolumns": q.get("gridcolumns", []),
+    }
+
+
 def create_collection_task(task_id: str, name: str, description: str,
                           questions: List[dict], next_tasks: List[str],
                           position: dict,
@@ -1052,6 +1160,14 @@ def create_collection_task(task_id: str, name: str, description: str,
                           sla: dict = None,
                           slareminder: dict = None) -> dict:
     """Generate collection (user input form) task with optional SLA."""
+    # Ensure every question has the full set of XSOAR-required fields.
+    # Callers (and LLMs) often pass simplified dicts without the mandatory
+    # structural fields, which causes the War Room form to render as empty.
+    formatted_questions = [
+        _format_collection_question(q, i) if "id" not in q else q
+        for i, q in enumerate(questions)
+    ]
+
     task_dict = {
         "id": task_id,
         "taskid": generate_uuid(),
@@ -1086,7 +1202,7 @@ def create_collection_task(task_id: str, name: str, description: str,
             }
         },
         "form": {
-            "questions": questions,
+            "questions": formatted_questions,
             "title": name,
             "description": description,
             "sender": "",
