@@ -1,0 +1,57 @@
+[tool.poetry]
+name = "CortexMCP"
+version = "1.0.1"
+description = ""
+authors = []
+readme = "README.md"
+packages = [
+    { include = "src" }
+]
+
+[tool.poetry.dependencies]
+python = ">=3.12,<4.0"
+fastapi = "0.122.0"
+uvicorn = { version = "^0.38.0", extras = ["standard"] }
+types-requests = "^2.32.0.20250515"
+requests = "^2.32.3"
+fastmcp = "^2.13.1"
+mcp = "^1.21.2"
+starlette = "0.50.0"
+authlib = "1.6.5"
+aiohttp = "^3.11.0"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.11.10"
+black = "^25.1.0"
+mypy = "^1.15.0"
+pytest = "^8.3.5"
+pre-commit = "^4.2.0"
+pytest-asyncio = "^1.2.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 120
+target-version = ["py312"]
+
+[tool.ruff]
+fix = false
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501" # line too long
+]
