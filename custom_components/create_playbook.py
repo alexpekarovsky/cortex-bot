@@ -867,6 +867,15 @@ async def create_playbook(
         # Parse tasks
         tasks_list = json.loads(tasks)
 
+        # Validate tasks format - must be a list, not a dict
+        if isinstance(tasks_list, dict):
+            return create_response(
+                data={"error": "Tasks must be a JSON array (list), not a dict. "
+                      "Example: [{\"id\": \"1\", \"type\": \"title\", \"name\": \"Phase 1\", \"next\": [\"2\"]}, ...]. "
+                      "The start task (id 0) is auto-generated — do not include it."},
+                is_error=True
+            )
+
         # Build playbook structure
         playbook = {
             "id": name,
@@ -1058,7 +1067,8 @@ async def create_playbook(
                 )
 
         # Validate output path - must be under home directory or /tmp
-        allowed_bases = [Path.home(), Path("/tmp")]
+        # Resolve /tmp to handle macOS symlink (/tmp → /private/tmp)
+        allowed_bases = [Path.home(), Path("/tmp").resolve()]
         resolved_output = Path(output_path).resolve()
         if not any(str(resolved_output).startswith(str(base)) for base in allowed_bases):
             return create_response(

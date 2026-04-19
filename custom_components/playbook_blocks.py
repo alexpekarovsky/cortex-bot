@@ -697,6 +697,42 @@ This prevents runtime errors from invalid field names or syntax issues.
 | `process_command_line` | `action_process_image_command_line` | Missing action and image |
 | `file_sha256` | `action_file_sha256` or `actor_process_image_sha256` | Depends on context |
 | `hostname` | `agent_hostname` | Agent-specific field |
+| `os_type` | `operating_system` | Endpoints dataset — NOT os_type |
+| `ip` | `ip_address` | Endpoints dataset — returns array |
+| `users` | `user` | Endpoints dataset — singular, not plural |
+
+### Endpoints Dataset Schema Reference
+
+**CRITICAL: Use `dataset = endpoints` (NOT `preset = endpoints`) in XQL queries run via xdr-xql-generic-query.**
+
+The `preset =` syntax works in the XSIAM UI but causes 500 errors when executed through the XSOAR integration command.
+
+**Common fields (verified on production tenant):**
+```
+endpoint_name, endpoint_id, endpoint_type, endpoint_status,
+operating_system, os_version, ip_address, mac_address,
+user, domain, agent_version, platform, last_seen,
+content_version, content_status, is_edr_enabled,
+encryption_status, network_location, endpoint_isolated,
+assigned_prevention_policy, assigned_extensions_policy,
+operational_status, scan_status, agent_license_type,
+install_date, first_seen, last_successful_scan
+```
+
+**Example — Get all endpoints:**
+```yaml
+scriptarguments:
+  query_name:
+    simple: endpoint_inventory
+  query: |
+    dataset = endpoints
+    | fields endpoint_name, endpoint_id, endpoint_type, endpoint_status,
+             operating_system, ip_address, user, domain, agent_version,
+             platform, last_seen
+    | limit 20
+  time_frame:
+    simple: 30 days
+```
 
 **Best Practice:** Always reference XDM schema documentation or test queries first
 
