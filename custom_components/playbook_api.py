@@ -77,7 +77,7 @@ async def get_playbook(
     }
 
     try:
-        response = requests.post(url, json=request_data, headers=headers, verify=False)
+        response = requests.post(url, json=request_data, headers=headers, verify=True)
 
         if response.status_code != 200:
             return create_response(
@@ -177,9 +177,9 @@ async def insert_playbook(
     fetcher = await get_fetcher(ctx)
 
     # Validate file path - must be under home directory or /tmp
-    allowed_bases = [Path.home(), Path("/tmp")]
+    allowed_bases = [Path.home().resolve(), Path("/tmp").resolve()]
     resolved = Path(file).resolve()
-    if not any(str(resolved).startswith(str(base)) for base in allowed_bases):
+    if not any(resolved == base or base in resolved.parents for base in allowed_bases):
         return create_response(
             data={"error": f"File path must be under home directory or /tmp: {file}"},
             is_error=True

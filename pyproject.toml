@@ -13,12 +13,12 @@ python = ">=3.12,<4.0"
 fastapi = "0.122.0"
 uvicorn = { version = "^0.38.0", extras = ["standard"] }
 types-requests = "^2.32.0.20250515"
-requests = "^2.32.3"
+requests = "^2.33.0"
 fastmcp = "^2.13.1"
 mcp = "^1.21.2"
 starlette = "0.50.0"
-authlib = "1.6.5"
-aiohttp = "^3.11.0"
+authlib = "^1.6.9"
+aiohttp = "^3.13.4"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.11.10"
