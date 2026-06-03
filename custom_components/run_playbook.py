@@ -72,7 +72,7 @@ async def _create_playbook_test_issue(ctx: Context, playbook_name: str) -> dict:
         "name": f"Playbook Test - {playbook_name}",
         "description": f"Test workspace for running playbook: {playbook_name}",
         "observation_time": timestamp,
-        "domain": "SECURITY",
+        "issue_domain": "SECURITY",
         "category": "THREAT_INTELLIGENCE",
         "severity": "MEDIUM",  # MEDIUM+ creates a Case with War Room
         "tags": "playbook-test,ai-workspace",
@@ -93,35 +93,38 @@ async def _create_playbook_test_issue(ctx: Context, playbook_name: str) -> dict:
         reply = response.get("reply", response)
         external_id = reply.get("external_id")
 
-        # Wait for indexing and get numeric ID
-        await asyncio.sleep(3)
+        # Wait for indexing and get numeric ID — retry up to 5 times
+        for attempt in range(5):
+            await asyncio.sleep(3)
 
-        issues_response = await fetcher.send_request(
-            path="/public_api/v1/issues",
-            method="POST",
-            data={
-                "request_data": {
-                    "filters": [
-                        {"field": "external_id", "operator": "in", "value": [external_id]}
-                    ],
-                    "search_from": 0,
-                    "search_to": 1
+            issues_response = await fetcher.send_request(
+                path="/public_api/v1/issue/search/",
+                method="POST",
+                data={
+                    "request_data": {
+                        "filters": [
+                            {"field": "external_id", "operator": "in", "value": [external_id]}
+                        ],
+                        "search_from": 0,
+                        "search_to": 1
+                    }
                 }
-            }
-        )
+            )
 
-        if isinstance(issues_response, dict):
-            issues = issues_response.get("reply", {}).get("DATA", [])
-            if issues:
-                issue = issues[0]
-                return {
-                    "issue_id": str(issue.get("id")),
-                    "external_id": external_id,
-                    "name": issue_payload["name"],
-                    "severity": issue_payload["severity"]
-                }
+            if isinstance(issues_response, dict):
+                issues = issues_response.get("reply", {}).get("DATA", [])
+                if issues:
+                    issue = issues[0]
+                    return {
+                        "issue_id": str(issue.get("id")),
+                        "external_id": external_id,
+                        "name": issue_payload["name"],
+                        "severity": issue_payload["severity"]
+                    }
 
-    return {"external_id": external_id, "error": "Could not get numeric issue ID"}
+            logger.info(f"Issue not indexed yet, retry {attempt + 1}/5...")
+
+    return {"external_id": external_id, "error": "Could not get numeric issue ID after 5 retries"}
 
 
 async def run_playbook(
