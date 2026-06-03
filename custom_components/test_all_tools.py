@@ -170,7 +170,7 @@ async def _create_test_workspace(ctx: Context) -> dict:
                     "issue_domain": "SECURITY",
                     "category": "THREAT_INTELLIGENCE",
                     "severity": "MEDIUM",
-                    "tags": ["ai-workspace", "tool-testing", "automated"],
+                    "tags": "ai-workspace,tool-testing,automated",
                     "is_excluded": False,
                     "is_starred": False,
                     "type": "AI Workspace",

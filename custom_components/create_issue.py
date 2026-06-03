@@ -121,7 +121,7 @@ async def create_issue(
             "issue_domain": domain.upper(),
             "category": category.upper(),
             "severity": severity.upper(),
-            "tags": tags,
+            "tags": ",".join(tags) if isinstance(tags, list) else tags,
             "is_excluded": False,
             "is_starred": False,
             "type": "AI Workspace",

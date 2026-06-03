@@ -75,7 +75,7 @@ async def _create_playbook_test_issue(ctx: Context, playbook_name: str) -> dict:
         "domain": "SECURITY",
         "category": "THREAT_INTELLIGENCE",
         "severity": "MEDIUM",  # MEDIUM+ creates a Case with War Room
-        "tags": ["playbook-test", "ai-workspace"],
+        "tags": "playbook-test,ai-workspace",
         "is_excluded": False,
         "is_starred": False,
         "type": "AI Workspace",
