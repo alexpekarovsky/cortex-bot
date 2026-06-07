@@ -696,13 +696,22 @@ async def create_playbook(
 
     =====================================================================
 
-    📚 MANDATORY: Call get_playbook_building_blocks() FIRST
+    📚 MANDATORY: Call these tools BEFORE creating playbooks
 
     **REQUIRED WORKFLOW:**
-    1. ALWAYS call get_playbook_building_blocks() before creating playbooks
-    2. Reference the patterns for your specific use case
-    3. Use the exact YAML structures shown in building blocks
-    4. Then call create_playbook with correct task formats
+    1. Call list_integrations() to see what integrations are available on the tenant
+    2. Call get_integration_commands() for each relevant integration to see exact command names
+    3. Call get_playbook_building_blocks() for YAML patterns and task structures
+    4. Reference the patterns for your specific use case
+    5. Use the exact command names from step 2 (NOT from documentation — command names
+       vary by tenant version, e.g. xdr-get-endpoints vs core-get-endpoints)
+    6. Then call create_playbook with correct task formats
+
+    **Why list integrations first:**
+    - Command names differ between XSIAM versions (xdr-* vs core-*)
+    - Sub-playbooks may not be installed — use skipunavailable: true
+    - Some integrations have different instance names per tenant
+    - Avoids "Couldn't find any modules to run for command" errors
 
     Building blocks provide:
     - 60+ production-tested task patterns
@@ -713,7 +722,7 @@ async def create_playbook(
     - XQL query patterns with correct field names
     - Modern XSIAM 2.4+ commands
 
-    **This is MANDATORY - do not skip this step!**
+    **This is MANDATORY - do not skip these steps!**
 
     IMPORTANT - SEARCHES PANW CONTENT FIRST!
 
