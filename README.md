@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 
-**104 community-built MCP tools** that extend the official [Palo Alto Networks Cortex MCP Server](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools) to **106 total tools**. All tools are **pure Python** — no OpenAPI YAML dependencies.
+**106 community-built MCP tools** that extend the official [Palo Alto Networks Cortex MCP Server](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools). All tools are **pure Python** — no OpenAPI YAML dependencies.
 
 Built on top of the excellent [Cortex MCP Server](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools) by Palo Alto Networks, which provides the MCP framework and core XSIAM connectivity. This project adds additional tools to help security teams get even more out of their Cortex XSIAM investment.
 
@@ -64,9 +64,9 @@ For detailed step-by-step instructions, see [INSTALL.md](INSTALL.md).
 | **Playbook Management** | 4 | Get, insert, delete, run playbooks via API |
 | **Integration Discovery** | 2 | List integrations and commands in your XSIAM instance |
 | **Widget Management** | 3 | Create, list, delete XQL dashboard widgets |
-| **IOC & BIOC** | 4 | Get/insert indicators, get/insert BIOCs, list datasets |
+| **IOC & BIOC** | 6 | Get/insert indicators (JSON/CSV), get/insert BIOCs, list datasets |
 | **Assets & Risk** | 8 | Endpoints, assets, vulnerabilities, risky users/hosts |
-| **Platform** | 6 | Audit logs, agent reports, distributions, profiles, triage, vuln scan |
+| **Platform** | 7 | Audit logs, agent reports, distributions, profiles, triage, vuln scan, tenant info |
 | **War Room & IOC Insert** | 4 | War Room entries, IOC insertion (JSON/CSV) |
 | **Other** | 2 | get_tenant_info, test_all_tools |
 
