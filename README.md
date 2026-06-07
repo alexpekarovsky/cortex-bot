@@ -538,7 +538,6 @@ cortex-bot/
 │   └── ...                         # 41 Python modules total
 ├── .env.example                    # Credential template
 ├── INSTALL.md                      # Detailed installation guide
-├── push.sh                         # Safe push script (for contributors)
 ├── LICENSE                         # Apache 2.0
 └── README.md                       # This file
 ```
