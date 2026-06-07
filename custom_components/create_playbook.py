@@ -108,6 +108,10 @@ def create_regular_task(task_id: str, name: str,
     # Auto-promote integration commands passed under "script" key (PR #12 by pedrofcastro)
     # Auto-promote integration commands + set correct brand
     # Sorted longest-first so "xdr-xql" matches before "xdr-"
+    #
+    # XSIAM COMMAND NAMING: PANW GitHub playbooks use "xdr-*" commands (old XDR branding)
+    # but XSIAM tenants use "core-*" commands (Cortex Core branding). The _XDR_TO_CORE_MAP
+    # below translates xdr- commands to their core- equivalents at generation time.
     _CMD_BRAND_MAP = [
         ("xdr-xql-generic-query", "XQL Query Engine"),
         ("xdr-xql", "XQL Query Engine"),
@@ -126,6 +130,25 @@ def create_regular_task(task_id: str, name: str,
         ("qradar-", "QRadar v3"),
         ("crowdstrike-", "CrowdStrikeFalcon"),
     ]
+    # Translate old xdr-* command names to XSIAM core-* equivalents
+    _XDR_TO_CORE_MAP = {
+        "xdr-get-endpoints": "core-get-endpoints",
+        "xdr-isolate-endpoint": "core-isolate-endpoint",
+        "xdr-unisolate-endpoint": "core-unisolate-endpoint",
+        "xdr-get-incidents": "core-get-incidents",
+        "xdr-get-incident-extra-data": "core-get-incident-extra-data",
+        "xdr-update-incident": "core-update-incident",
+        "xdr-quarantine-files": "core-quarantine-files",
+        "xdr-get-quarantine-status": "core-get-quarantine-status",
+        "xdr-restore-file": "core-restore-file",
+        "xdr-blocklist-files": "core-blocklist-files",
+        "xdr-allowlist-files": "core-allowlist-files",
+        "xdr-run-script": "core-run-script",
+        "xdr-get-script-execution-results": "core-get-script-execution-results",
+        "xdr-get-script-execution-status": "core-get-script-execution-status",
+        "xdr-terminate-causality": "core-terminate-causality",
+        "xdr-get-cloud-original-alerts": "core-get-cloud-original-alerts",
+    }
     if script_name and not command:
         if "|||" in script_name:
             command = script_name
@@ -140,6 +163,14 @@ def create_regular_task(task_id: str, name: str,
                     script_name = None
                     is_command = True
                     break
+
+    # Translate xdr-* commands to core-* equivalents for XSIAM compatibility
+    if command:
+        for xdr_cmd, core_cmd in _XDR_TO_CORE_MAP.items():
+            if command.endswith(xdr_cmd):
+                command = command.replace(xdr_cmd, core_cmd)
+                logger.info(f"Auto-translated command: {xdr_cmd} → {core_cmd}")
+                break
 
     # Wrap arguments in simple: format if not already wrapped
     wrapped_arguments = {}
@@ -823,6 +854,22 @@ async def create_playbook(
     - Condition format: Use operator/left/right dicts, NOT ["left", "op", "right"] lists
     - Error handling: Set continueonerror: true AND use dict next with #none# + #error#
     - Arguments: Simple values auto-wrap, complex values need full format
+
+    XSIAM COMMAND NAMING:
+    - Old XDR commands (xdr-get-endpoints, xdr-isolate-endpoint, etc.) are auto-translated
+      to XSIAM core-* equivalents (core-get-endpoints, core-isolate-endpoint, etc.)
+    - This is handled automatically — use either naming convention
+
+    PLAYBOOK EXECUTION WARNINGS:
+    - closeInvestigation MUST be the LAST task before Done. Once an investigation is
+      closed, XSIAM stops all remaining playbook tasks. Any task after closeInvestigation
+      will not execute.
+    - setPlaybook on a CLOSED investigation returns HTTP 412 (closedInv). The investigation
+      must be open. If a previous playbook run closed it, reopen the investigation first
+      or use a different issue.
+    - Enrichment sub-playbooks (File/IP/Domain Enrichment) should always use
+      skipunavailable: true — if the enrichment pack isn't installed, the task
+      blocks the entire playbook otherwise.
 
     Args:
         ctx: FastMCP context
