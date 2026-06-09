@@ -172,14 +172,25 @@ def create_regular_task(task_id: str, name: str,
                 logger.info(f"Auto-translated command: {xdr_cmd} → {core_cmd}")
                 break
 
-    # Wrap arguments in simple: format if not already wrapped
+    # Wrap arguments in simple/complex format if not already wrapped
+    # Auto-adds SetIfEmpty transformer for Set script context variables to prevent
+    # "Missing argument value" crash when issue fields are null/empty
     wrapped_arguments = {}
     for key, value in arguments.items():
         if isinstance(value, dict) and ('simple' in value or 'complex' in value):
-            # Already wrapped
             wrapped_arguments[key] = value
+        elif (isinstance(value, str) and value.startswith("${") and value.endswith("}")
+              and script_name == "Set" and key == "value"):
+            inner = value[2:-1]
+            parts = inner.split(".", 1)
+            root = parts[0]
+            val_spec = {"complex": {"root": root,
+                "transformers": [{"operator": "SetIfEmpty", "args": {
+                    "applyIfEmpty": {}, "defaultValue": {"value": {"simple": "N/A"}}}}]}}
+            if len(parts) > 1:
+                val_spec["complex"]["accessor"] = parts[1]
+            wrapped_arguments[key] = val_spec
         else:
-            # Wrap in simple format
             wrapped_arguments[key] = {"simple": value}
 
     # Handle nexttasks - support both list and dict formats

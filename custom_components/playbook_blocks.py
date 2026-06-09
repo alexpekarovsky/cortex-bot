@@ -418,6 +418,22 @@ outputs:
   - Account.Disabled
 ```
 
+### MITRE ATT&CK Tactic Hunt
+```yaml
+type: playbook
+playbookName: Get entity alerts by MITRE tactics
+inputs:
+  - EntityType: Host          # REQUIRED: "Host" or "User"
+  - EntityID: ${issue.hostname}  # REQUIRED: hostname or username
+  - RunAll: "True"            # Run all tactic hunts
+  - timeRange: "7 days"       # Lookback window
+outputs:
+  - PATacticsResults
+```
+
+**CRITICAL:** Input names are `EntityType`/`EntityID` (NOT `HuntEntityType`/`HuntEntity`).
+Set `RunAll: "True"` to execute all MITRE tactic hunts in one call.
+
 ---
 
 ## Decision Blocks
