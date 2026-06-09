@@ -137,8 +137,8 @@ async def get_endpoint_profiles(
     try:
         fetcher = await get_fetcher(ctx)
         response = await fetcher.send_request(
-            "/public_api/v1/endpoints/get_profiles",
-            data={"request_data": {}})
+            "/public_api/v1/endpoints/get_profiles/",
+            data={"request_data": {"type": "prevention"}})
         return create_response(data=response)
     except PAPI_ERRORS as e:
         return create_response(data={"error": str(e)}, is_error=True)
