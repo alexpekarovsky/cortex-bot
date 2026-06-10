@@ -212,7 +212,7 @@ async def insert_playbook(
             form = aiohttp.FormData()
             form.add_field('file', zip_data, filename='playbook.zip', content_type='application/zip')
 
-            async with session.post(url, data=form, headers=headers, ssl=False) as resp:
+            async with session.post(url, data=form, headers=headers) as resp:
                 if resp.status != 200:
                     error_text = await resp.text()
                     return create_response(
