@@ -12,6 +12,7 @@ from entities.exceptions import (
 )
 from pkg.util import create_response
 from usecase.base_module import BaseModule
+from usecase.custom_components.destructive_gate import register_destructive
 from usecase.fetcher import get_fetcher
 
 logger = logging.getLogger(__name__)
@@ -132,8 +133,7 @@ async def get_script_execution_results(
 class ScriptToolsModule(BaseModule):
     """Script execution: run, snippet, list, metadata, status, results."""
     def register_tools(self):
-        self._add_tool(run_script)
-        self._add_tool(run_snippet_code_script)
+        register_destructive(self, run_script, run_snippet_code_script)
         self._add_tool(get_scripts)
         self._add_tool(get_script_metadata)
         self._add_tool(get_script_execution_status)

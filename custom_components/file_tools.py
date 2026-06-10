@@ -12,6 +12,7 @@ from entities.exceptions import (
 )
 from pkg.util import create_response
 from usecase.base_module import BaseModule
+from usecase.custom_components.destructive_gate import register_destructive
 from usecase.fetcher import get_fetcher
 
 logger = logging.getLogger(__name__)
@@ -106,7 +107,7 @@ async def get_quarantine_status(
 class FileToolsModule(BaseModule):
     """File operations: quarantine, retrieve, status, retrieval details."""
     def register_tools(self):
-        self._add_tool(quarantine_files)
+        register_destructive(self, quarantine_files)
         self._add_tool(retrieve_files)
         self._add_tool(get_file_retrieval_details)
         self._add_tool(get_quarantine_status)

@@ -12,6 +12,7 @@ from entities.exceptions import (
 )
 from pkg.util import create_response
 from usecase.base_module import BaseModule
+from usecase.custom_components.destructive_gate import register_destructive
 from usecase.fetcher import get_fetcher
 
 logger = logging.getLogger(__name__)
@@ -172,12 +173,11 @@ class EndpointToolsModule(BaseModule):
     def register_tools(self):
         self._add_tool(get_endpoints)
         self._add_tool(get_filtered_endpoints)
-        self._add_tool(isolate_endpoint)
         self._add_tool(unisolate_endpoint)
         self._add_tool(scan_endpoint)
         self._add_tool(abort_scan)
-        self._add_tool(terminate_causality)
         self._add_tool(get_action_status)
+        register_destructive(self, isolate_endpoint, terminate_causality)
 
     def register_resources(self):
         pass

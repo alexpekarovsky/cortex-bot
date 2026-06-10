@@ -23,6 +23,7 @@ from entities.exceptions import (
 )
 from pkg.util import create_response
 from usecase.base_module import BaseModule
+from usecase.custom_components.destructive_gate import register_destructive
 from usecase.fetcher import get_fetcher
 
 logger = logging.getLogger(__name__)
@@ -203,7 +204,7 @@ class BlocklistFilesModule(BaseModule):
     """
 
     def register_tools(self):
-        self._add_tool(blocklist_files)
+        register_destructive(self, blocklist_files)
 
     def register_resources(self):
         pass

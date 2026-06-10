@@ -21,6 +21,7 @@ from entities.exceptions import (
 )
 from pkg.util import create_response
 from usecase.base_module import BaseModule
+from usecase.custom_components.destructive_gate import register_destructive
 from usecase.fetcher import get_fetcher
 
 logger = logging.getLogger(__name__)
@@ -155,7 +156,7 @@ class TerminateProcessModule(BaseModule):
     """
 
     def register_tools(self):
-        self._add_tool(terminate_process)
+        register_destructive(self, terminate_process)
 
     def register_resources(self):
         pass
