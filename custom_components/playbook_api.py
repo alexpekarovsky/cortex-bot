@@ -277,10 +277,12 @@ async def insert_playbook(
 
 async def delete_playbook(
     ctx: Context,
-    filter: Annotated[Optional[dict | str], Field(description='Filter object with "field" (name or id) and "value"')] = None
+    filter: Annotated[Optional[dict | str], Field(description='Filter object with "field" (name or id) and "value"')] = None,
+    confirm_destructive_action: Annotated[bool, Field(
+        description="REQUIRED: Must be True. Permanently deletes a playbook."
+    )] = False,
 ) -> str:
-    """
-    Delete a playbook by filtering based on its name or ID.
+    """DESTRUCTIVE: Delete a playbook by filtering based on its name or ID. Not reversible.
 
     Use this to:
     - Remove obsolete playbooks
@@ -288,9 +290,7 @@ async def delete_playbook(
     - Manage playbook inventory
 
     You must have Instance Administrator permissions to run this endpoint.
-
-    **WARNING:** This is a destructive operation. Deleted playbooks cannot be recovered
-    unless you have a backup. Consider using get_playbook to download a backup first.
+    Consider using get_playbook to download a backup first.
 
     Args:
         ctx: The FastMCP context.
@@ -299,6 +299,17 @@ async def delete_playbook(
     Returns:
         JSON response with deletion status.
     """
+    if not confirm_destructive_action:
+        return create_response(
+            data={
+                "error": "Destructive action not confirmed",
+                "message": "This permanently deletes a playbook. "
+                           "Set confirm_destructive_action=True to proceed.",
+                "risk_level": "HIGH",
+                "reversible": False
+            },
+            is_error=True
+        )
     filter = _parse(filter)
     if not filter:
         return create_response(data={"error": "filter is required. Example: {\"field\": \"name\", \"value\": \"My Playbook\"}"}, is_error=True)

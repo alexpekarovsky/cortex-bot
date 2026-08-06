@@ -48,8 +48,22 @@ async def quarantine_files(
                     '"operator": "in", "value": ["<endpoint_id>"]}], '
                     '"file_path": "<path>", "file_hash": "<sha256>"} format.'
     )] = None,
+    confirm_destructive_action: Annotated[bool, Field(
+        description="REQUIRED: Must be True. Quarantines files on endpoints."
+    )] = False,
 ) -> str:
     """DESTRUCTIVE: Quarantines files on endpoints. Reversible with restore_file."""
+    if not confirm_destructive_action:
+        return create_response(
+            data={
+                "error": "Destructive action not confirmed",
+                "message": "This quarantines files on endpoints. "
+                           "Set confirm_destructive_action=True to proceed.",
+                "risk_level": "HIGH",
+                "reversible": True
+            },
+            is_error=True
+        )
     if not request_data:
         return create_response(data={"error": "request_data is required"}, is_error=True)
     request_data = _parse(request_data)

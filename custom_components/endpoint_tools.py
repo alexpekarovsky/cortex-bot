@@ -79,10 +79,24 @@ async def isolate_endpoint(
                     '"value": ["<id1>", "<id2>"]}]} for multiple. '
                     'Optional: add "incident_id": "<case_id>" to show action in Case Timeline.'
     )] = None,
+    confirm_destructive_action: Annotated[bool, Field(
+        description="REQUIRED: Must be True. Isolates endpoint from the network."
+    )] = False,
 ) -> str:
     """DESTRUCTIVE: Isolates an endpoint from the network. The endpoint can only communicate
     with the Cortex agent. Reversal: use unisolate_endpoint.
     Include incident_id in request_data to link the action to a case timeline."""
+    if not confirm_destructive_action:
+        return create_response(
+            data={
+                "error": "Destructive action not confirmed",
+                "message": "This isolates an endpoint from the network. "
+                           "Set confirm_destructive_action=True to proceed.",
+                "risk_level": "HIGH",
+                "reversible": True
+            },
+            is_error=True
+        )
     if not request_data:
         return create_response(data={"error": "request_data is required"}, is_error=True)
     request_data = _parse(request_data)
@@ -144,8 +158,22 @@ async def terminate_causality(
                     'Use {"filters": [{"field": "endpoint_id_list", "operator": "in", '
                     '"value": ["<id>"]}], "causality_id": "<causality_id>"}.'
     )] = None,
+    confirm_destructive_action: Annotated[bool, Field(
+        description="REQUIRED: Must be True. Terminates an entire process tree. Not reversible."
+    )] = False,
 ) -> str:
     """DESTRUCTIVE: Terminates an entire process tree (causality chain) on an endpoint. Not reversible."""
+    if not confirm_destructive_action:
+        return create_response(
+            data={
+                "error": "Destructive action not confirmed",
+                "message": "This terminates an entire process tree on an endpoint. "
+                           "Set confirm_destructive_action=True to proceed.",
+                "risk_level": "HIGH",
+                "reversible": False
+            },
+            is_error=True
+        )
     if not request_data:
         return create_response(data={"error": "request_data is required"}, is_error=True)
     request_data = _parse(request_data)

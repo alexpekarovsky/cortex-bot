@@ -398,9 +398,23 @@ async def get_correlation_rule(
 async def delete_correlation_rule(
     ctx: Context,
     rule_id: Annotated[int, Field(description="Numeric ID of the correlation rule to delete")],
+    confirm_destructive_action: Annotated[bool, Field(
+        description="REQUIRED: Must be True. Permanently deletes a correlation rule."
+    )] = False,
 ) -> str:
     """DESTRUCTIVE: Delete a correlation rule by ID. This cannot be undone.
     Use search_correlation_rules to find the rule ID first."""
+    if not confirm_destructive_action:
+        return create_response(
+            data={
+                "error": "Destructive action not confirmed",
+                "message": "This permanently deletes a correlation rule. "
+                           "Set confirm_destructive_action=True to proceed.",
+                "risk_level": "HIGH",
+                "reversible": False
+            },
+            is_error=True
+        )
     try:
         fetcher = await get_fetcher(ctx)
         response = await fetcher.send_request(

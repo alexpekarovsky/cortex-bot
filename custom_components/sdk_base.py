@@ -63,12 +63,10 @@ class DemistoSDKRunner:
             papi_auth_id = os.getenv("CORTEX_MCP_PAPI_AUTH_ID", "")
 
         if papi_url:
-            # DEMISTO_BASE_URL requires the api- prefix for SDK operations.
-            # CORTEX_MCP_PAPI_URL typically doesn't include it (e.g., https://cortexxsiam.xdr....)
-            # but the SDK needs https://api-cortexxsiam.xdr.... to avoid 303 redirects.
-            if "api-" not in papi_url.split("//", 1)[-1]:
-                papi_url = papi_url.replace("https://", "https://api-")
-            env["DEMISTO_BASE_URL"] = papi_url
+            # DEMISTO_BASE_URL uses the non-api- URL (e.g. https://cortexxsiam.xdr....)
+            # The PAPI URL may have api- prefix — strip it for SDK use.
+            sdk_url = papi_url.replace("https://api-", "https://")
+            env["DEMISTO_BASE_URL"] = sdk_url
         if papi_auth:
             env["DEMISTO_API_KEY"] = papi_auth
         if papi_auth_id:
@@ -133,6 +131,7 @@ class DemistoSDKRunner:
         # Get environment with SDK variables
         env = DemistoSDKRunner.get_env_with_sdk_vars()
         env["DEMISTO_SDK_IGNORE_CONTENT_WARNING"] = "1"
+        env["DEMISTO_VERIFY_SSL"] = "false"
 
         try:
             # Use DEVNULL for stdin if no data provided to prevent hanging

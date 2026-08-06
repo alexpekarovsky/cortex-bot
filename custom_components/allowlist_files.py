@@ -76,7 +76,7 @@ async def allowlist_files(
     if not confirm_destructive_action:
         return create_response(
             data={
-                "error": "Action not confirmed",
+                "error": "Destructive action not confirmed",
                 "message": "This is a HIGH risk action that exempts files from security controls. "
                           "Set confirm_destructive_action=True to proceed.",
                 "risk_level": "HIGH",

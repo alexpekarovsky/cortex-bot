@@ -49,8 +49,22 @@ async def run_script(
                     '"operator": "in", "value": ["<endpoint_id>"]}], '
                     '"parameters_values": {}} format.'
     )] = None,
+    confirm_destructive_action: Annotated[bool, Field(
+        description="REQUIRED: Must be True. Runs a script on managed endpoints."
+    )] = False,
 ) -> str:
     """DESTRUCTIVE: Runs a script on one or more endpoints. Use get_scripts to find script UIDs."""
+    if not confirm_destructive_action:
+        return create_response(
+            data={
+                "error": "Destructive action not confirmed",
+                "message": "This runs a script on managed endpoints. "
+                           "Set confirm_destructive_action=True to proceed.",
+                "risk_level": "HIGH",
+                "reversible": False
+            },
+            is_error=True
+        )
     if not request_data:
         return create_response(data={"error": "request_data is required"}, is_error=True)
     request_data = _parse(request_data)
@@ -65,8 +79,22 @@ async def run_snippet_code_script(
                     '"operator": "in", "value": ["<endpoint_id>"]}], '
                     '"snippet_code": "<python_code>"} format.'
     )] = None,
+    confirm_destructive_action: Annotated[bool, Field(
+        description="REQUIRED: Must be True. Executes arbitrary Python on managed endpoints."
+    )] = False,
 ) -> str:
     """DESTRUCTIVE: Runs a Python code snippet directly on endpoints."""
+    if not confirm_destructive_action:
+        return create_response(
+            data={
+                "error": "Destructive action not confirmed",
+                "message": "This executes arbitrary Python on endpoints. "
+                           "Set confirm_destructive_action=True to proceed.",
+                "risk_level": "CRITICAL",
+                "reversible": False
+            },
+            is_error=True
+        )
     if not request_data:
         return create_response(data={"error": "request_data is required"}, is_error=True)
     request_data = _parse(request_data)

@@ -28,6 +28,13 @@ from usecase.custom_components.sdk_base import DemistoSDKRunner
 logger = logging.getLogger(__name__)
 
 
+def _reject_path_traversal(path: str) -> str | None:
+    """Return an error message if path contains traversal sequences, else None."""
+    if ".." in path:
+        return f"Path rejected: '{path}' contains '..' (path traversal)"
+    return None
+
+
 # =============================================================================
 # SDK Tool Functions
 # =============================================================================
@@ -131,6 +138,9 @@ async def sdk_validate(
     Returns:
         JSON response with validation results and any errors/warnings.
     """
+    if err := _reject_path_traversal(path):
+        return create_response(data={"error": err}, is_error=True)
+
     args = ["validate", "-i", path]
 
     result = await DemistoSDKRunner.run_sdk_command(args, timeout=120)
@@ -171,6 +181,9 @@ async def sdk_lint(
     Returns:
         JSON response with linting results and issues found.
     """
+    if err := _reject_path_traversal(path):
+        return create_response(data={"error": err}, is_error=True)
+
     # Use 'format' command instead of 'lint' (lint doesn't exist in current SDK)
     args = ["format", "-i", path]
 
@@ -207,6 +220,9 @@ async def sdk_upload(
     Returns:
         JSON response with upload status.
     """
+    if err := _reject_path_traversal(path):
+        return create_response(data={"error": err}, is_error=True)
+
     args = ["upload", "-i", path]
 
     result = await DemistoSDKRunner.run_sdk_command(args, timeout=300)
@@ -246,6 +262,9 @@ async def sdk_download(
     Returns:
         JSON response with download status and file paths.
     """
+    if output_dir and (err := _reject_path_traversal(output_dir)):
+        return create_response(data={"error": err}, is_error=True)
+
     args = ["download", "-i", content_name]
 
     # Output is required, use current directory if not specified
@@ -371,6 +390,11 @@ async def sdk_generate_docs(
     Returns:
         JSON response with generated documentation paths.
     """
+    if err := _reject_path_traversal(path):
+        return create_response(data={"error": err}, is_error=True)
+    if output_dir and (err := _reject_path_traversal(output_dir)):
+        return create_response(data={"error": err}, is_error=True)
+
     args = ["generate-docs", "-i", path]
 
     if output_dir:
@@ -405,6 +429,11 @@ async def sdk_split(
     Returns:
         JSON response with created file paths.
     """
+    if err := _reject_path_traversal(path):
+        return create_response(data={"error": err}, is_error=True)
+    if output_dir and (err := _reject_path_traversal(output_dir)):
+        return create_response(data={"error": err}, is_error=True)
+
     args = ["split", "-i", path]
 
     if output_dir:
@@ -451,6 +480,11 @@ async def sdk_unify(
     Returns:
         JSON response with unified file path.
     """
+    if err := _reject_path_traversal(path):
+        return create_response(data={"error": err}, is_error=True)
+    if output_file and (err := _reject_path_traversal(output_file)):
+        return create_response(data={"error": err}, is_error=True)
+
     args = ["prepare-content", "-i", path]
 
     if output_file:

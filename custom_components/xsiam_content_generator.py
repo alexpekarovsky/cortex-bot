@@ -807,7 +807,7 @@ async def create_xsiam_dashboard(
     description: Annotated[Optional[str], Field(description="Description of the dashboard")] = None,
     xql_query: Annotated[Optional[str], Field(description="XQL query for default widget (e.g., 'dataset = alerts | comp count() as total')")] = None,
     widget_title: Annotated[Optional[str], Field(description="Title for the widget")] = None,
-    widget_type: Annotated[str, Field(description="Widget visualization type: single, table, pie, bar, line, column")] = "single",
+    widget_type: Annotated[str, Field(description="Widget visualization type: single, table, pie, line, column. Use 'column' for bar charts — 'bar' type is not supported in XSIAM")] = "single",
     upload: Annotated[bool, Field(description="If True, upload pack to XSIAM (requires -z flag)")] = False,
 ) -> str:
     """
@@ -978,7 +978,7 @@ async def create_xsiam_report(
     description: Annotated[Optional[str], Field(description="Description of the report")] = None,
     xql_query: Annotated[Optional[str], Field(description="XQL query for default widget (e.g., 'dataset = alerts | comp count() as total by severity')")] = None,
     widget_title: Annotated[Optional[str], Field(description="Title for the widget")] = None,
-    widget_type: Annotated[str, Field(description="Widget visualization type: single, table, pie, bar, line, column")] = "table",
+    widget_type: Annotated[str, Field(description="Widget visualization type: single, table, pie, line, column. Use 'column' for bar charts — 'bar' type is not supported in XSIAM")] = "table",
     dashboard_id: Annotated[Optional[str], Field(description="ID of associated XSIAMDashboard")] = None,
     upload: Annotated[bool, Field(description="If True, upload pack to XSIAM (requires -z flag)")] = False,
 ) -> str:

@@ -78,6 +78,13 @@ async def run_xql_query(
         JSON response containing query results with all matching events and data.
     """
 
+    MAX_QUERY_LENGTH = 10000
+    if len(query) > MAX_QUERY_LENGTH:
+        return create_response(
+            data={"error": f"Query exceeds maximum length ({len(query)} > {MAX_QUERY_LENGTH} chars)"},
+            is_error=True
+        )
+
     # Start the XQL query execution
     start_payload = {"request_data": {"query": query}}
 
