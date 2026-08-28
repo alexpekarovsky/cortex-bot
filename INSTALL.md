@@ -42,7 +42,7 @@ find ~ -name "main.py" -path "*/cortex*/src/main.py" 2>/dev/null
 # Copy custom tools into it
 cp -r cortex-bot/custom_components/* /path/to/cortex-mcp/src/usecase/custom_components/
 
-# Verify: should show 41 Python files
+# Verify: should show 42 Python files
 ls /path/to/cortex-mcp/src/usecase/custom_components/*.py | wc -l
 ```
 
@@ -155,7 +155,7 @@ With the three `CORTEX_MCP_PAPI_*` environment variables set.
 
 ## Step 6: Verify
 
-After connecting your AI agent, you should see **106 tools** (2 base + 104 custom).
+After connecting your AI agent, you should see **111 tools** (2 base + 109 custom).
 
 Test with these prompts:
 
@@ -172,7 +172,7 @@ Test with these prompts:
 
 | Problem | Fix |
 |---------|-----|
-| Only 6 tools visible | Custom files not copied — check `ls src/usecase/custom_components/*.py` shows 41 files |
+| Only 6 tools visible | Custom files not copied — check `ls src/usecase/custom_components/*.py` shows 42 files |
 | `401 Unauthorized` | Wrong API key — verify in `.env` |
 | `ModuleNotFoundError: aiohttp` | Run `pip install aiohttp` in the MCP server venv, then restart |
 | Import/pydantic errors | Don't `pip install demisto-sdk` in MCP venv — use `uvx` |

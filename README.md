@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 
-**106 community-built MCP tools** that extend the official [Palo Alto Networks Cortex MCP Server](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools). All tools are **pure Python** — no OpenAPI YAML dependencies.
+**111 community-built MCP tools** that extend the official [Palo Alto Networks Cortex MCP Server](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools). All tools are **pure Python** — no OpenAPI YAML dependencies.
 
 Built on top of the excellent [Cortex MCP Server](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools) by Palo Alto Networks, which provides the MCP framework and core XSIAM connectivity. This project adds additional tools to help security teams get even more out of their Cortex XSIAM investment.
 
@@ -38,7 +38,7 @@ mkdir -p ~/content/Packs
 cp .env.example .env
 # Edit .env with your XSIAM API URL, key, and key ID
 
-# 7. Restart MCP server — in your AI agent, reconnect to see 106 tools
+# 7. Restart MCP server — in your AI agent, reconnect to see 111 tools
 ```
 
 For detailed step-by-step instructions, see [INSTALL.md](INSTALL.md).
@@ -47,7 +47,7 @@ For detailed step-by-step instructions, see [INSTALL.md](INSTALL.md).
 
 ## What You Get
 
-### Tool Categories (106 total)
+### Tool Categories (111 total)
 
 | Category | Tools | What it does |
 |----------|-------|-------------|
@@ -65,6 +65,7 @@ For detailed step-by-step instructions, see [INSTALL.md](INSTALL.md).
 | **Integration Discovery** | 2 | List integrations and commands in your XSIAM instance |
 | **Widget Management** | 3 | Create, list, delete XQL dashboard widgets |
 | **IOC & BIOC** | 6 | Get/insert indicators (JSON/CSV), get/insert BIOCs, list datasets |
+| **MDR Reports** | 5 | Read MDR/MTH reports, comment, set status and assignment |
 | **Assets & Risk** | 8 | Endpoints, assets, vulnerabilities, risky users/hosts |
 | **Platform** | 7 | Audit logs, agent reports, distributions, profiles, triage, vuln scan, tenant info |
 | **War Room & IOC Insert** | 4 | War Room entries, IOC insertion (JSON/CSV) |
@@ -301,6 +302,22 @@ For detailed step-by-step instructions, see [INSTALL.md](INSTALL.md).
 </details>
 
 <details>
+<summary><b>MDR/MTH Managed Threat Detection (5 tools)</b></summary>
+
+| Tool | Example Prompt |
+|------|---------------|
+| `get_mdr_reports` | "Show all open MDR reports" / "Get MDR reports with status New" |
+| `get_mdr_report_comments` | "Show the analyst comments on MDR report abc-123" |
+| `add_mdr_report_comment` | "Add a comment to MDR report abc-123 saying we confirmed the activity" |
+| `update_mdr_report_status` | "Mark MDR report abc-123 as Resolved False Positive" |
+| `update_mdr_report_assignment` | "Assign MDR report abc-123 to me" / "Clear the assignment on abc-123" |
+
+Requires a **managed (child) tenant** with an MTH or Unit 42 MDR subscription — these endpoints
+return an error on a standard tenant.
+
+</details>
+
+<details>
 <summary><b>Platform (6 tools)</b></summary>
 
 | Tool | Example Prompt |
@@ -533,9 +550,10 @@ cortex-bot/
 │   ├── xql_query.py                # XQL query execution
 │   ├── xsiam_content_generator.py  # 11 content generation tools
 │   ├── ioc_bioc_tools.py            # IOC/BIOC management, dataset listing
+│   ├── mdr_reports.py               # MDR/MTH managed threat detection reports
 │   ├── platform_tools.py            # Audit logs, distributions, profiles, triage, vuln scan
 │   ├── correlation_rules.py         # Correlation rule CRUD
-│   └── ...                         # 41 Python modules total
+│   └── ...                         # 42 Python modules total
 ├── .env.example                    # Credential template
 ├── INSTALL.md                      # Detailed installation guide
 ├── LICENSE                         # Apache 2.0
@@ -553,6 +571,9 @@ cortex-bot/
 | `terminate_causality` | HIGH | No | Kills entire process tree |
 | `quarantine_files` | HIGH | Yes (`restore_file`) | Moves files to quarantine |
 | `run_script` | HIGH | Depends | Executes on endpoint |
+| `update_mdr_report_status` | MEDIUM | Yes (re-issue with previous status) | Changes MDR report workflow state |
+| `update_mdr_report_assignment` | MEDIUM | Yes (re-issue with previous user) | Omitting `user` clears the assignment |
+| `add_mdr_report_comment` | MEDIUM | No | Comments cannot be deleted via the API |
 
 Control with `ENABLE_DESTRUCTIVE_TOOLS=true/false` in `.env`.
 
@@ -562,7 +583,7 @@ Control with `ENABLE_DESTRUCTIVE_TOOLS=true/false` in `.env`.
 
 | Problem | Solution |
 |---------|---------|
-| Only 6 tools show (not 106) | Files not copied — verify `ls /path/to/cortex-mcp/src/usecase/custom_components/*.py` shows 41 files, then restart server |
+| Only 6 tools show (not 111) | Files not copied — verify `ls /path/to/cortex-mcp/src/usecase/custom_components/*.py` shows 42 files, then restart server |
 | `401 Unauthorized` | Check `.env` credentials match your XSIAM API key |
 | `pydantic` import errors | Don't install demisto-sdk in MCP venv — use `uvx demisto-sdk` |
 | SDK tools fail silently | Install uv: `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
