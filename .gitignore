@@ -98,3 +98,4 @@ Example/
 *.yml
 Dockerfile
 test_smart_discovery.py
+!.github/**/*.yml
