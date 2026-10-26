@@ -1,10 +1,36 @@
 # Release Notes
 
-## v1.2.0 — August 18, 2026
+## v1.2.0 — October 26, 2026
 
-**111 tools** (up from 106 in v1.1.0) — 5 new tools in 1 new category.
+**112 tools** (up from 106 in v1.1.0) — 6 new tools, 3 bug fixes, Docker SDK support.
+
+### Bug Fixes
+
+- **Fix A — `get_endpoints` description** (`endpoint_tools.py`): Corrected wrong filter field
+  names (`endpoint_id` → `endpoint_id_list`, `ip_address` → `ip_list`, `os_type` → `platform`)
+  and wrong operator (`contains` → `in`, `gte`, `lte`). Description now clarifies that
+  `get_endpoints` returns ALL endpoints with no filtering — use `get_filtered_endpoints` instead.
+
+- **Fix B — `test_all_tools.py` asset path**: Fixed wrong endpoint path
+  `/public_api/v1/asset/get_assets/` → `/public_api/v1/assets/get_assets/` (plural). The test
+  was silently hitting the wrong URL.
+
+- **Fix C — Docker: SDK tools now work in Docker** (`Dockerfile`): Added `uv` to the Docker image.
+  All 9 SDK tools call `uvx demisto-sdk` as a subprocess but `uvx` was missing from the image,
+  causing silent failures. Adding `uv` to the pip install line fixes all SDK tools in Docker
+  without affecting the local setup.
+
+### New Tools (6)
 
 ### New Tools (5)
+
+#### Event Collector Scaffolder (1 new tool)
+
+- `scaffold_event_collector` — Generates a complete ready-to-upload XSIAM event collector pack
+  from `{vendor, product, api_description, fields}`. Returns all pack files (integration YAML,
+  Python skeleton with cursor/dedup/send_events_to_xsiam, pack_metadata.json, README, .pack-ignore,
+  .secrets-ignore). Includes the working recipe from Issue #22: must install as system content via
+  `sdk_upload --xsiam --zip` — loose upload fails with `getLicenseCustomField` error.
 
 #### MDR/MTH Managed Threat Detection (5 new tools)
 

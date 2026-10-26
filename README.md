@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 
-**111 community-built MCP tools** that extend the official [Palo Alto Networks Cortex MCP Server](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools). All tools are **pure Python** — no OpenAPI YAML dependencies.
+**112 community-built MCP tools** that extend the official [Palo Alto Networks Cortex MCP Server](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools). All tools are **pure Python** — no OpenAPI YAML dependencies.
 
 Built on top of the excellent [Cortex MCP Server](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools) by Palo Alto Networks, which provides the MCP framework and core XSIAM connectivity. This project adds additional tools to help security teams get even more out of their Cortex XSIAM investment.
 
@@ -38,7 +38,7 @@ mkdir -p ~/content/Packs
 cp .env.example .env
 # Edit .env with your XSIAM API URL, key, and key ID
 
-# 7. Restart MCP server — in your AI agent, reconnect to see 111 tools
+# 7. Restart MCP server — in your AI agent, reconnect to see 112 tools
 ```
 
 For detailed step-by-step instructions, see [INSTALL.md](INSTALL.md).
@@ -47,7 +47,7 @@ For detailed step-by-step instructions, see [INSTALL.md](INSTALL.md).
 
 ## What You Get
 
-### Tool Categories (111 total)
+### Tool Categories (112 total)
 
 | Category | Tools | What it does |
 |----------|-------|-------------|

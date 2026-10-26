@@ -1,24 +1,17 @@
 # Installation Guide
 
-Step-by-step guide to add Cortex Bot community tools to your existing Palo Alto Networks Cortex MCP Server.
+## MCP Gateway
 
-**Requires:** The official [Palo Alto Networks Cortex MCP Server](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools) installed and working.
+The MCP Gateway installs and manages both packages automatically:
 
-**Works with:** Claude Code, Gemini CLI, OpenAI Codex, or any MCP-compatible AI agent.
+1. **Cortex MCP Server** (official PANW) — base MCP server with XSIAM connectivity
+2. **Cortex Bot** — 106 community tools that extend the server
 
----
+### Step 1: Get MCP Gateway access
 
-## Prerequisites
+Connect to the corporate network via Prisma Access. The MCP Gateway is available automatically.
 
-| Requirement | Check | Install |
-|-------------|-------|---------|
-| Official Palo Alto Networks Cortex MCP Server | Your AI agent shows base tools | [Palo Alto Networks docs](https://docs-cortex.paloaltonetworks.com/r/Cortex/Cortex-MCP-server/Create-custom-Cortex-MCP-server-tools) |
-| Python 3.12+ | `python --version` | [python.org](https://www.python.org/downloads/) |
-| Git | `git --version` | [git-scm.com](https://git-scm.com/) |
-| uv (for demisto-sdk) | `uv --version` | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| XSIAM API key | See below | XSIAM > Settings > API Keys |
-
-### Get your XSIAM API key
+### Step 2: Get your XSIAM API key
 
 1. Log into your XSIAM instance
 2. Go to **Settings > Configurations > API Keys**
@@ -27,9 +20,15 @@ Step-by-step guide to add Cortex Bot community tools to your existing Palo Alto 
 
 Your tenant URL format: `https://api-{tenant}.xdr.{region}.paloaltonetworks.com`
 
----
+### Step 3: Connect your AI agent
 
-## Step 1: Clone and copy
+#### Claude Code
+
+```bash
+claude mcp add cortex-xsiam -- cortex-bot
+```
+
+Or install manually:
 
 ```bash
 # Clone this repo
@@ -42,77 +41,17 @@ find ~ -name "main.py" -path "*/cortex*/src/main.py" 2>/dev/null
 # Copy custom tools into it
 cp -r cortex-bot/custom_components/* /path/to/cortex-mcp/src/usecase/custom_components/
 
-# Verify: should show 42 Python files
+# Verify: should show 43 Python files
 ls /path/to/cortex-mcp/src/usecase/custom_components/*.py | wc -l
 ```
 
-If `src/usecase/custom_components/` doesn't exist, create it first:
-```bash
-mkdir -p /path/to/cortex-mcp/src/usecase/custom_components
-```
-
-## Step 2: Install dependencies
-
-```bash
-cd /path/to/cortex-mcp
-source venv/bin/activate
-poetry install
-```
-
-This installs `aiohttp` and other dependencies required by the custom tools.
-
-## Step 3: Install uv and demisto-sdk
-
-The XSOAR SDK tools (`sdk_upload`, `sdk_validate`, etc.) need `demisto-sdk`, which conflicts with the MCP server's pydantic version. `uvx` solves this by running it in isolation.
-
-```bash
-# Install uv
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Verify demisto-sdk works through uvx
-uvx demisto-sdk --version
-# Expected: demisto-sdk 1.x.x
-
-# Create content directory (required for SDK tools)
-mkdir -p ~/content/Packs
-```
-
-If you skip this step, 9 SDK tools won't work. The other 97 tools are unaffected.
-
-## Step 4: Configure credentials
-
-```bash
-# In your PANW MCP server directory
-cp .env.example .env
-```
-
-Edit `.env` with your three XSIAM values:
-
-```bash
-CORTEX_MCP_PAPI_URL=https://api-yourinstance.xdr.us.paloaltonetworks.com
-CORTEX_MCP_PAPI_AUTH_HEADER=your_api_key_here
-CORTEX_MCP_PAPI_AUTH_ID=1
-```
-
-**These same credentials are used by all tools**, including the demisto-sdk tools. The SDK automatically maps them:
-- `CORTEX_MCP_PAPI_URL` → `DEMISTO_BASE_URL`
-- `CORTEX_MCP_PAPI_AUTH_HEADER` → `DEMISTO_API_KEY`
-- `CORTEX_MCP_PAPI_AUTH_ID` → `XSIAM_AUTH_ID`
-
-No separate SDK credential setup is needed.
-
-## Step 5: Configure your AI agent
-
-### Claude Code
-
-Add to `.claude/settings.local.json` (project-level) or `~/.claude/settings.json` (global):
+Or add to your MCP settings:
 
 ```json
 {
   "mcpServers": {
     "cortex-xsiam": {
-      "command": "python",
-      "args": ["/path/to/cortex-mcp/src/main.py"],
+      "command": "cortex-bot",
       "env": {
         "CORTEX_MCP_PAPI_URL": "https://api-yourinstance.xdr.us.paloaltonetworks.com",
         "CORTEX_MCP_PAPI_AUTH_HEADER": "your_api_key",
@@ -123,9 +62,9 @@ Add to `.claude/settings.local.json` (project-level) or `~/.claude/settings.json
 }
 ```
 
-Then in Claude Code, run `/mcp` to connect.
+Then run `/mcp` to connect.
 
-### Gemini CLI
+#### Gemini CLI
 
 Add to `~/.gemini/settings.json`:
 
@@ -133,8 +72,7 @@ Add to `~/.gemini/settings.json`:
 {
   "mcpServers": {
     "cortex-xsiam": {
-      "command": "python",
-      "args": ["/path/to/cortex-mcp/src/main.py"],
+      "command": "cortex-bot",
       "env": {
         "CORTEX_MCP_PAPI_URL": "https://api-yourinstance.xdr.us.paloaltonetworks.com",
         "CORTEX_MCP_PAPI_AUTH_HEADER": "your_api_key",
@@ -145,26 +83,41 @@ Add to `~/.gemini/settings.json`:
 }
 ```
 
-### Any MCP client
+#### Any MCP client
 
-The server uses **stdio transport** by default. Configure your client to run:
-```
-python /path/to/cortex-mcp/src/main.py
-```
-With the three `CORTEX_MCP_PAPI_*` environment variables set.
+Use stdio transport with the `cortex-bot` command and the three `CORTEX_MCP_PAPI_*` environment variables.
 
-## Step 6: Verify
+### Step 4: Verify
 
-After connecting your AI agent, you should see **111 tools** (2 base + 109 custom).
+After connecting your AI agent, you should see **112 tools** (2 base + 110 custom).
 
 Test with these prompts:
 
 ```
-"Show me all my XSIAM cases"           → Tests case management + API connection
-"Run XQL: dataset = xdr_data | limit 5" → Tests XQL execution
-"List all endpoints"                     → Tests endpoint access
-"Enrich IP 8.8.8.8"                     → Tests threat intel enrichment
+"Show me all my XSIAM cases"
+"Run XQL: dataset = xdr_data | limit 5"
+"List all endpoints"
+"Enrich IP 8.8.8.8"
 ```
+
+---
+
+## Optional: XSOAR SDK tools
+
+9 of the 106 tools wrap `demisto-sdk` for XSOAR content development. These are optional.
+
+```bash
+# Install uv (if not already)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Verify demisto-sdk works through uvx
+uvx demisto-sdk --version
+
+# Create content directory
+mkdir -p ~/content/Packs
+```
+
+If you skip this, the other 97 tools work fine.
 
 ---
 
@@ -172,12 +125,14 @@ Test with these prompts:
 
 | Problem | Fix |
 |---------|-----|
-| Only 6 tools visible | Custom files not copied — check `ls src/usecase/custom_components/*.py` shows 42 files |
-| `401 Unauthorized` | Wrong API key — verify in `.env` |
+| MCP Gateway not connecting | Check Prisma Access VPN is active |
+| Only base tools visible | Cortex Bot package not approved in gateway — contact gateway team |
+| Only 6 tools visible | Custom files not copied — check `ls src/usecase/custom_components/*.py` shows 43 files |
+| `401 Unauthorized` | Wrong API key — verify in `.env` or gateway config |
 | `ModuleNotFoundError: aiohttp` | Run `pip install aiohttp` in the MCP server venv, then restart |
 | Import/pydantic errors | Don't `pip install demisto-sdk` in MCP venv — use `uvx` |
 | `uvx: command not found` | Add to PATH: `echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc` |
-| SDK tools fail | Install uv: `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| SDK tools fail in Docker | Docker image must include `uv` — rebuild with v1.2.0+ Dockerfile |
 | `FileNotFoundError: Packs` | `mkdir -p ~/content/Packs` |
 | `FileNotFoundError: README.md` (sdk_upload) | Create: `echo "# Pack" > ~/content/Packs/MyPack/README.md && touch ~/content/Packs/MyPack/.pack-ignore` |
 | `Unable to find Repository` (sdk_upload) | Non-fatal warning — upload still works, safe to ignore |
@@ -202,11 +157,12 @@ curl -s -X POST "$CORTEX_MCP_PAPI_URL/public_api/v1/incidents/get_incidents" \
   -d '{"request_data": {}}' | head -100
 ```
 
+
 ---
 
 ## What's next
 
-Once installed, try:
+Once connected, try:
 
 - "Investigate case 123 and create an AI summary"
 - "Hunt for PowerShell activity on domain controllers"

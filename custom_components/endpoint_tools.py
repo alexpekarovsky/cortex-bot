@@ -45,8 +45,9 @@ async def get_endpoints(
     ctx: Context,
     request_data: Annotated[Optional[dict | str], Field(
         description="Filters for endpoint search. Keys: filters (array of {field, operator, value}), "
-                    "search_from (int), search_to (int). Fields: endpoint_id, hostname, ip_address, "
-                    "endpoint_status, os_type, domain. Operators: in, contains. Empty = all endpoints."
+                    "search_from (int), search_to (int). Returns ALL endpoints — no filters supported. "
+                    "For filtered search use get_filtered_endpoints. Valid filter fields there: "
+                    "endpoint_id_list, ip_list, platform. Operators: in, gte, lte."
     )] = None,
 ) -> str:
     """Retrieves detailed information about endpoints in your environment.

@@ -568,7 +568,7 @@ async def _test_assets_risk(ctx: Context, verbose: bool) -> list:
     try:
         start = time.time()
         response = await fetcher.send_request(
-            "/public_api/v1/asset/get_assets/",
+            "/public_api/v1/assets/get_assets/",
             data={"request_data": {"search_from": 0, "search_to": 1}}
         )
         elapsed = time.time() - start
