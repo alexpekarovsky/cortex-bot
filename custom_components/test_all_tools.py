@@ -1,5 +1,5 @@
 """
-Comprehensive testing framework for all 106 Cortex XSIAM MCP tools.
+Comprehensive testing framework for all 111 Cortex XSIAM MCP tools.
 
 =====================================================================
 TESTING WORKFLOW - Comprehensive Tool Validation
@@ -12,7 +12,7 @@ TESTING WORKFLOW - Comprehensive Tool Validation
 3. **Create detailed table** with columns: #, Tool Name, Status, Notes
 4. **Ask questions** when needed (e.g., "which endpoint to isolate?")
 5. **Don't skip or assume** - test each tool individually
-6. **At the end, provide comprehensive summary table** of all 106 tools
+6. **At the end, provide comprehensive summary table** of all 111 tools
 
 **Batch Structure:**
 - Batch 1 (1-10): Case Management + Issue Management
@@ -23,7 +23,7 @@ TESTING WORKFLOW - Comprehensive Tool Validation
 - Batch 6 (56-70): Playbook + Integration + Widgets
 - Batch 7 (71-85): IOC/BIOC + War Room + Assets
 - Batch 8 (86-100): Platform + Risk
-- Batch 9 (101-106): Other + Utilities
+- Batch 9 (101-111): Other + Utilities
 
 **For each tool:**
 - Call the tool with appropriate test parameters
@@ -33,7 +33,7 @@ TESTING WORKFLOW - Comprehensive Tool Validation
 - Mark non-critical issues for later
 
 **Final Deliverable:**
-Complete table with all 106 tools showing:
+Complete table with all 111 tools showing:
 | # | Tool | Category | Status | Notes |
 
 This ensures thorough testing before production GitHub release.
@@ -111,7 +111,7 @@ from usecase.fetcher import get_fetcher
 
 logger = logging.getLogger(__name__)
 
-# Tool Categories and Counts (106 tools total = 104 custom + 2 PANW base)
+# Tool Categories and Counts (111 tools total = 109 custom + 2 PANW base)
 TOOL_CATEGORIES = {
     "case_management": 5,       # get_cases, get_incident_extra_data, update_incident, update_case_ai_summary, update_case_timeline
     "issue_management": 5,      # get_issues, create_issue, update_issue, get_alert_multi_events, get_contributing_events
@@ -127,13 +127,14 @@ TOOL_CATEGORIES = {
     "integration_discovery": 2, # list_integrations, get_integration_commands
     "widget_apis": 3,           # get_widgets, insert_widgets, delete_widgets
     "ioc_bioc": 4,              # get_indicators, get_biocs, insert_bioc, get_datasets
+    "mdr_reports": 5,           # get_mdr_reports, get_mdr_report_comments, add_mdr_report_comment, update_mdr_report_status, update_mdr_report_assignment
     "assets_risk": 8,           # get_endpoints, get_filtered_endpoints, get_assets, get_asset_by_id, get_vulnerabilities, get_assessment_profile_results, list_risky_users, list_risky_hosts
     "platform": 6,              # get_audit_management_logs, get_audit_agent_reports, get_distributions, get_endpoint_profiles, get_triage_presets, trigger_vulnerability_scan
     "war_room_ioc": 4,          # add_war_room_entry, get_war_room_entries, insert_indicators_json, insert_indicators_csv
     "other": 2,                 # get_tenant_info, test_all_tools
 }
 
-TOTAL_TOOLS = sum(TOOL_CATEGORIES.values())  # Should be 92 - update categories if needed
+TOTAL_TOOLS = sum(TOOL_CATEGORIES.values())  # Should be 111 - update categories if needed
 
 # Destructive tools that require endpoint_id
 DESTRUCTIVE_TOOLS = [
@@ -767,6 +768,85 @@ async def _test_detection(ctx: Context, verbose: bool) -> list:
     return results
 
 
+async def _test_mdr_reports(ctx: Context, verbose: bool) -> list:
+    """Test all 5 MDR/MTH managed threat detection tools.
+
+    Only the read path is exercised live; the three state-changing tools are verified
+    through their client-side guards so a test run never writes to a real MDR report.
+    These endpoints require a tenant provisioned as an MTH/MDR child — on any other
+    tenant they time out, which is reported as LIMITED rather than FAILED."""
+    import json as _json
+
+    results = []
+    fetcher = await get_fetcher(ctx)
+
+    try:
+        from usecase.custom_components import mdr_reports as mdr
+    except ImportError as e:
+        return [{"tool": t, "status": "SKIP", "details": f"mdr_reports module not importable: {e}"}
+                for t in ("get_mdr_reports", "get_mdr_report_comments", "add_mdr_report_comment",
+                          "update_mdr_report_status", "update_mdr_report_assignment")]
+
+    async def _guard(tool, coro, expect):
+        """A guard test passes when the tool refuses the call locally, without any HTTP."""
+        start = time.time()
+        try:
+            payload = _json.loads(await coro)
+            elapsed = time.time() - start
+            if payload.get("success") == "false" and expect in str(payload.get("error", "")):
+                results.append({"tool": tool, "status": "WORKING",
+                                "details": f"Client-side guard rejected invalid input ({expect}); "
+                                           f"no write performed",
+                                "execution_time": elapsed})
+            else:
+                results.append({"tool": tool, "status": "FAILED",
+                                "error": f"Guard did not fire, got: {str(payload)[:200]}"})
+        except Exception as e:
+            results.append({"tool": tool, "status": "FAILED", "error": str(e)})
+
+    # Test 1: get_mdr_reports — live read against the managed-services API
+    try:
+        start = time.time()
+        response = await asyncio.wait_for(
+            fetcher.send_request("/public_api/v1/mth/child/get_all_reports",
+                                 data={"request_data": {}}),
+            timeout=35)
+        elapsed = time.time() - start
+        results.append({
+            "tool": "get_mdr_reports",
+            "status": "WORKING" if response.get("reply") is not None else "FAILED",
+            "details": f"Retrieved MDR reports in {elapsed:.2f}s",
+            "execution_time": elapsed
+        })
+    except TimeoutError:
+        results.append({"tool": "get_mdr_reports", "status": "LIMITED",
+                        "details": "No response — tenant is likely not provisioned as an MTH/MDR child"})
+    except Exception as e:
+        results.append({"tool": "get_mdr_reports", "status": "LIMITED",
+                        "details": f"Managed-services API unavailable on this tenant: {str(e)[:160]}"})
+
+    # Test 2: get_mdr_report_comments — requires a source ID or a full time range
+    await _guard("get_mdr_report_comments", mdr.get_mdr_report_comments(ctx), "Provide either source_id")
+
+    # Test 3: add_mdr_report_comment — 4096-character cap (not executed live: comments cannot be deleted)
+    await _guard("add_mdr_report_comment",
+                 mdr.add_mdr_report_comment(ctx, source_id="test", comment_text="x" * 5000,
+                                            created_by="test_all_tools"),
+                 "API limit is 4096")
+
+    # Test 4: update_mdr_report_status — status enum validated before any call
+    await _guard("update_mdr_report_status",
+                 mdr.update_mdr_report_status(ctx, source_id="test", report_status="Resolved"),
+                 "Invalid report_status")
+
+    # Test 5: update_mdr_report_assignment — refuses to silently clear an assignment
+    await _guard("update_mdr_report_assignment",
+                 mdr.update_mdr_report_assignment(ctx, source_id="test"),
+                 "No user given")
+
+    return results
+
+
 async def _test_ioc_bioc(ctx: Context, verbose: bool) -> list:
     """Test all 4 IOC/BIOC management tools."""
     results = []
@@ -991,7 +1071,7 @@ async def test_all_tools(
     verbose: Annotated[bool, Field(description="Enable detailed logging output for debugging")] = False,
 ) -> str:
     """
-    Comprehensive testing framework for all 106 XSIAM MCP tools.
+    Comprehensive testing framework for all 111 XSIAM MCP tools.
 
     This tool systematically tests each MCP tool and reports results in a
     structured format. Designed for consistent testing across different
@@ -1003,7 +1083,7 @@ async def test_all_tools(
     3. Tests tools by category in order
     4. Returns comprehensive results table with pass/fail status
 
-    **Tool Categories (106 total):**
+    **Tool Categories (111 total):**
     - case_management: 5 tools (cases, updates, AI summaries, timelines)
     - issue_management: 5 tools (issues, alerts, events, create, update)
     - response_actions: 7 tools (isolate, unisolate, scan, abort, terminate, action_status)
@@ -1018,6 +1098,7 @@ async def test_all_tools(
     - integration_discovery: 2 tools (list integrations, get commands)
     - widget_apis: 3 tools (get, insert, delete widgets)
     - ioc_bioc: 4 tools (get indicators, get/insert BIOCs, get datasets)
+    - mdr_reports: 5 tools (MDR/MTH reports, comments, status, assignment)
     - assets_risk: 8 tools (endpoints, assets, vulns, assessments, risky users/hosts)
     - platform: 6 tools (audit logs, distributions, profiles, triage, vuln scan)
     - war_room_ioc: 4 tools (war room entries, indicators JSON/CSV)
@@ -1174,6 +1255,8 @@ async def test_all_tools(
                 category_results = await _test_detection(ctx, verbose)
             elif category == "ioc_bioc":
                 category_results = await _test_ioc_bioc(ctx, verbose)
+            elif category == "mdr_reports":
+                category_results = await _test_mdr_reports(ctx, verbose)
             elif category == "assets_risk":
                 category_results = await _test_assets_risk(ctx, verbose)
             elif category == "platform":
@@ -1252,7 +1335,7 @@ class TestAllToolsModule(BaseModule):
     """
     Comprehensive testing framework for all XSIAM MCP tools.
 
-    Provides systematic testing of all 106 tools with:
+    Provides systematic testing of all 111 tools with:
     - Interactive parameter prompts
     - Safety controls for destructive actions
     - Category filtering

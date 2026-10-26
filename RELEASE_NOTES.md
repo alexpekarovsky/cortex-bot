@@ -1,5 +1,50 @@
 # Release Notes
 
+## v1.2.0 — August 18, 2026
+
+**111 tools** (up from 106 in v1.1.0) — 5 new tools in 1 new category.
+
+### New Tools (5)
+
+#### MDR/MTH Managed Threat Detection (5 new tools)
+
+Wraps the XSIAM Managed Services (Managed Threat Detection) PAPI, which managed **child** tenants
+use to work the reports Unit 42 / MTH analysts write for them. These 5 tools consolidate the API's
+8 endpoints:
+
+- `get_mdr_reports` — Read reports; dispatches to `get_all_reports`, `get_reports_by_source_id`,
+  `get_reports_by_incident_id` or `get_reports_by_statuses` based on which selector you pass
+  (at most one)
+- `get_mdr_report_comments` — Analyst comments by report source ID, or across a time range
+- `add_mdr_report_comment` — Post a comment, optionally with an attachment
+- `update_mdr_report_status` — Move a report through its workflow states
+- `update_mdr_report_assignment` — Assign a report to a user, or clear the assignment
+
+Requires a managed (child) tenant with an MTH or Unit 42 MDR subscription. On a standard tenant
+these tools return a clean `success: "false"` error rather than a stack trace.
+
+### Notes on the API's shape
+
+The upstream API is inconsistent in ways these tools normalize away — pass `raw=True` on any read
+tool to bypass normalization and see the untouched `reply`:
+
+- **Three response envelopes.** `{DATA, COUNT}`, `{status, data}`, and a bare array, depending on
+  which endpoint you hit. All read tools return a uniform `{mode, count, returned, truncated, reports}`.
+- **Two key cases.** `get_reports_by_source_id` returns `lower_snake_case` rows whose `attachments`
+  is the raw JSON column as a *string* (`"{}"`); every other endpoint returns `UPPER_SNAKE_CASE`
+  with a real array. Keys are lower-cased and attachments decoded to a list.
+- **Display vs internal statuses.** Requests take display values (`Resolved False Positive`);
+  responses return internal ones (`RESOLVED_FP`). Requests are validated against the 7 display
+  values client-side, and each report gains a `report_status_display` field.
+- **`request_data` envelope required.** The published OpenAPI spec shows flat request bodies, but
+  the live API rejects those with `err_code 101` ("Missing required param: `request_data`"). All
+  payloads are wrapped, matching every other Cortex PAPI endpoint.
+- **Silent destructive default.** On the assign endpoint, omitting `user` *clears* the assignment,
+  so `update_mdr_report_assignment` requires either a `user` or an explicit `clear_assignment=True`.
+
+Client-side guards (4096-char comment cap, `path_to_file` prefix check, status enum, mutually
+exclusive selectors) reject bad input before any HTTP call is made.
+
 ## v1.1.0 — April 6, 2026
 
 **106 tools** (up from 90 in v1.0.0) — 16 new tools across 4 new categories.
