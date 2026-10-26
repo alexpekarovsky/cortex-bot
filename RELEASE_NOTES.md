@@ -2,7 +2,7 @@
 
 ## v1.2.0 — October 26, 2026
 
-**112 tools** (up from 106 in v1.1.0) — 6 new tools, 3 bug fixes, Docker SDK support.
+**116 tools** (up from 106 in v1.1.0) — 10 new tools, 3 bug fixes, Docker SDK support.
 
 ### Bug Fixes
 
@@ -31,6 +31,26 @@
   Python skeleton with cursor/dedup/send_events_to_xsiam, pack_metadata.json, README, .pack-ignore,
   .secrets-ignore). Includes the working recipe from Issue #22: must install as system content via
   `sdk_upload --xsiam --zip` — loose upload fails with `getLicenseCustomField` error.
+
+#### Vulnerability Management V2 (4 new tools)
+
+New tools wrapping the `/vulnerability-management/v1/` API (Cortex Cloud Posture Management add-on).
+All 4 tools tested live against `cortexxsiam` tenant (3×3 runs — 100% pass rate).
+
+- `search_vulnerability_findings` — Rich paginated search: filter by severity, KEV flag, EPSS,
+  exploit level (WEAPONIZED/POC/NONE), internet exposure, CVE ID, asset name. Sort by
+  `CORTEX_VULNERABILITY_RISK_SCORE`, `CVSS_SCORE`, or `EPSS_SCORE`. Rate limit: 1000 req/24h.
+- `get_vulnerability_finding` — Full detail on a single finding by `platform_id`
+- `ingest_external_scan_results` — Push Tenable, Qualys, Rapid7 scan results into XSIAM.
+  Async — returns `job_id` for polling. Rate limit: 10 req/h, 10 concurrent jobs.
+- `get_byos_import_status` — Poll import job status (INITIATED → PROCESSING → COMPLETED/FAILED)
+
+API quirks discovered during testing (documented in tool code):
+- No `request_data` wrapper on BYOS ingest — assets[] at root level
+- `confidence` must be `"Confirmed"` or `"Potential"` (string, not number)
+- `cve_id` inside VulnerabilityInfo must be a list[str] — auto-fixed if bare string passed
+- `last_seen` required at both asset AND vulnerability level (epoch ms)
+- `get_byos_import_status` is a GET request, not POST
 
 #### MDR/MTH Managed Threat Detection (5 new tools)
 
